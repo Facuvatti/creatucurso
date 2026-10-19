@@ -6,7 +6,7 @@ import { replaceGeneratedSection } from "../src/shared/database/generated-sectio
 import { createTempDatabase } from "../src/shared/database/temp-database.ts";
 
 const SCHEMA_FILE = "database/schema.sql";
-const AUTH_CONFIG = "src/modules/identity/infrastructure/auth.ts";
+const AUTH_CONFIG = "src/server/auth.server.ts";
 const adminUrl =
 	process.env.DATABASE_URL ??
 	"postgres://creatucurso:creatucurso@localhost:5432/creatucurso";
