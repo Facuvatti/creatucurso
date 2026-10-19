@@ -35,3 +35,6 @@ create index "twoFactor_secret_idx" on "auth"."twoFactor" ("secret");
 
 create index "twoFactor_userId_idx" on "auth"."twoFactor" ("userId");
 -- <<< better-auth generated <<<
+
+-- Our additions to better-auth tables (outside the generated section above)
+alter table auth.organization alter column "videoPlan" set default 'basic';

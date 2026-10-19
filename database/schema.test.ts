@@ -83,6 +83,17 @@ describe("database/schema.sql", () => {
 		expect(rows[0]?.is_unique).toBe(true);
 	});
 
+	it("defaults the video plan of a new organization to basic", async () => {
+		await client.query(
+			`insert into auth.organization (id, name, slug, "createdAt") values ('org_default', 'Default', 'default-org', now())`,
+		);
+		const { rows } = await client.query<{ videoPlan: string }>(
+			`select "videoPlan" from auth.organization where id = 'org_default'`,
+		);
+
+		expect(rows[0]?.videoPlan).toBe("basic");
+	});
+
 	it("creates nothing outside the auth schema", async () => {
 		expect(await tablesIn("public")).toEqual([]);
 	});

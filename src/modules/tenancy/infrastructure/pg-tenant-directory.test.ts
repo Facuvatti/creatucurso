@@ -10,13 +10,12 @@ describe("createPgTenantDirectory", () => {
 
 	beforeAll(async () => {
 		db = await createSchemaDatabase();
-		// better-auth fills defaultValue itself; the SQL column has no DEFAULT.
 		await db.pool.query(
-			`insert into auth.organization (id, name, slug, "createdAt", "customDomain", "customDomainVerifiedAt", "videoPlan")
+			`insert into auth.organization (id, name, slug, "createdAt", "customDomain", "customDomainVerifiedAt")
 			 values
-			 ('org_1', 'Maria Courses', 'maria', now(), 'maria-courses.com', now(), 'basic'),
-			 ('org_2', 'Pending Domain', 'pending', now(), 'pending-site.com', null, 'basic'),
-			 ('org_3', 'No Domain', 'nodomain', now(), null, null, 'basic')`,
+			 ('org_1', 'Maria Courses', 'maria', now(), 'maria-courses.com', now()),
+			 ('org_2', 'Pending Domain', 'pending', now(), 'pending-site.com', null),
+			 ('org_3', 'No Domain', 'nodomain', now(), null, null)`,
 		);
 	});
 
