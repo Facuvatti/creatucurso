@@ -1,6 +1,6 @@
 # ADR-0001: Cross-domain login handoff for tenant hosts
 
-**Status:** Proposed (cookie behavior of the handoff must be proven by an integration test in Phase 2)
+**Status:** Accepted (verified end to end on 2026-10-19, see Verification)
 **Date:** 2026-10-19
 **Deciders:** Facu
 
@@ -78,7 +78,15 @@ Option A saves one redirect on subdomains but pays with a second mechanism and a
 
 ## Action Items
 
-1. [ ] Phase 2: integration test for the handoff (token single-use, expiry, host validation, revocation).
+1. [x] Phase 2: end-to-end tests for the handoff (single use, host validation, logout) in `e2e/auth.spec.ts`. Expiry and revocation from the central app are not covered yet.
 2. [ ] Phase 2: `tenant_host` list (verified subdomains and custom domains) as the single source for `return` validation and `trustedOrigins`.
 3. [ ] Phase 2: `Referrer-Policy` and token-stripping redirect on `/auth/handoff`.
 4. [ ] Phase 1 design doc: how custom domains get verified (DNS proof) before they enter the host list.
+
+## Verification
+
+Implemented in `src/routes/handoff.ts` (central app) and `src/routes/auth/handoff.ts` (creator site). Findings from running it:
+- `auth.api.verifyOneTimeToken` called inside a Start server route, with the `tanstackStartCookies` plugin, **does set the session cookie** on the redirect response. The cookie has `HttpOnly`, `SameSite=Lax` and no `Domain` attribute, so it is host-only.
+- The session token on the creator site is the same session as on the central app, so revoking the session at the central app also ends it on creator sites.
+- A one-time token cannot be redeemed twice.
+- The return address is validated by `resolveReturnTarget`: only a known creator site on the configured protocol is accepted; anything else gets 400.
