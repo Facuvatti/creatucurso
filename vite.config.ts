@@ -5,6 +5,8 @@ import { defineConfig } from "vite";
 
 const config = defineConfig({
 	resolve: { tsconfigPaths: true },
+	// Creator sites use many hostnames (subdomains and custom domains).
+	server: { allowedHosts: true },
 	plugins: [
 		nitro({ rollupConfig: { external: [/^@sentry\//] } }),
 

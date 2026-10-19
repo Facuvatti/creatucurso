@@ -10,33 +10,115 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CrearAcademiaRouteImport } from './routes/crear-academia'
+import { Route as HandoffRouteImport } from './routes/handoff'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AuthHandoffRouteImport } from './routes/auth/handoff'
+import { Route as AuthLogoutRouteImport } from './routes/auth/logout'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CrearAcademiaRoute = CrearAcademiaRouteImport.update({
+  id: '/crear-academia',
+  path: '/crear-academia',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HandoffRoute = HandoffRouteImport.update({
+  id: '/handoff',
+  path: '/handoff',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthHandoffRoute = AuthHandoffRouteImport.update({
+  id: '/auth/handoff',
+  path: '/auth/handoff',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthLogoutRoute = AuthLogoutRouteImport.update({
+  id: '/auth/logout',
+  path: '/auth/logout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/crear-academia': typeof CrearAcademiaRoute
+  '/handoff': typeof HandoffRoute
+  '/login': typeof LoginRoute
+  '/auth/handoff': typeof AuthHandoffRoute
+  '/auth/logout': typeof AuthLogoutRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/crear-academia': typeof CrearAcademiaRoute
+  '/handoff': typeof HandoffRoute
+  '/login': typeof LoginRoute
+  '/auth/handoff': typeof AuthHandoffRoute
+  '/auth/logout': typeof AuthLogoutRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/crear-academia': typeof CrearAcademiaRoute
+  '/handoff': typeof HandoffRoute
+  '/login': typeof LoginRoute
+  '/auth/handoff': typeof AuthHandoffRoute
+  '/auth/logout': typeof AuthLogoutRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/crear-academia'
+    | '/handoff'
+    | '/login'
+    | '/auth/handoff'
+    | '/auth/logout'
+    | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/crear-academia'
+    | '/handoff'
+    | '/login'
+    | '/auth/handoff'
+    | '/auth/logout'
+    | '/api/auth/$'
+  id:
+    | '__root__'
+    | '/'
+    | '/crear-academia'
+    | '/handoff'
+    | '/login'
+    | '/auth/handoff'
+    | '/auth/logout'
+    | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CrearAcademiaRoute: typeof CrearAcademiaRoute
+  HandoffRoute: typeof HandoffRoute
+  LoginRoute: typeof LoginRoute
+  AuthHandoffRoute: typeof AuthHandoffRoute
+  AuthLogoutRoute: typeof AuthLogoutRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +130,59 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/crear-academia': {
+      id: '/crear-academia'
+      path: '/crear-academia'
+      fullPath: '/crear-academia'
+      preLoaderRoute: typeof CrearAcademiaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/handoff': {
+      id: '/handoff'
+      path: '/handoff'
+      fullPath: '/handoff'
+      preLoaderRoute: typeof HandoffRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/handoff': {
+      id: '/auth/handoff'
+      path: '/auth/handoff'
+      fullPath: '/auth/handoff'
+      preLoaderRoute: typeof AuthHandoffRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/logout': {
+      id: '/auth/logout'
+      path: '/auth/logout'
+      fullPath: '/auth/logout'
+      preLoaderRoute: typeof AuthLogoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CrearAcademiaRoute: CrearAcademiaRoute,
+  HandoffRoute: HandoffRoute,
+  LoginRoute: LoginRoute,
+  AuthHandoffRoute: AuthHandoffRoute,
+  AuthLogoutRoute: AuthLogoutRoute,
+  ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

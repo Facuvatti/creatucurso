@@ -2,34 +2,51 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppHomePage } from "../components/pages/app-home-page.tsx";
 import { LandingPage } from "../components/pages/landing-page.tsx";
 import { TenantHomePage } from "../components/pages/tenant-home-page.tsx";
-import type { HostResolution } from "../modules/tenancy/application/resolve-tenant.ts";
-
-function titleFor(host: HostResolution | undefined): string {
-	switch (host?.kind) {
-		case "tenant":
-			return host.tenant.name;
-		case "platform-app":
-			return "Panel | Creatucurso";
-		default:
-			return "Creatucurso: creá y vendé tus cursos online";
-	}
-}
+import { getAppHome } from "../server/academy.functions.ts";
 
 export const Route = createFileRoute("/")({
-	loader: ({ context }) => context.host,
-	head: ({ loaderData }) => ({ meta: [{ title: titleFor(loaderData) }] }),
+	loader: async ({ context }) => ({
+		home:
+			context.host.kind === "platform-app" && context.user
+				? await getAppHome()
+				: { academies: [], studying: [] },
+	}),
+	head: ({ match }) => {
+		const { host } = match.context;
+		const title =
+			host.kind === "tenant"
+				? host.tenant.name
+				: host.kind === "platform-app"
+					? "Panel | Creatucurso"
+					: "Creatucurso: creá y vendé tus cursos online";
+		return { meta: [{ title }] };
+	},
 	component: Home,
 });
 
 function Home() {
-	const host = Route.useLoaderData();
+	const { host, user, roles, origin, appOrigin } = Route.useRouteContext();
+	const { home } = Route.useLoaderData();
 
-	switch (host.kind) {
-		case "tenant":
-			return <TenantHomePage tenant={host.tenant} />;
-		case "platform-app":
-			return <AppHomePage />;
-		default:
-			return <LandingPage />;
+	if (host.kind === "tenant") {
+		const loginUrl = `${appOrigin}/login?return=${encodeURIComponent(`${origin}/`)}`;
+		return (
+			<TenantHomePage
+				tenant={host.tenant}
+				user={user}
+				roles={roles}
+				loginUrl={loginUrl}
+			/>
+		);
 	}
+	if (host.kind === "platform-app") {
+		return (
+			<AppHomePage
+				user={user}
+				academies={home.academies}
+				studying={home.studying}
+			/>
+		);
+	}
+	return <LandingPage />;
 }

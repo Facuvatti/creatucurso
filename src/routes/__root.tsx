@@ -5,14 +5,14 @@ import {
 	Scripts,
 } from "@tanstack/react-router";
 import { NotFoundPage } from "../components/pages/not-found-page.tsx";
-import { getHostResolution } from "../server/host.functions.ts";
+import { getRequestContext } from "../server/request-context.functions.ts";
 import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
 	beforeLoad: async () => {
-		const host = await getHostResolution();
-		if (host.kind === "unknown") throw notFound();
-		return { host };
+		const context = await getRequestContext();
+		if (context.host.kind === "unknown") throw notFound();
+		return context;
 	},
 	head: () => ({
 		meta: [
