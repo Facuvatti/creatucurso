@@ -16,7 +16,7 @@ async function withClient(url: string, run: (client: Client) => Promise<void>) {
 	}
 }
 
-export default async function globalSetup() {
+async function prepareDatabase() {
 	await withClient(adminDatabaseUrl, async (admin) => {
 		await admin.query(`DROP DATABASE IF EXISTS ${e2eDatabaseName} WITH (FORCE)`);
 		await admin.query(`CREATE DATABASE ${e2eDatabaseName}`);
@@ -32,3 +32,5 @@ export default async function globalSetup() {
 		);
 	});
 }
+
+await prepareDatabase();
