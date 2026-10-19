@@ -8,6 +8,22 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: creatucurso
+          POSTGRES_PASSWORD: creatucurso
+          POSTGRES_DB: creatucurso
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U creatucurso -d creatucurso"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://creatucurso:creatucurso@localhost:5432/creatucurso
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -18,5 +34,6 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
       - run: pnpm typecheck
+      - run: pnpm db:auth:check
       - run: pnpm test
       - run: pnpm build
