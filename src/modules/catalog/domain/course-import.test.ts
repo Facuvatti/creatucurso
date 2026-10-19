@@ -162,6 +162,15 @@ describe("parseCourseImport", () => {
 		]);
 	});
 
+	it("rejects media references with control characters", () => {
+		const course = minimal();
+		course.modules[0]?.classes[0]?.videos.push("clase\u0000.mp4");
+
+		expect(errorsOf(course)).toEqual([
+			expect.objectContaining({ path: "modules[0].classes[0].videos[1]" }),
+		]);
+	});
+
 	it("rejects more cover images than allowed", () => {
 		const coverImages = Array.from({ length: 11 }, (_, i) => `cover-${i}.webp`);
 

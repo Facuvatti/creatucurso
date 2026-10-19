@@ -16,7 +16,7 @@ const mediaRef = z
 	.min(1, "must not be empty")
 	.max(1024)
 	.refine(
-		(value) => !/[\u0000-\u001f]/.test(value),
+		(value) => ![...value].some((char) => char.charCodeAt(0) < 32),
 		"must not contain control characters",
 	);
 
