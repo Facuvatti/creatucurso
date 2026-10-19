@@ -38,3 +38,75 @@ create index "twoFactor_userId_idx" on "auth"."twoFactor" ("userId");
 
 -- Our additions to better-auth tables (outside the generated section above)
 alter table auth.organization alter column "videoPlan" set default 'basic';
+
+-- Our tables: catalog (courses, modules, lessons, enrollments and progress) -------------
+create schema if not exists catalog;
+
+create table if not exists catalog.course (
+	id uuid primary key default gen_random_uuid(),
+	organization_id text not null references auth.organization (id) on delete cascade,
+	slug text not null,
+	previous_slugs text[] not null default '{}',
+	name text not null,
+	short_description text,
+	long_description text,
+	cover_images jsonb not null default '[]'::jsonb,
+	promo_video jsonb,
+	requirements text[] not null default '{}',
+	learning_goals text[] not null default '{}',
+	target_students text[] not null default '{}',
+	status text not null default 'draft' check (status in ('draft', 'published')),
+	created_at timestamptz not null default now(),
+	updated_at timestamptz not null default now(),
+	unique (organization_id, slug)
+);
+create index if not exists course_organization_idx on catalog.course (organization_id, status);
+create index if not exists course_previous_slugs_idx on catalog.course using gin (previous_slugs);
+
+create table if not exists catalog.course_instructor (
+	course_id uuid not null references catalog.course (id) on delete cascade,
+	user_id text not null references auth."user" (id) on delete cascade,
+	primary key (course_id, user_id)
+);
+
+create table if not exists catalog.module (
+	id uuid primary key default gen_random_uuid(),
+	course_id uuid not null references catalog.course (id) on delete cascade,
+	title text not null,
+	description text,
+	position integer not null check (position > 0)
+);
+create index if not exists module_course_idx on catalog.module (course_id, position);
+
+create table if not exists catalog.lesson (
+	id uuid primary key default gen_random_uuid(),
+	course_id uuid not null references catalog.course (id) on delete cascade,
+	module_id uuid not null references catalog.module (id) on delete cascade,
+	slug text not null,
+	title text not null,
+	description text,
+	position integer not null check (position > 0),
+	videos jsonb not null default '[]'::jsonb,
+	notes jsonb not null default '[]'::jsonb,
+	unique (course_id, slug)
+);
+create index if not exists lesson_module_idx on catalog.lesson (module_id, position);
+
+create table if not exists catalog.enrollment (
+	id uuid primary key default gen_random_uuid(),
+	course_id uuid not null references catalog.course (id) on delete cascade,
+	user_id text not null references auth."user" (id) on delete cascade,
+	source text not null default 'manual' check (source in ('manual', 'payment')),
+	payment_id text unique,
+	completed_at timestamptz,
+	created_at timestamptz not null default now(),
+	unique (course_id, user_id)
+);
+create index if not exists enrollment_user_idx on catalog.enrollment (user_id);
+
+create table if not exists catalog.lesson_progress (
+	lesson_id uuid not null references catalog.lesson (id) on delete cascade,
+	user_id text not null references auth."user" (id) on delete cascade,
+	completed_at timestamptz not null default now(),
+	primary key (lesson_id, user_id)
+);
