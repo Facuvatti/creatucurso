@@ -38,7 +38,6 @@
           "title": "¿Qué es HTML?",
           "description": "Introducción al lenguaje de marcado.",
           "order": 1,
-          "durationMinutes": 12,
           "videos": [
             "C:/Users/maria/Desktop/curso-web/mod1/clase1.mp4"
           ],
@@ -50,7 +49,6 @@
           "title": "Etiquetas esenciales",
           "description": "Encabezados, párrafos, listas y enlaces.",
           "order": 2,
-          "durationMinutes": 18,
           "videos": [
             "C:/Users/maria/Desktop/curso-web/mod1/clase2.mp4"
           ],
@@ -70,7 +68,6 @@
           "title": "Introducción a CSS",
           "description": "Sintaxis, selectores y primeros estilos.",
           "order": 1,
-          "durationMinutes": 15,
           "videos": [
             "C:/Users/maria/Desktop/curso-web/mod2/clase1.mp4"
           ],

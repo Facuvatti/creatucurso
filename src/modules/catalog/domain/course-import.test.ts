@@ -35,10 +35,8 @@ describe("parseCourseImport", () => {
 	});
 
 	it("accepts the example provided by the owner", () => {
-		// The example file still lists the removed `durationMinutes` field.
 		const example = JSON.parse(
 			readFileSync("docs/formato_curso_por_mcp.md", "utf8"),
-			(key, value) => (key === "durationMinutes" ? undefined : value),
 		);
 
 		const result = parseCourseImport(example);
