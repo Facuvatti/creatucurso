@@ -9,7 +9,7 @@ export type HostConfig = {
 	platformDomain: string;
 };
 
-const RESERVED_SUBDOMAINS = new Set([
+export const RESERVED_SUBDOMAINS = new Set([
 	"api",
 	"admin",
 	"mail",
