@@ -1,0 +1,21 @@
+# Development database only. Production uses its own compose file (Phase 14).
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: creatucurso-db
+    environment:
+      POSTGRES_USER: creatucurso
+      POSTGRES_PASSWORD: creatucurso
+      POSTGRES_DB: creatucurso
+    ports:
+      - "5432:5432"
+    volumes:
+      - creatucurso-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U creatucurso -d creatucurso"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  creatucurso-db-data:
