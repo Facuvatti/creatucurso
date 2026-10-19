@@ -28,7 +28,7 @@ Items marked **(assumption)** are planning assumptions to confirm; they are not 
 
 ### Constraints
 - One self-hosted ARM server, 16 GB RAM (up to 32 GB). Development happens on a Raspberry Pi 4 with 7.6 GB. No MongoDB.
-- TanStack Start with Node, better-auth with the Organization plugin, Postgres, Hyperswitch (own compose project).
+- TanStack Start with Node, better-auth with the Organization plugin, Postgres without an ORM, Hyperswitch (own compose project).
 - Strict TDD; small commits; design patterns only where they pay for themselves.
 
 ## 2. High-level design
@@ -47,7 +47,20 @@ src/
   routes/         (thin: parse, call use case, render)
 ```
 
-Ports and adapters are used where an external provider is uncertain or replaceable: payments (Hyperswitch), video (VdoCipher, Bunny or a license-only DRM), email. A repository per aggregate always receives the resolved tenant, so a query cannot be written without tenant scope. No other patterns are introduced up front.
+Ports and adapters are used where an external provider is uncertain or replaceable: payments (Hyperswitch), video (VdoCipher, Bunny or a license-only DRM), email. A repository per aggregate always receives the resolved tenant, so a query cannot be written without tenant scope.
+
+#### Modules that can move to their own server
+The owner wants each service to be movable to another server when scale requires it. These rules make that possible without paying for microservices today:
+1. A module's only public surface is `modules/<name>/api.ts` (its ports). Other modules import nothing else, and a CI check on imports enforces it.
+2. Synchronous calls between modules go through those ports. Today the adapter is an in-process call; later it can be an HTTP or queue adapter with no change to the callers.
+3. Asynchronous reactions use outbox events, which already travel through a table the worker reads.
+4. Each module owns a Postgres schema (for example `catalog`, `enrollment`, `chat`) and reads its connection string from its own environment variable, defaulting to the shared database, so a module's data can move to another Postgres host.
+5. No joins and no foreign keys between module schemas, except references to the identity and tenancy tables owned by better-auth (`user`, `organization`), which stay in the `auth` schema as the platform's foundation.
+6. Deployable units from day one: `web` (the Start app), `worker`, and `media` (HLS packaging, key server and segment delivery for the Basic tier). They run from the same code base with their own configuration, so any of them can run on a different machine.
+
+External services (Hyperswitch, the video provider, email) are already separate.
+
+No other patterns are introduced up front.
 
 ### Components
 
@@ -76,6 +89,8 @@ Ports and adapters are used where an external provider is uncertain or replaceab
 2. Known host → the tenant is added to the request context. `app.example.com` → platform context. Unknown host → 404 before any other work.
 3. Every use case then checks membership of the logged-in user in that tenant. The tenant is never taken from `session.activeOrganizationId` (ADR-0002). Whether the middleware context reaches route loaders directly or must be re-read with the request helper is verified by a test in this phase.
 
+Example in plain words: `maria.example.com/cursos/python` and `maria-courses.com/cursos/python` both reach the same server. The middleware reads the address the visitor typed (the `Host` header), looks up which creator owns it (subdomain = the organization's slug, custom domain = a column on the organization), and every query during that request is limited to that creator's data. The logged-in person is a separate matter: one student can be logged in and visit many creators' sites, so the creator comes from the address and the person comes from the session.
+
 ### Key flows
 - **Login on a tenant host:** tenant → `app.example.com/login?return=...` → login → one-time token → tenant `/auth/handoff` → host-only session cookie (ADR-0001).
 - **Purchase:** checkout → Hyperswitch → signed webhook → idempotent on the payment id → add student member + `enrollment` + outbox event `enrollment.created`.
@@ -84,32 +99,34 @@ Ports and adapters are used where an external provider is uncertain or replaceab
 
 ## 3. Data model
 
-### From better-auth (generated with its CLI for the Drizzle adapter)
-`user`, `session`, `account`, `verification`, `organization`, `member`, `invitation`. `organization.slug` is the free subdomain.
+### From better-auth (SQL produced by its `generate` command, kept in `database/schema.sql`)
+`user`, `session`, `account`, `verification`, `organization`, `member`, `invitation`, plus `organizationRole` only if dynamic access control is enabled. Plugins that need tables (for example Agent Auth, ADR-0013) add theirs to the same generated section. `organization.slug` is the free subdomain and `customDomain` is an added column.
 
 ### Application tables
+Kept to a minimum: closely owned child data lives in JSONB or array columns of its parent instead of separate tables. Identity, tenancy, memberships, invitations and roles use better-auth's own tables; a custom domain is an extra column on `organization`, so no host table is needed.
+
 | Table | Key points |
 |---|---|
-| `tenant_host` | `host` unique; `organization_id`; kind (subdomain or custom); `verified_at`; only verified hosts resolve |
-| `course` | `organization_id`; `slug` unique per organization; status draft/published |
-| `slug_history` | old slugs per course for 301 redirects |
+| `course` | `organization_id`; `slug` unique per organization; `previous_slugs` text[] for 301 redirects; status draft/published; certificate template reference and field positions |
 | `module`, `lesson` | ordered; lesson slug unique per course |
 | `course_tutor` | `(course_id, user_id)` |
-| `enrollment` | `(user_id, course_id)` unique; `payment_id` unique when present |
+| `enrollment` | `(user_id, course_id)` unique; `payment_id` unique when present; certificate columns (credential id unique and random, status, file, issued at) |
 | `lesson_progress` | `(lesson_id, user_id)` unique |
 | `review` | `(course_id, user_id)` unique; rating 1 to 5; hidden flag |
 | `comment` | lesson, user, optional parent, hidden flag |
-| `exam`, `question`, `exam_attempt` | answer key server-only; attempts counted; webhook URL and encrypted signing secret for webhook exams |
-| `certificate_template`, `certificate` | credential id unique and random; status valid/revoked; stored file |
-| `automation`, `message_delivery` | trigger, channel (email in v1), template, delivery status |
+| `exam` | settings; questions and answer key in a JSONB column never selected for students; webhook URL and encrypted signing secret for webhook exams |
+| `exam_attempt` | exam, user, started and submitted times, answers, score, passed, grading error |
+| `automation` | trigger, channel (email in v1), template, enabled; attachments as JSONB |
+| `message_delivery` | automation, event, status, attempts |
 | `outbox_event` | type, payload, status, attempts; written in the same transaction as the change |
-| `tenant_usage`, `invoice` | daily usage per tenant with cost snapshot; monthly invoices |
+| `tenant_usage` | daily per organization with a cost snapshot |
+| `invoice` | monthly invoices |
 | `conversation`, `message` | in-app chat (ADR-0010) |
 
 All tenant data carries `organization_id` and every repository query is scoped by it. Postgres row-level security is a possible later defense in depth, not part of v1.
 
 ### Storage choices
-Postgres 16 or newer through Drizzle ORM (better-auth ships a Drizzle adapter and a CLI that generates the schema). Files (certificate templates, issued PDFs, attachments, Basic-tier video) on the server's disk behind an interface so object storage can replace it later.
+Postgres 16 or newer accessed with the `pg` driver and hand-written SQL, no ORM. `database/schema.sql` is the single schema file: our tables plus a delimited section with the SQL produced by better-auth's `generate` command (ADR-0011). Files (certificate templates, issued PDFs, attachments, Basic-tier video) on the server's disk behind an interface so object storage can replace it later.
 
 ## 4. Deep dive
 
@@ -149,8 +166,12 @@ Domain events are written to `outbox_event` inside the same transaction as the c
 ### Load estimation **(assumption)**
 Initial target: tens of tenants, a few thousand students, tens to low hundreds of concurrent lesson viewers. The application servers HTML and JSON, not video, in the Premium tier, so one process on the ARM server is enough for the dynamic traffic; the worker is a second process.
 
-### Main risk: Basic-tier video bandwidth
-In the Basic tier the server itself delivers the encrypted HLS segments. At roughly 2 to 4 Mbit/s per viewer, 100 concurrent viewers need several hundred Mbit/s of upstream, which many self-hosted connections cannot provide. The upstream speed of the server's connection needs to be known; options are to limit Basic-tier quality and concurrency, or to put a CDN in front of the origin.
+### Basic-tier video bandwidth
+The server's upstream is 114 Mbit/s (owner measurement; a load test confirms it). Keeping about 20 percent free for the rest of the traffic leaves about 90 Mbit/s for video. Planning figures:
+- 720p at about 2.5 Mbit/s: roughly 35 simultaneous viewers.
+- 480p at about 1.2 Mbit/s: roughly 75 simultaneous viewers.
+
+HLS players download in bursts, so real peaks are higher than the average, and these figures are estimates, not measurements. Decision (ADR-0012): the Basic tier continues under these limits with a capped quality ladder, a configurable global cap on simultaneous Basic streams (initial value 30) and a clear "try again later" response beyond the cap. The `media` unit can later move behind a CDN or to another connection. If the load test shows the numbers do not hold, the Basic tier is dropped.
 
 ### Encoding on ARM
 Encoding HLS with ffmpeg on the ARM server is CPU-heavy; jobs run in a queue with limited concurrency so the app is not starved. Premium providers encode on their side.
@@ -166,13 +187,13 @@ Encoding HLS with ffmpeg on the ARM server is CPU-heavy; jobs run in a queue wit
 |---|---|---|---|
 | Deployment shape | Modular monolith + worker | Microservices | One small team, one server, strict TDD; boundaries are enforced by modules, not by the network |
 | Queue | Postgres outbox with row locking | Redis queue or a broker | No extra service; transactional with the data change |
-| ORM | Drizzle | Prisma, Kysely | Supported by better-auth's adapter and schema generator; SQL-close and light on ARM |
+| Data access | `pg` with hand-written SQL and one `schema.sql` | An ORM | Owner decision; better-auth's `generate` already emits plain SQL for the `pg` setup (ADR-0011) |
 | Tenant isolation | `organization_id` scoping in repositories | Schema per tenant, or row-level security | Simplest correct start; row-level security can be added later |
 | Chat | In-app on Postgres | OpenIM | No MongoDB; same authorization model (ADR-0010) |
 | Files | Local disk behind an interface | Object storage now | No extra service on one server |
 
 ## 7. Open questions
-1. Upstream bandwidth of the server (see main risk).
+1. Load test of the real 114 Mbit/s upstream for the Basic tier (ADR-0012).
 2. Final video provider (ADR-0005).
 3. Role permission table above: confirm or adjust.
 4. Whether students may message each other (assumed no).
