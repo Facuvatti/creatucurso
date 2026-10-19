@@ -1,6 +1,6 @@
 # ADR-0007: Messaging channels for tenant automations (email, Discord, WhatsApp)
 
-**Status:** Proposed
+**Status:** Proposed. Scope update: only email is in v1; the owner deferred WhatsApp and Discord, and will provide `docs/mails.md` with the email requirements (read it when the automations phase starts).
 **Date:** 2026-10-19
 **Deciders:** Facu
 
