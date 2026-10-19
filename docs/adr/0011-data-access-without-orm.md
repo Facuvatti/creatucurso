@@ -13,14 +13,15 @@ Verified:
 - The `generate` command produces an SQL file for that adapter, and `migrate` applies the schema directly (optional). The documentation says `generate` is meant for applying the schema manually.
 - **Experiment (2026-10-19, scratch directory, Postgres 16 in Docker):** with the `organization` plugin (dynamic access control enabled) and the `oneTimeToken` plugin, `generate` produced SQL for 8 tables: `user`, `session`, `account`, `verification`, `organization`, `organizationRole`, `member`, `invitation`. `oneTimeToken` needs no table of its own. So plugin tables do come out as SQL; no manual transcription is needed.
 - `organizationRole` is better-auth's table for roles and permissions when dynamic access control is enabled. Static roles defined in code (`createAccessControl`) need no table.
-- The `schemaName` option places better-auth's tables in a Postgres schema at runtime, but the generated SQL is not schema-qualified, so the schema file must set the `search_path` before that section.
+- The `schemaName` option places better-auth's tables in a Postgres schema. The first experiment used the old `@better-auth/cli` (1.4), whose output was not schema-qualified. The current CLI is the `auth` package (same version as better-auth, 1.7.11); with it the generated SQL is schema-qualified (`"auth"."user"`) and includes `create schema if not exists "auth"`, so no `search_path` handling is needed. `@better-auth/cli` 1.4 does not work with better-auth 1.7.
+- `generate` only emits what is missing from the database it connects to, so it runs against a throwaway empty database (`scripts/sync-auth-schema.ts`).
 - The Agent Auth plugin's schema defines four more tables (`agentHost`, `agent`, `agentCapabilityGrant`, `approvalRequest`) that `generate` would emit if the plugin is added (ADR-0013).
 
 ## Decision
 
 1. Use the `pg` driver with hand-written SQL in repository functions. Rows are validated with zod at the repository boundary. No ORM, no query builder.
-2. `database/schema.sql` is the single source of truth. It has a delimited section holding the SQL produced by `generate` for better-auth (with `CREATE SCHEMA auth` and `SET search_path` around it), followed by our own tables.
-3. The `migrate` command is not used. When a plugin is added or changed, `generate` is run and its output replaces the delimited section. A CI check regenerates the SQL in a throwaway database and fails if the section differs.
+2. `database/schema.sql` is the single source of truth. It has a delimited section holding the SQL produced by `generate` for better-auth, followed by our own tables.
+3. The `migrate` command is not used. When a plugin is added or changed, `pnpm db:auth` regenerates the delimited section. `pnpm db:auth:check` (run in CI) fails if the section is out of date.
 4. Roles and permissions: static roles in code for v1 (owner, admin, tutor, student); better-auth's `organizationRole` table is used only if dynamic access control is enabled later. Tenancy uses `organization` and `member`; the custom domain is an extra column on `organization`.
 5. Our own tables are limited to domain data that better-auth does not model (courses, enrollments, exams, outbox, usage and so on), kept to a minimum with JSONB or array columns for tightly owned child data (see the system design).
 6. Tests that touch the database run against a real Postgres in Docker, applying `schema.sql` to an empty database.
