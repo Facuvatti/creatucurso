@@ -1,6 +1,6 @@
 # ADR-0003: Hyperswitch merchant model for creator payments
 
-**Status:** Proposed (depends on one business decision, see Open question)
+**Status:** Accepted (business decision confirmed; connector checks remain in Phase 4)
 **Date:** 2026-10-19
 **Deciders:** Facu
 
@@ -70,13 +70,12 @@ The plan already bills creators for infrastructure usage (Phase 8), so Option A 
 - Harder: creators must connect their own provider account before selling; platform revenue depends on the usage invoices being collected.
 - Revisit: Option C if the platform decides to charge a commission on sales and the market's connector supports splits.
 
-## Open question
+## Business decision (resolved)
 
-Does the platform take a commission on each sale, or only bill creators for usage (Phase 8)? This ADR assumes only usage billing.
+Creators are billed monthly by the platform; there is no commission on sales. This confirms the usage-based invoices of Phase 8 as the platform's revenue and removes the need for splits or payouts. If a flat monthly fee is added on top of usage, that changes the invoice amount only, not this model.
 
 ## Action Items
 
 1. [ ] Phase 4: bring up Hyperswitch locally with Docker Compose and confirm the target market's connector (for example Mercado Pago) can be enabled in the self-hosted router.
 2. [ ] Phase 4: confirm whether the open-source router supports the Platform Organization type; otherwise use a Standard Organization.
 3. [ ] Phase 4: verify webhook signature validation for the chosen connector.
-4. [ ] Confirm the commission question with the product owner before Phase 4.
