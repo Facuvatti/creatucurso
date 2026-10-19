@@ -16,18 +16,12 @@ describe("replaceGeneratedSection", () => {
 		expect(result).toContain(generated.trim());
 	});
 
-	it("wraps the generated SQL in its own schema and search path", () => {
+	it("keeps the generated SQL untouched between the markers", () => {
 		const result = replaceGeneratedSection("", generated);
 
-		const createSchema = result.indexOf("CREATE SCHEMA IF NOT EXISTS auth;");
-		const setPath = result.indexOf("SET search_path TO auth;");
-		const table = result.indexOf('create table "user"');
-		const resetPath = result.indexOf("RESET search_path;");
-
-		expect(createSchema).toBeGreaterThan(-1);
-		expect(setPath).toBeGreaterThan(createSchema);
-		expect(table).toBeGreaterThan(setPath);
-		expect(resetPath).toBeGreaterThan(table);
+		expect(result).toBe(
+			`${BEGIN_MARKER}\n${generated.trim()}\n${END_MARKER}\n`,
+		);
 	});
 
 	it("replaces an existing section and keeps the text around it", () => {

@@ -3,14 +3,7 @@ export const BEGIN_MARKER =
 export const END_MARKER = "-- <<< better-auth generated <<<";
 
 function buildSection(generated: string): string {
-	return [
-		BEGIN_MARKER,
-		"CREATE SCHEMA IF NOT EXISTS auth;",
-		"SET search_path TO auth;",
-		generated.trim(),
-		"RESET search_path;",
-		END_MARKER,
-	].join("\n");
+	return [BEGIN_MARKER, generated.trim(), END_MARKER].join("\n");
 }
 
 export function replaceGeneratedSection(
