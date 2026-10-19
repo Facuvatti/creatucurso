@@ -27,7 +27,7 @@ On the owner's question about a "fixed $100": the only fixed figure near $100 fo
 
 ## Decision
 
-No provider is chosen yet. Until the vendor answers below arrive, Bunny remains the working assumption because it is the only option confirmed to provide per-tenant libraries and per-library statistics through an API.
+No provider is chosen yet. The owner leans towards VdoCipher but wants to settle it later, after the vendor answers below. Until then the plan keeps the provider-specific details generic, and Bunny stays as the fallback because it is the only option confirmed to provide per-tenant libraries and per-library statistics through an API.
 
 ## Options Considered
 
