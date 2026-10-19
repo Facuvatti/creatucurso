@@ -1,6 +1,6 @@
 # ADR-0004: Bunny Stream with MediaCage DRM for the Premium video tier
 
-**Status:** Proposed (Enterprise DRM activation and pricing are not confirmed)
+**Status:** On hold (the owner asked to compare other providers first; see ADR-0005)
 **Date:** 2026-10-19
 **Deciders:** Facu
 
