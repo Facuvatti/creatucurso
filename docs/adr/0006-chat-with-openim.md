@@ -1,6 +1,6 @@
 # ADR-0006: Tutor-student chat with self-hosted OpenIM
 
-**Status:** Proposed (gated on confirming the server CPU and on a smoke test of the stack on the target ARM server)
+**Status:** Superseded by ADR-0010 (the owner decided not to use MongoDB, which OpenIM requires)
 **Date:** 2026-10-19
 **Deciders:** Facu
 
