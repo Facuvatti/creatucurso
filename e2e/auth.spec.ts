@@ -1,46 +1,14 @@
-import { randomBytes } from "node:crypto";
 import { expect, test } from "@playwright/test";
-import { Client } from "pg";
 import { send } from "./http.ts";
-import { e2eDatabaseUrl, port } from "./support.ts";
-
-const appHost = `app.localhost:${port}`;
-const landingHost = `localhost:${port}`;
-const unique = () => randomBytes(4).toString("hex");
-
-async function markAsCreator(email: string) {
-	const db = new Client({ connectionString: e2eDatabaseUrl });
-	await db.connect();
-	try {
-		await db.query(`update auth."user" set "isCreator" = true where email = $1`, [
-			email,
-		]);
-	} finally {
-		await db.end();
-	}
-}
-
-async function signUp() {
-	const email = `person-${unique()}@example.com`;
-	const reply = await send("POST", appHost, "/api/auth/sign-up/email", {
-		json: { name: "Persona Prueba", email, password: "correct-horse-battery" },
-	});
-	expect(reply.status).toBe(200);
-	expect(reply.sessionCookie).not.toBeNull();
-	return { email, cookie: reply.sessionCookie as string };
-}
-
-async function createCreatorWithAcademy() {
-	const person = await signUp();
-	await markAsCreator(person.email);
-	const slug = `academia-${unique()}`;
-	const created = await send("POST", appHost, "/api/auth/organization/create", {
-		cookie: person.cookie,
-		json: { name: "Academia de Prueba", slug },
-	});
-	expect(created.status).toBe(200);
-	return { ...person, slug, tenantHost: `${slug}.localhost:${port}` };
-}
+import {
+	appHost,
+	createCreatorWithAcademy,
+	landingHost,
+	markAsCreator,
+	signUp,
+	unique,
+} from "./helpers.ts";
+import { port } from "./support.ts";
 
 const handoffFor = (tenantHost: string) =>
 	`/handoff?return=${encodeURIComponent(`http://${tenantHost}/`)}`;
