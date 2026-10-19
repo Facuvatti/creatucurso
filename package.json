@@ -6,7 +6,7 @@
     "#/*": "./src/*"
   },
   "scripts": {
-    "dev": "vite dev --port 3000",
+    "dev": "node --env-file=.env ./node_modules/vite/bin/vite.js dev --port 3000",
     "generate-routes": "tsr generate",
     "build": "vite build",
     "preview": "vite preview",
@@ -17,9 +17,10 @@
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "start": "node .output/server/index.mjs",
+    "start": "node --env-file-if-exists=.env .output/server/index.mjs",
     "db:auth": "node scripts/sync-auth-schema.ts",
-    "db:auth:check": "node scripts/sync-auth-schema.ts --check"
+    "db:auth:check": "node scripts/sync-auth-schema.ts --check",
+    "db:reset": "node --env-file=.env scripts/reset-dev-db.ts"
   },
   "dependencies": {
     "@tanstack/react-router": "1.170.45",
