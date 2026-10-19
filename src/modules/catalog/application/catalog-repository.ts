@@ -33,6 +33,12 @@ export interface CatalogRepository {
 		courseId: string,
 		status: CourseStatus,
 	): Promise<boolean>;
+	/** Changes the address of a course and keeps the old one so it keeps working. */
+	renameSlug(
+		organizationId: string,
+		courseId: string,
+		newSlug: string,
+	): Promise<void>;
 	addModule(courseId: string, title: string): Promise<void>;
 	addLesson(
 		moduleId: string,

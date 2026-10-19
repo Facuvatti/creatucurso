@@ -251,6 +251,24 @@ export function createPgCatalogRepository(pool: Pool): CatalogRepository {
 			return (rowCount ?? 0) > 0;
 		},
 
+		async renameSlug(organizationId, courseId, newSlug) {
+			try {
+				await pool.query(
+					`update catalog.course
+					 set previous_slugs = case when slug = $3 then previous_slugs
+					       else array_append(array_remove(previous_slugs, $3), slug) end,
+					     slug = $3, updated_at = now()
+					 where organization_id = $1 and id = $2`,
+					[organizationId, courseId, newSlug],
+				);
+			} catch (error) {
+				if (isUniqueViolation(error, "course_organization_id_slug_key")) {
+					throw new SlugTakenError(newSlug);
+				}
+				throw error;
+			}
+		},
+
 		async addModule(courseId, title) {
 			await pool.query(
 				`insert into catalog.module (course_id, title, position)

@@ -123,6 +123,12 @@ Kept to a minimum: closely owned child data lives in JSONB or array columns of i
 | `invoice` | monthly invoices |
 | `conversation`, `message` | in-app chat (ADR-0010) |
 
+### Implementation notes (Phase 3)
+- Enrollments and lesson progress live in the `catalog` schema together with courses, because they reference courses directly and splitting them would need cross-schema foreign keys; they can be extracted later if needed.
+- The creator panel and the student pages are served on the creator's own host (`/panel`, `/cursos/...`), so they use the host-only session; the central app only handles login and the list of academies.
+- Media references are stored as `{ ref, name, status: "pending" }`; the upload pipeline arrives with the video phases.
+- Publishing requires at least one lesson; the "one video per class" rule applies to JSON imports, and video upload will tighten publishing later.
+
 All tenant data carries `organization_id` and every repository query is scoped by it. Postgres row-level security is a possible later defense in depth, not part of v1.
 
 ### Storage choices
