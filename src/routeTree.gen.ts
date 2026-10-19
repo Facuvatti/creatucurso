@@ -15,7 +15,11 @@ import { Route as HandoffRouteImport } from './routes/handoff'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthHandoffRouteImport } from './routes/auth/handoff'
 import { Route as AuthLogoutRouteImport } from './routes/auth/logout'
+import { Route as PanelIndexRouteImport } from './routes/panel.index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as CursosCourseSlugIndexRouteImport } from './routes/cursos.$courseSlug.index'
+import { Route as PanelCursosCourseIdRouteImport } from './routes/panel.cursos.$courseId'
+import { Route as CursosCourseSlugClasesLessonSlugRouteImport } from './routes/cursos.$courseSlug.clases.$lessonSlug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -47,11 +51,32 @@ const AuthLogoutRoute = AuthLogoutRouteImport.update({
   path: '/auth/logout',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PanelIndexRoute = PanelIndexRouteImport.update({
+  id: '/panel/',
+  path: '/panel/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CursosCourseSlugIndexRoute = CursosCourseSlugIndexRouteImport.update({
+  id: '/cursos/$courseSlug/',
+  path: '/cursos/$courseSlug/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PanelCursosCourseIdRoute = PanelCursosCourseIdRouteImport.update({
+  id: '/panel/cursos/$courseId',
+  path: '/panel/cursos/$courseId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CursosCourseSlugClasesLessonSlugRoute =
+  CursosCourseSlugClasesLessonSlugRouteImport.update({
+    id: '/cursos/$courseSlug/clases/$lessonSlug',
+    path: '/cursos/$courseSlug/clases/$lessonSlug',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -60,7 +85,11 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/auth/handoff': typeof AuthHandoffRoute
   '/auth/logout': typeof AuthLogoutRoute
+  '/panel/': typeof PanelIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/panel/cursos/$courseId': typeof PanelCursosCourseIdRoute
+  '/cursos/$courseSlug/': typeof CursosCourseSlugIndexRoute
+  '/cursos/$courseSlug/clases/$lessonSlug': typeof CursosCourseSlugClasesLessonSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -69,7 +98,11 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/auth/handoff': typeof AuthHandoffRoute
   '/auth/logout': typeof AuthLogoutRoute
+  '/panel': typeof PanelIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/panel/cursos/$courseId': typeof PanelCursosCourseIdRoute
+  '/cursos/$courseSlug': typeof CursosCourseSlugIndexRoute
+  '/cursos/$courseSlug/clases/$lessonSlug': typeof CursosCourseSlugClasesLessonSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -79,7 +112,11 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/auth/handoff': typeof AuthHandoffRoute
   '/auth/logout': typeof AuthLogoutRoute
+  '/panel/': typeof PanelIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/panel/cursos/$courseId': typeof PanelCursosCourseIdRoute
+  '/cursos/$courseSlug/': typeof CursosCourseSlugIndexRoute
+  '/cursos/$courseSlug/clases/$lessonSlug': typeof CursosCourseSlugClasesLessonSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -90,7 +127,11 @@ export interface FileRouteTypes {
     | '/login'
     | '/auth/handoff'
     | '/auth/logout'
+    | '/panel/'
     | '/api/auth/$'
+    | '/panel/cursos/$courseId'
+    | '/cursos/$courseSlug/'
+    | '/cursos/$courseSlug/clases/$lessonSlug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -99,7 +140,11 @@ export interface FileRouteTypes {
     | '/login'
     | '/auth/handoff'
     | '/auth/logout'
+    | '/panel'
     | '/api/auth/$'
+    | '/panel/cursos/$courseId'
+    | '/cursos/$courseSlug'
+    | '/cursos/$courseSlug/clases/$lessonSlug'
   id:
     | '__root__'
     | '/'
@@ -108,7 +153,11 @@ export interface FileRouteTypes {
     | '/login'
     | '/auth/handoff'
     | '/auth/logout'
+    | '/panel/'
     | '/api/auth/$'
+    | '/panel/cursos/$courseId'
+    | '/cursos/$courseSlug/'
+    | '/cursos/$courseSlug/clases/$lessonSlug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -118,7 +167,11 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   AuthHandoffRoute: typeof AuthHandoffRoute
   AuthLogoutRoute: typeof AuthLogoutRoute
+  PanelIndexRoute: typeof PanelIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  PanelCursosCourseIdRoute: typeof PanelCursosCourseIdRoute
+  CursosCourseSlugIndexRoute: typeof CursosCourseSlugIndexRoute
+  CursosCourseSlugClasesLessonSlugRoute: typeof CursosCourseSlugClasesLessonSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -165,11 +218,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthLogoutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/panel/': {
+      id: '/panel/'
+      path: '/panel'
+      fullPath: '/panel/'
+      preLoaderRoute: typeof PanelIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
       fullPath: '/api/auth/$'
       preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cursos/$courseSlug/': {
+      id: '/cursos/$courseSlug/'
+      path: '/cursos/$courseSlug'
+      fullPath: '/cursos/$courseSlug/'
+      preLoaderRoute: typeof CursosCourseSlugIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/panel/cursos/$courseId': {
+      id: '/panel/cursos/$courseId'
+      path: '/panel/cursos/$courseId'
+      fullPath: '/panel/cursos/$courseId'
+      preLoaderRoute: typeof PanelCursosCourseIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cursos/$courseSlug/clases/$lessonSlug': {
+      id: '/cursos/$courseSlug/clases/$lessonSlug'
+      path: '/cursos/$courseSlug/clases/$lessonSlug'
+      fullPath: '/cursos/$courseSlug/clases/$lessonSlug'
+      preLoaderRoute: typeof CursosCourseSlugClasesLessonSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -182,7 +263,11 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   AuthHandoffRoute: AuthHandoffRoute,
   AuthLogoutRoute: AuthLogoutRoute,
+  PanelIndexRoute: PanelIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  PanelCursosCourseIdRoute: PanelCursosCourseIdRoute,
+  CursosCourseSlugIndexRoute: CursosCourseSlugIndexRoute,
+  CursosCourseSlugClasesLessonSlugRoute: CursosCourseSlugClasesLessonSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
