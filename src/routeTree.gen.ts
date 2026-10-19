@@ -16,9 +16,13 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthHandoffRouteImport } from './routes/auth/handoff'
 import { Route as AuthLogoutRouteImport } from './routes/auth/logout'
 import { Route as PanelIndexRouteImport } from './routes/panel.index'
+import { Route as PanelPagosRouteImport } from './routes/panel.pagos'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as CursosCourseSlugIndexRouteImport } from './routes/cursos.$courseSlug.index'
+import { Route as CursosCourseSlugCompraRouteImport } from './routes/cursos.$courseSlug.compra'
+import { Route as CursosCourseSlugComprarRouteImport } from './routes/cursos.$courseSlug.comprar'
 import { Route as PanelCursosCourseIdRouteImport } from './routes/panel.cursos.$courseId'
+import { Route as ApiWebhooksHyperswitchOrganizationIdRouteImport } from './routes/api/webhooks/hyperswitch.$organizationId'
 import { Route as CursosCourseSlugClasesLessonSlugRouteImport } from './routes/cursos.$courseSlug.clases.$lessonSlug'
 
 const IndexRoute = IndexRouteImport.update({
@@ -56,6 +60,11 @@ const PanelIndexRoute = PanelIndexRouteImport.update({
   path: '/panel/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PanelPagosRoute = PanelPagosRouteImport.update({
+  id: '/panel/pagos',
+  path: '/panel/pagos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -66,11 +75,27 @@ const CursosCourseSlugIndexRoute = CursosCourseSlugIndexRouteImport.update({
   path: '/cursos/$courseSlug/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CursosCourseSlugCompraRoute = CursosCourseSlugCompraRouteImport.update({
+  id: '/cursos/$courseSlug/compra',
+  path: '/cursos/$courseSlug/compra',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CursosCourseSlugComprarRoute = CursosCourseSlugComprarRouteImport.update({
+  id: '/cursos/$courseSlug/comprar',
+  path: '/cursos/$courseSlug/comprar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PanelCursosCourseIdRoute = PanelCursosCourseIdRouteImport.update({
   id: '/panel/cursos/$courseId',
   path: '/panel/cursos/$courseId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWebhooksHyperswitchOrganizationIdRoute =
+  ApiWebhooksHyperswitchOrganizationIdRouteImport.update({
+    id: '/api/webhooks/hyperswitch/$organizationId',
+    path: '/api/webhooks/hyperswitch/$organizationId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const CursosCourseSlugClasesLessonSlugRoute =
   CursosCourseSlugClasesLessonSlugRouteImport.update({
     id: '/cursos/$courseSlug/clases/$lessonSlug',
@@ -85,10 +110,14 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/auth/handoff': typeof AuthHandoffRoute
   '/auth/logout': typeof AuthLogoutRoute
+  '/panel/pagos': typeof PanelPagosRoute
   '/panel/': typeof PanelIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/cursos/$courseSlug/compra': typeof CursosCourseSlugCompraRoute
+  '/cursos/$courseSlug/comprar': typeof CursosCourseSlugComprarRoute
   '/panel/cursos/$courseId': typeof PanelCursosCourseIdRoute
   '/cursos/$courseSlug/': typeof CursosCourseSlugIndexRoute
+  '/api/webhooks/hyperswitch/$organizationId': typeof ApiWebhooksHyperswitchOrganizationIdRoute
   '/cursos/$courseSlug/clases/$lessonSlug': typeof CursosCourseSlugClasesLessonSlugRoute
 }
 export interface FileRoutesByTo {
@@ -98,10 +127,14 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/auth/handoff': typeof AuthHandoffRoute
   '/auth/logout': typeof AuthLogoutRoute
+  '/panel/pagos': typeof PanelPagosRoute
   '/panel': typeof PanelIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/cursos/$courseSlug/compra': typeof CursosCourseSlugCompraRoute
+  '/cursos/$courseSlug/comprar': typeof CursosCourseSlugComprarRoute
   '/panel/cursos/$courseId': typeof PanelCursosCourseIdRoute
   '/cursos/$courseSlug': typeof CursosCourseSlugIndexRoute
+  '/api/webhooks/hyperswitch/$organizationId': typeof ApiWebhooksHyperswitchOrganizationIdRoute
   '/cursos/$courseSlug/clases/$lessonSlug': typeof CursosCourseSlugClasesLessonSlugRoute
 }
 export interface FileRoutesById {
@@ -112,10 +145,14 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/auth/handoff': typeof AuthHandoffRoute
   '/auth/logout': typeof AuthLogoutRoute
+  '/panel/pagos': typeof PanelPagosRoute
   '/panel/': typeof PanelIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/cursos/$courseSlug/compra': typeof CursosCourseSlugCompraRoute
+  '/cursos/$courseSlug/comprar': typeof CursosCourseSlugComprarRoute
   '/panel/cursos/$courseId': typeof PanelCursosCourseIdRoute
   '/cursos/$courseSlug/': typeof CursosCourseSlugIndexRoute
+  '/api/webhooks/hyperswitch/$organizationId': typeof ApiWebhooksHyperswitchOrganizationIdRoute
   '/cursos/$courseSlug/clases/$lessonSlug': typeof CursosCourseSlugClasesLessonSlugRoute
 }
 export interface FileRouteTypes {
@@ -127,10 +164,14 @@ export interface FileRouteTypes {
     | '/login'
     | '/auth/handoff'
     | '/auth/logout'
+    | '/panel/pagos'
     | '/panel/'
     | '/api/auth/$'
+    | '/cursos/$courseSlug/compra'
+    | '/cursos/$courseSlug/comprar'
     | '/panel/cursos/$courseId'
     | '/cursos/$courseSlug/'
+    | '/api/webhooks/hyperswitch/$organizationId'
     | '/cursos/$courseSlug/clases/$lessonSlug'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -140,10 +181,14 @@ export interface FileRouteTypes {
     | '/login'
     | '/auth/handoff'
     | '/auth/logout'
+    | '/panel/pagos'
     | '/panel'
     | '/api/auth/$'
+    | '/cursos/$courseSlug/compra'
+    | '/cursos/$courseSlug/comprar'
     | '/panel/cursos/$courseId'
     | '/cursos/$courseSlug'
+    | '/api/webhooks/hyperswitch/$organizationId'
     | '/cursos/$courseSlug/clases/$lessonSlug'
   id:
     | '__root__'
@@ -153,10 +198,14 @@ export interface FileRouteTypes {
     | '/login'
     | '/auth/handoff'
     | '/auth/logout'
+    | '/panel/pagos'
     | '/panel/'
     | '/api/auth/$'
+    | '/cursos/$courseSlug/compra'
+    | '/cursos/$courseSlug/comprar'
     | '/panel/cursos/$courseId'
     | '/cursos/$courseSlug/'
+    | '/api/webhooks/hyperswitch/$organizationId'
     | '/cursos/$courseSlug/clases/$lessonSlug'
   fileRoutesById: FileRoutesById
 }
@@ -167,10 +216,14 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   AuthHandoffRoute: typeof AuthHandoffRoute
   AuthLogoutRoute: typeof AuthLogoutRoute
+  PanelPagosRoute: typeof PanelPagosRoute
   PanelIndexRoute: typeof PanelIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  CursosCourseSlugCompraRoute: typeof CursosCourseSlugCompraRoute
+  CursosCourseSlugComprarRoute: typeof CursosCourseSlugComprarRoute
   PanelCursosCourseIdRoute: typeof PanelCursosCourseIdRoute
   CursosCourseSlugIndexRoute: typeof CursosCourseSlugIndexRoute
+  ApiWebhooksHyperswitchOrganizationIdRoute: typeof ApiWebhooksHyperswitchOrganizationIdRoute
   CursosCourseSlugClasesLessonSlugRoute: typeof CursosCourseSlugClasesLessonSlugRoute
 }
 
@@ -225,6 +278,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PanelIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/panel/pagos': {
+      id: '/panel/pagos'
+      path: '/panel/pagos'
+      fullPath: '/panel/pagos'
+      preLoaderRoute: typeof PanelPagosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -239,11 +299,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CursosCourseSlugIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cursos/$courseSlug/compra': {
+      id: '/cursos/$courseSlug/compra'
+      path: '/cursos/$courseSlug/compra'
+      fullPath: '/cursos/$courseSlug/compra'
+      preLoaderRoute: typeof CursosCourseSlugCompraRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cursos/$courseSlug/comprar': {
+      id: '/cursos/$courseSlug/comprar'
+      path: '/cursos/$courseSlug/comprar'
+      fullPath: '/cursos/$courseSlug/comprar'
+      preLoaderRoute: typeof CursosCourseSlugComprarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/panel/cursos/$courseId': {
       id: '/panel/cursos/$courseId'
       path: '/panel/cursos/$courseId'
       fullPath: '/panel/cursos/$courseId'
       preLoaderRoute: typeof PanelCursosCourseIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/webhooks/hyperswitch/$organizationId': {
+      id: '/api/webhooks/hyperswitch/$organizationId'
+      path: '/api/webhooks/hyperswitch/$organizationId'
+      fullPath: '/api/webhooks/hyperswitch/$organizationId'
+      preLoaderRoute: typeof ApiWebhooksHyperswitchOrganizationIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cursos/$courseSlug/clases/$lessonSlug': {
@@ -263,21 +344,17 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   AuthHandoffRoute: AuthHandoffRoute,
   AuthLogoutRoute: AuthLogoutRoute,
+  PanelPagosRoute: PanelPagosRoute,
   PanelIndexRoute: PanelIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  CursosCourseSlugCompraRoute: CursosCourseSlugCompraRoute,
+  CursosCourseSlugComprarRoute: CursosCourseSlugComprarRoute,
   PanelCursosCourseIdRoute: PanelCursosCourseIdRoute,
   CursosCourseSlugIndexRoute: CursosCourseSlugIndexRoute,
+  ApiWebhooksHyperswitchOrganizationIdRoute:
+    ApiWebhooksHyperswitchOrganizationIdRoute,
   CursosCourseSlugClasesLessonSlugRoute: CursosCourseSlugClasesLessonSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

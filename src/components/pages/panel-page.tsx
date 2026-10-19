@@ -12,6 +12,7 @@ export type ImportOutcome =
 
 type Props = {
 	courses: CourseSummary[];
+	canManagePayments: boolean;
 	createError?: string | undefined;
 	importOutcome: ImportOutcome;
 	pending: boolean;
@@ -32,6 +33,7 @@ const KIND_LABEL: Record<UploadSlot["kind"], string> = {
 
 export function PanelPage({
 	courses,
+	canManagePayments,
 	createError,
 	importOutcome,
 	pending,
@@ -49,6 +51,11 @@ export function PanelPage({
 				<Link to="/">Ver mi sitio</Link>
 			</p>
 			<h1>Panel de la academia</h1>
+			{canManagePayments && (
+				<p>
+					<Link to="/panel/pagos">Cobros</Link>
+				</p>
+			)}
 
 			<section>
 				<h2>Mis cursos</h2>

@@ -34,6 +34,7 @@ export const Route = createFileRoute("/panel/")({
 
 function PanelRoute() {
 	const courses = Route.useLoaderData();
+	const { roles } = Route.useRouteContext();
 	const router = useRouter();
 	const navigate = Route.useNavigate();
 	const [pending, setPending] = useState(false);
@@ -43,6 +44,7 @@ function PanelRoute() {
 	return (
 		<PanelPage
 			courses={courses}
+			canManagePayments={can(roles, { billing: ["manage"] })}
 			createError={createError}
 			importOutcome={outcome}
 			pending={pending}

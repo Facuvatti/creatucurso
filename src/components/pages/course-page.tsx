@@ -4,12 +4,16 @@ import {
 	type CourseOutline,
 } from "../../modules/catalog/domain/types.ts";
 import type { CourseAccess } from "../../server/catalog.functions.ts";
+import { formatMoney } from "../../shared/money.ts";
 
 type Props = {
 	course: CourseOutline;
 	access: CourseAccess;
 	completedLessonIds: string[];
 	loginUrl: string;
+	pending: boolean;
+	message?: string | undefined;
+	onEnrollFree: () => void;
 };
 
 function BulletList({ title, items }: { title: string; items: string[] }) {
@@ -31,9 +35,13 @@ export function CoursePage({
 	access,
 	completedLessonIds,
 	loginUrl,
+	pending,
+	message,
+	onEnrollFree,
 }: Props) {
 	const first = allLessons(course)[0];
 	const done = new Set(completedLessonIds);
+	const paid = !!course.priceAmount && !!course.currency;
 
 	return (
 		<main data-page="course">
@@ -48,6 +56,11 @@ export function CoursePage({
 			)}
 			{course.shortDescription && <p>{course.shortDescription}</p>}
 			{course.longDescription && <p>{course.longDescription}</p>}
+			<p data-price>
+				{paid && course.priceAmount && course.currency
+					? formatMoney(course.priceAmount, course.currency)
+					: "Gratis"}
+			</p>
 
 			<BulletList title="Qué vas a aprender" items={course.learningGoals} />
 			<BulletList title="Requisitos" items={course.requirements} />
@@ -97,11 +110,21 @@ export function CoursePage({
 					>
 						Entrar al curso
 					</Link>
-				) : access.signedIn ? (
-					<p>Las inscripciones con pago llegan pronto.</p>
-				) : (
+				) : !access.signedIn ? (
 					<a href={loginUrl}>Ingresá para inscribirte</a>
+				) : paid ? (
+					<Link
+						to="/cursos/$courseSlug/comprar"
+						params={{ courseSlug: course.slug }}
+					>
+						Comprar el curso
+					</Link>
+				) : (
+					<button type="button" onClick={onEnrollFree} disabled={pending}>
+						Inscribirme gratis
+					</button>
 				)}
+				{message && <output>{message}</output>}
 			</section>
 		</main>
 	);

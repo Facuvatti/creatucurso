@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { CourseOutline } from "../../modules/catalog/domain/types.ts";
+import { formatMoney } from "../../shared/money.ts";
 
 type Props = {
 	course: CourseOutline;
@@ -13,6 +14,7 @@ type Props = {
 		description: string;
 	}) => void;
 	onEnroll: (email: string) => void;
+	onSetPrice: (values: { price: number | null; currency: string }) => void;
 };
 
 function text(form: HTMLFormElement, name: string): string {
@@ -27,6 +29,7 @@ export function PanelCoursePage({
 	onAddModule,
 	onAddLesson,
 	onEnroll,
+	onSetPrice,
 }: Props) {
 	const published = course.status === "published";
 
@@ -50,6 +53,44 @@ export function PanelCoursePage({
 				</Link>
 			</p>
 			{message && <output>{message}</output>}
+
+			<section>
+				<h2>Precio</h2>
+				<p>
+					{course.priceAmount && course.currency
+						? formatMoney(course.priceAmount, course.currency)
+						: "Gratis"}
+				</p>
+				<form
+					onSubmit={(event) => {
+						event.preventDefault();
+						const form = event.currentTarget;
+						const raw = text(form, "price").trim();
+						onSetPrice({
+							price: raw === "" ? null : Number(raw.replace(",", ".")),
+							currency: text(form, "currency"),
+						});
+					}}
+				>
+					<input
+						name="price"
+						inputMode="decimal"
+						placeholder="Precio (vacío = gratis)"
+					/>
+					<select name="currency" defaultValue={course.currency ?? "ARS"}>
+						{["ARS", "USD", "EUR", "BRL", "MXN", "CLP", "COP", "UYU"].map(
+							(c) => (
+								<option key={c} value={c}>
+									{c}
+								</option>
+							),
+						)}
+					</select>
+					<button type="submit" disabled={pending}>
+						Guardar precio
+					</button>
+				</form>
+			</section>
 
 			<section>
 				<h2>Contenido</h2>

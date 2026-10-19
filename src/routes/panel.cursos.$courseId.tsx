@@ -15,6 +15,7 @@ import {
 	getPanelCourse,
 	setCourseStatus,
 } from "../server/catalog.functions.ts";
+import { setCoursePrice } from "../server/payments.functions.ts";
 
 export const Route = createFileRoute("/panel/cursos/$courseId")({
 	beforeLoad: ({ context }) => {
@@ -72,6 +73,19 @@ function PanelCourseRoute() {
 			}
 			onAddLesson={(values) =>
 				run(() => addLesson({ data: { courseId: course.id, ...values } }))
+			}
+			onSetPrice={(values) =>
+				run(
+					() =>
+						setCoursePrice({
+							data: {
+								courseId: course.id,
+								price: Number.isFinite(values.price) ? values.price : null,
+								currency: values.currency as "ARS",
+							},
+						}),
+					"Precio guardado.",
+				)
 			}
 			onEnroll={(email) =>
 				run(
