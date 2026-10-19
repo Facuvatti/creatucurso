@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MAX_SLUG_LENGTH, slugify } from "./slugify.ts";
+import { MAX_SLUG_LENGTH, slugify } from "../../../shared/text/slugify.ts";
 
 const blankToUndefined = (value: unknown) =>
 	typeof value === "string" && value.trim() === "" ? undefined : value;
