@@ -28,6 +28,8 @@ type CourseRow = {
 	learning_goals: string[];
 	target_students: string[];
 	status: CourseStatus;
+	price_amount: number | null;
+	currency: string | null;
 };
 
 type ModuleRow = {
@@ -49,7 +51,8 @@ type LessonRow = {
 };
 
 const COURSE_COLUMNS = `id, organization_id, slug, name, short_description, long_description,
-	cover_images, promo_video, requirements, learning_goals, target_students, status`;
+	cover_images, promo_video, requirements, learning_goals, target_students, status,
+	price_amount, currency`;
 
 function toSummary(row: CourseRow): CourseSummary {
 	return {
@@ -58,6 +61,8 @@ function toSummary(row: CourseRow): CourseSummary {
 		name: row.name,
 		shortDescription: row.short_description,
 		status: row.status,
+		priceAmount: row.price_amount,
+		currency: row.currency,
 	};
 }
 
@@ -267,6 +272,20 @@ export function createPgCatalogRepository(pool: Pool): CatalogRepository {
 				}
 				throw error;
 			}
+		},
+
+		async setPrice(organizationId, courseId, price) {
+			const { rowCount } = await pool.query(
+				`update catalog.course set price_amount = $3, currency = $4, updated_at = now()
+				 where organization_id = $1 and id = $2`,
+				[
+					organizationId,
+					courseId,
+					price?.amount ?? null,
+					price?.currency ?? null,
+				],
+			);
+			return (rowCount ?? 0) > 0;
 		},
 
 		async addModule(courseId, title) {

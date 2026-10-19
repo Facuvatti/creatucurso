@@ -55,6 +55,8 @@ create table if not exists catalog.course (
 	requirements text[] not null default '{}',
 	learning_goals text[] not null default '{}',
 	target_students text[] not null default '{}',
+	price_amount integer check (price_amount >= 0),
+	currency text,
 	status text not null default 'draft' check (status in ('draft', 'published')),
 	created_at timestamptz not null default now(),
 	updated_at timestamptz not null default now(),
@@ -96,7 +98,7 @@ create table if not exists catalog.enrollment (
 	id uuid primary key default gen_random_uuid(),
 	course_id uuid not null references catalog.course (id) on delete cascade,
 	user_id text not null references auth."user" (id) on delete cascade,
-	source text not null default 'manual' check (source in ('manual', 'payment')),
+	source text not null default 'manual' check (source in ('manual', 'payment', 'free')),
 	payment_id text unique,
 	completed_at timestamptz,
 	created_at timestamptz not null default now(),
@@ -110,3 +112,30 @@ create table if not exists catalog.lesson_progress (
 	completed_at timestamptz not null default now(),
 	primary key (lesson_id, user_id)
 );
+
+-- Our tables: payments (per-academy gateway account and each payment) -----------------
+create schema if not exists payments;
+
+create table if not exists payments.merchant (
+	organization_id text primary key references auth.organization (id) on delete cascade,
+	gateway_merchant_id text not null,
+	gateway_profile_id text not null,
+	publishable_key text not null,
+	api_key_encrypted text not null,
+	webhook_secret_encrypted text not null,
+	created_at timestamptz not null default now()
+);
+
+create table if not exists payments.payment (
+	id uuid primary key default gen_random_uuid(),
+	organization_id text not null references auth.organization (id) on delete cascade,
+	course_id uuid not null,
+	user_id text not null references auth."user" (id) on delete cascade,
+	gateway_payment_id text not null unique,
+	amount integer not null check (amount > 0),
+	currency text not null,
+	status text not null default 'pending' check (status in ('pending', 'succeeded', 'failed')),
+	created_at timestamptz not null default now(),
+	updated_at timestamptz not null default now()
+);
+create index if not exists payment_user_course_idx on payments.payment (user_id, course_id);

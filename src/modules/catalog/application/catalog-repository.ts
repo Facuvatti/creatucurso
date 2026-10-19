@@ -33,6 +33,12 @@ export interface CatalogRepository {
 		courseId: string,
 		status: CourseStatus,
 	): Promise<boolean>;
+	/** Sets the price in minor units, or removes it (free course) with null. */
+	setPrice(
+		organizationId: string,
+		courseId: string,
+		price: { amount: number; currency: string } | null,
+	): Promise<boolean>;
 	/** Changes the address of a course and keeps the old one so it keeps working. */
 	renameSlug(
 		organizationId: string,
@@ -47,7 +53,7 @@ export interface CatalogRepository {
 	enroll(input: {
 		courseId: string;
 		userId: string;
-		source: "manual" | "payment";
+		source: "manual" | "payment" | "free";
 		paymentId?: string;
 	}): Promise<boolean>;
 	findEnrollment(

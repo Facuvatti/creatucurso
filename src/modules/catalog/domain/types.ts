@@ -18,6 +18,9 @@ export type CourseSummary = {
 	name: string;
 	shortDescription: string | null;
 	status: CourseStatus;
+	/** Price in minor units (cents); null or 0 means the course is free. */
+	priceAmount: number | null;
+	currency: string | null;
 };
 
 export type Lesson = {
