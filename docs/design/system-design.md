@@ -161,6 +161,23 @@ Domain events are written to `outbox_event` inside the same transaction as the c
 - One SSRF guard module for every outbound call to a user-supplied URL; one upload validator for every file (real type check, size limits, image re-encoding, PDF flattening).
 - Session cookies are host-only and `HttpOnly`; handoff tokens are single-use, hashed at rest and very short-lived.
 
+## Course import and export (JSON)
+
+The owner provided an example of the course structure in `docs/formato_curso_por_mcp.md`. The JSON is the public contract for importing a course from the dashboard and for agent access; the importer is one use case in the `catalog` module.
+
+Mapping: `name`, `slug`, `shortDescription`, `longDescription`, `requirements`, `learningGoals` and `targetStudents` belong to the course; `modules[]` hold `classes[]`, which are stored as lessons (`classes` is the external name, `lesson` the internal one).
+
+Rules (proposal, to confirm):
+- **Required:** `name`. Everything else is optional. `slug` is generated from the name when absent, and a slug already used in the tenant is an error, never silently renamed.
+- **Order:** `order` is optional and defaults to the array position; when present it must be unique among siblings.
+- **Strict:** unknown fields are rejected so typos are caught. Errors list the JSON path (for example `modules[1].classes[0].videos[0]`).
+- **Limits** (initial): up to 100 modules, 200 classes per module, 10 videos and 20 notes per class, 10 cover images, list items up to 200 characters, `durationMinutes` between 0 and 1440.
+- **Instructors:** `instructors` are user ids; each must be a member of the same organization with the owner, admin or tutor role, and becomes a `course_tutor` entry.
+- **Media references:** `coverImages`, `promoVideo`, `videos` and `notes` hold references like `C:/Users/maria/Desktop/curso-web/mod1/clase1.mp4`. These are names on the creator's computer; the server never reads them from disk and never uses them as paths. Only the base file name is kept as a display hint. Each reference becomes an **upload slot**; the import response lists the slots with the expected file kind, the client uploads each file (an agent client running on the creator's machine can read the paths itself), and a course with empty required slots stays a draft and cannot be published.
+- **Allowed kinds:** images (WebP, PNG, JPEG), video (MP4, MOV, WebM; transcoded on the server), notes (PDF; ZIP only with size limits, never extracted or executed on the server, to be confirmed).
+- **Atomic and idempotent:** the whole import succeeds or nothing is created, always as a draft; repeating the same request with the same idempotency key returns the same result.
+- **Export** produces the same format so a course can round-trip.
+
 ## 5. Scale and reliability
 
 ### Load estimation **(assumption)**

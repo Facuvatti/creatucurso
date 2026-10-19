@@ -1,6 +1,6 @@
 # ADR-0013: Agent access for course creation (Agent Auth vs MCP plugin)
 
-**Status:** Proposed (decision in Phase 10, after a small proof with the client the owner uses)
+**Status:** Accepted: Agent Auth plugin (owner decision, 2026-10-19). Revisit only if a safer option appears.
 **Date:** 2026-10-19
 **Deciders:** Facu
 
@@ -17,7 +17,9 @@ So the protocol and the Agent Auth plugin are the same thing at two levels (spec
 
 ## Decision
 
-No choice yet. Both fit the rule that agent-created content is a **draft until the creator confirms**, and both must bind each connection to one organization with a creator-level role.
+**Option B, the Agent Auth plugin**, by owner decision: its instability is accepted unless a safer option is found. No safer option was found: agents authenticate with their own key pair and short-lived signed JWTs (proof of possession), which is stronger than a bearer token, and per-capability grants with constraints fit the rule that agent-created content is a **draft until the creator confirms**. Each connection is bound to one organization with a creator-level role.
+
+Mitigations for the plugin being a draft standard: pin the exact version, put it behind our own port so it can be replaced, cover the capability handlers with tests, and keep the `mcp` plugin (Option A) as the fallback. The plugin is added to the better-auth configuration (and its four tables to `database/schema.sql`) when Phase 10 starts.
 
 ## Options Considered
 
@@ -43,9 +45,9 @@ A is the safer starting point because of stability and existing client support; 
 
 ## Action Items
 
-1. [ ] Ask the owner which agent client will be used for course creation.
+1. [ ] Confirm that the agent client the owner will use supports the Agent Auth protocol (the project provides an MCP-based client and a CLI).
 2. [ ] Install the `mcp-builder` skill before Phase 10.
-3. [ ] Small proof in Phase 10: connect that client to a stub with option A and, if supported, option B; record what works.
+3. [ ] Small proof in Phase 10: connect that client to a stub provider using option B and record what works; try option A only if it does not.
 4. [ ] Update ADR-0011's schema section with the chosen plugin's tables.
 
 ## Sources
