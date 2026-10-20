@@ -9,7 +9,8 @@ export const Route = createFileRoute("/api/webhooks/ses")({
 			POST: async ({ request }) => {
 				// SNS posts JSON with a text/plain content type.
 				const raw = await request.text();
-				if (raw.length > 256_000) return new Response("too large", { status: 413 });
+				if (raw.length > 256_000)
+					return new Response("too large", { status: 413 });
 				let body: unknown;
 				try {
 					body = JSON.parse(raw);

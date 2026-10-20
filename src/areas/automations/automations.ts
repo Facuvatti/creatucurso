@@ -189,7 +189,8 @@ const TYPES: Record<
 	},
 	png: {
 		contentType: "image/png",
-		check: (b) => startsWith(b, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+		check: (b) =>
+			startsWith(b, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
 	},
 	jpg: {
 		contentType: "image/jpeg",
@@ -239,7 +240,8 @@ export async function addAttachment(
 		"select 1 from automations.automation where id = $1 and organization_id = $2",
 		[automationId, organizationId],
 	);
-	if (!rowCount) return { ok: false, message: "No encontramos la automatización." };
+	if (!rowCount)
+		return { ok: false, message: "No encontramos la automatización." };
 
 	const filename = sanitizeFilename(rawFilename);
 	const type = TYPES[filename.split(".").pop()?.toLowerCase() ?? ""];

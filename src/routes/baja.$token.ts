@@ -28,7 +28,8 @@ async function readToken(token: string) {
 		: null;
 }
 
-const INVALID = () => page("Enlace inválido", "<p>Este enlace no es válido.</p>", 404);
+const INVALID = () =>
+	page("Enlace inválido", "<p>Este enlace no es válido.</p>", 404);
 
 // GET shows a confirmation button (mail scanners that open links do not unsubscribe
 // anyone); POST records the unsubscribe, also used by the one-click header.

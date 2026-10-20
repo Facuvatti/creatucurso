@@ -21,6 +21,7 @@ import { Route as AuthHandoffRouteImport } from './routes/auth/handoff'
 import { Route as AuthLogoutRouteImport } from './routes/auth/logout'
 import { Route as BajaTokenRouteImport } from './routes/baja.$token'
 import { Route as PanelIndexRouteImport } from './routes/panel.index'
+import { Route as PanelAutomatizacionesRouteImport } from './routes/panel.automatizaciones'
 import { Route as PanelDominioRouteImport } from './routes/panel.dominio'
 import { Route as PanelModeracionRouteImport } from './routes/panel.moderacion'
 import { Route as PanelPagosRouteImport } from './routes/panel.pagos'
@@ -38,6 +39,7 @@ import { Route as CursosCourseSlugIndexRouteImport } from './routes/cursos.$cour
 import { Route as CursosCourseSlugCompraRouteImport } from './routes/cursos.$courseSlug.compra'
 import { Route as CursosCourseSlugComprarRouteImport } from './routes/cursos.$courseSlug.comprar'
 import { Route as PanelCursosCourseIdRouteImport } from './routes/panel.cursos.$courseId'
+import { Route as ApiAutomationsAttachmentsAutomationIdRouteImport } from './routes/api/automations/attachments.$automationId'
 import { Route as ApiCertificatesFrameCourseIdRouteImport } from './routes/api/certificates/frame.$courseId'
 import { Route as ApiCertificatesPreviewCourseIdRouteImport } from './routes/api/certificates/preview.$courseId'
 import { Route as ApiMediaKeyVideoIdRouteImport } from './routes/api/media/key.$videoId'
@@ -104,6 +106,11 @@ const BajaTokenRoute = BajaTokenRouteImport.update({
 const PanelIndexRoute = PanelIndexRouteImport.update({
   id: '/panel/',
   path: '/panel/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PanelAutomatizacionesRoute = PanelAutomatizacionesRouteImport.update({
+  id: '/panel/automatizaciones',
+  path: '/panel/automatizaciones',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PanelDominioRoute = PanelDominioRouteImport.update({
@@ -193,6 +200,12 @@ const PanelCursosCourseIdRoute = PanelCursosCourseIdRouteImport.update({
   path: '/panel/cursos/$courseId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAutomationsAttachmentsAutomationIdRoute =
+  ApiAutomationsAttachmentsAutomationIdRouteImport.update({
+    id: '/api/automations/attachments/$automationId',
+    path: '/api/automations/attachments/$automationId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiCertificatesFrameCourseIdRoute =
   ApiCertificatesFrameCourseIdRouteImport.update({
     id: '/api/certificates/frame/$courseId',
@@ -247,6 +260,7 @@ export interface FileRoutesByFullPath {
   '/auth/handoff': typeof AuthHandoffRoute
   '/auth/logout': typeof AuthLogoutRoute
   '/baja/$token': typeof BajaTokenRoute
+  '/panel/automatizaciones': typeof PanelAutomatizacionesRoute
   '/panel/dominio': typeof PanelDominioRoute
   '/panel/moderacion': typeof PanelModeracionRoute
   '/panel/pagos': typeof PanelPagosRoute
@@ -265,6 +279,7 @@ export interface FileRoutesByFullPath {
   '/panel/cursos/$courseId': typeof PanelCursosCourseIdRoute
   '/certificados/$credentialId/': typeof CertificadosCredentialIdIndexRoute
   '/cursos/$courseSlug/': typeof CursosCourseSlugIndexRoute
+  '/api/automations/attachments/$automationId': typeof ApiAutomationsAttachmentsAutomationIdRoute
   '/api/certificates/frame/$courseId': typeof ApiCertificatesFrameCourseIdRoute
   '/api/certificates/preview/$courseId': typeof ApiCertificatesPreviewCourseIdRoute
   '/api/media/key/$videoId': typeof ApiMediaKeyVideoIdRoute
@@ -285,6 +300,7 @@ export interface FileRoutesByTo {
   '/auth/handoff': typeof AuthHandoffRoute
   '/auth/logout': typeof AuthLogoutRoute
   '/baja/$token': typeof BajaTokenRoute
+  '/panel/automatizaciones': typeof PanelAutomatizacionesRoute
   '/panel/dominio': typeof PanelDominioRoute
   '/panel/moderacion': typeof PanelModeracionRoute
   '/panel/pagos': typeof PanelPagosRoute
@@ -303,6 +319,7 @@ export interface FileRoutesByTo {
   '/panel/cursos/$courseId': typeof PanelCursosCourseIdRoute
   '/certificados/$credentialId': typeof CertificadosCredentialIdIndexRoute
   '/cursos/$courseSlug': typeof CursosCourseSlugIndexRoute
+  '/api/automations/attachments/$automationId': typeof ApiAutomationsAttachmentsAutomationIdRoute
   '/api/certificates/frame/$courseId': typeof ApiCertificatesFrameCourseIdRoute
   '/api/certificates/preview/$courseId': typeof ApiCertificatesPreviewCourseIdRoute
   '/api/media/key/$videoId': typeof ApiMediaKeyVideoIdRoute
@@ -324,6 +341,7 @@ export interface FileRoutesById {
   '/auth/handoff': typeof AuthHandoffRoute
   '/auth/logout': typeof AuthLogoutRoute
   '/baja/$token': typeof BajaTokenRoute
+  '/panel/automatizaciones': typeof PanelAutomatizacionesRoute
   '/panel/dominio': typeof PanelDominioRoute
   '/panel/moderacion': typeof PanelModeracionRoute
   '/panel/pagos': typeof PanelPagosRoute
@@ -342,6 +360,7 @@ export interface FileRoutesById {
   '/panel/cursos/$courseId': typeof PanelCursosCourseIdRoute
   '/certificados/$credentialId/': typeof CertificadosCredentialIdIndexRoute
   '/cursos/$courseSlug/': typeof CursosCourseSlugIndexRoute
+  '/api/automations/attachments/$automationId': typeof ApiAutomationsAttachmentsAutomationIdRoute
   '/api/certificates/frame/$courseId': typeof ApiCertificatesFrameCourseIdRoute
   '/api/certificates/preview/$courseId': typeof ApiCertificatesPreviewCourseIdRoute
   '/api/media/key/$videoId': typeof ApiMediaKeyVideoIdRoute
@@ -364,6 +383,7 @@ export interface FileRouteTypes {
     | '/auth/handoff'
     | '/auth/logout'
     | '/baja/$token'
+    | '/panel/automatizaciones'
     | '/panel/dominio'
     | '/panel/moderacion'
     | '/panel/pagos'
@@ -382,6 +402,7 @@ export interface FileRouteTypes {
     | '/panel/cursos/$courseId'
     | '/certificados/$credentialId/'
     | '/cursos/$courseSlug/'
+    | '/api/automations/attachments/$automationId'
     | '/api/certificates/frame/$courseId'
     | '/api/certificates/preview/$courseId'
     | '/api/media/key/$videoId'
@@ -402,6 +423,7 @@ export interface FileRouteTypes {
     | '/auth/handoff'
     | '/auth/logout'
     | '/baja/$token'
+    | '/panel/automatizaciones'
     | '/panel/dominio'
     | '/panel/moderacion'
     | '/panel/pagos'
@@ -420,6 +442,7 @@ export interface FileRouteTypes {
     | '/panel/cursos/$courseId'
     | '/certificados/$credentialId'
     | '/cursos/$courseSlug'
+    | '/api/automations/attachments/$automationId'
     | '/api/certificates/frame/$courseId'
     | '/api/certificates/preview/$courseId'
     | '/api/media/key/$videoId'
@@ -440,6 +463,7 @@ export interface FileRouteTypes {
     | '/auth/handoff'
     | '/auth/logout'
     | '/baja/$token'
+    | '/panel/automatizaciones'
     | '/panel/dominio'
     | '/panel/moderacion'
     | '/panel/pagos'
@@ -458,6 +482,7 @@ export interface FileRouteTypes {
     | '/panel/cursos/$courseId'
     | '/certificados/$credentialId/'
     | '/cursos/$courseSlug/'
+    | '/api/automations/attachments/$automationId'
     | '/api/certificates/frame/$courseId'
     | '/api/certificates/preview/$courseId'
     | '/api/media/key/$videoId'
@@ -479,6 +504,7 @@ export interface RootRouteChildren {
   AuthHandoffRoute: typeof AuthHandoffRoute
   AuthLogoutRoute: typeof AuthLogoutRoute
   BajaTokenRoute: typeof BajaTokenRoute
+  PanelAutomatizacionesRoute: typeof PanelAutomatizacionesRoute
   PanelDominioRoute: typeof PanelDominioRoute
   PanelModeracionRoute: typeof PanelModeracionRoute
   PanelPagosRoute: typeof PanelPagosRoute
@@ -497,6 +523,7 @@ export interface RootRouteChildren {
   PanelCursosCourseIdRoute: typeof PanelCursosCourseIdRoute
   CertificadosCredentialIdIndexRoute: typeof CertificadosCredentialIdIndexRoute
   CursosCourseSlugIndexRoute: typeof CursosCourseSlugIndexRoute
+  ApiAutomationsAttachmentsAutomationIdRoute: typeof ApiAutomationsAttachmentsAutomationIdRoute
   ApiCertificatesFrameCourseIdRoute: typeof ApiCertificatesFrameCourseIdRoute
   ApiCertificatesPreviewCourseIdRoute: typeof ApiCertificatesPreviewCourseIdRoute
   ApiMediaKeyVideoIdRoute: typeof ApiMediaKeyVideoIdRoute
@@ -589,6 +616,13 @@ declare module '@tanstack/react-router' {
       path: '/panel'
       fullPath: '/panel/'
       preLoaderRoute: typeof PanelIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/panel/automatizaciones': {
+      id: '/panel/automatizaciones'
+      path: '/panel/automatizaciones'
+      fullPath: '/panel/automatizaciones'
+      preLoaderRoute: typeof PanelAutomatizacionesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/panel/dominio': {
@@ -710,6 +744,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PanelCursosCourseIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/automations/attachments/$automationId': {
+      id: '/api/automations/attachments/$automationId'
+      path: '/api/automations/attachments/$automationId'
+      fullPath: '/api/automations/attachments/$automationId'
+      preLoaderRoute: typeof ApiAutomationsAttachmentsAutomationIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/certificates/frame/$courseId': {
       id: '/api/certificates/frame/$courseId'
       path: '/api/certificates/frame/$courseId'
@@ -789,6 +830,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthHandoffRoute: AuthHandoffRoute,
   AuthLogoutRoute: AuthLogoutRoute,
   BajaTokenRoute: BajaTokenRoute,
+  PanelAutomatizacionesRoute: PanelAutomatizacionesRoute,
   PanelDominioRoute: PanelDominioRoute,
   PanelModeracionRoute: PanelModeracionRoute,
   PanelPagosRoute: PanelPagosRoute,
@@ -807,6 +849,8 @@ const rootRouteChildren: RootRouteChildren = {
   PanelCursosCourseIdRoute: PanelCursosCourseIdRoute,
   CertificadosCredentialIdIndexRoute: CertificadosCredentialIdIndexRoute,
   CursosCourseSlugIndexRoute: CursosCourseSlugIndexRoute,
+  ApiAutomationsAttachmentsAutomationIdRoute:
+    ApiAutomationsAttachmentsAutomationIdRoute,
   ApiCertificatesFrameCourseIdRoute: ApiCertificatesFrameCourseIdRoute,
   ApiCertificatesPreviewCourseIdRoute: ApiCertificatesPreviewCourseIdRoute,
   ApiMediaKeyVideoIdRoute: ApiMediaKeyVideoIdRoute,

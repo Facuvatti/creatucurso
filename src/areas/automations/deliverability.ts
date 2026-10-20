@@ -22,14 +22,23 @@ const certificates = new Map<string, string>();
 function amazonUrl(value: string | undefined): URL | null {
 	try {
 		const url = new URL(value ?? "");
-		return url.protocol === "https:" && CERT_HOST.test(url.hostname) ? url : null;
+		return url.protocol === "https:" && CERT_HOST.test(url.hostname)
+			? url
+			: null;
 	} catch {
 		return null;
 	}
 }
 
 const SIGNED_FIELDS: Record<string, string[]> = {
-	Notification: ["Message", "MessageId", "Subject", "Timestamp", "TopicArn", "Type"],
+	Notification: [
+		"Message",
+		"MessageId",
+		"Subject",
+		"Timestamp",
+		"TopicArn",
+		"Type",
+	],
 	SubscriptionConfirmation: [
 		"Message",
 		"MessageId",
@@ -79,7 +88,11 @@ async function verifySignature(message: SnsMessage): Promise<boolean> {
 
 /** Pauses the academy when its recent bounce or complaint rate is over the limit. */
 export async function evaluateAcademy(organizationId: string): Promise<void> {
-	const { rows } = await pool.query<{ sent: string; bounces: string; complaints: string }>(
+	const { rows } = await pool.query<{
+		sent: string;
+		bounces: string;
+		complaints: string;
+	}>(
 		`select count(*) as sent,
 		        count(*) filter (where provider_event = 'bounce') as bounces,
 		        count(*) filter (where provider_event = 'complaint') as complaints
@@ -142,7 +155,10 @@ export async function handleSnsMessage(raw: unknown): Promise<number> {
 	let event: {
 		eventType?: string;
 		mail?: { messageId?: string };
-		bounce?: { bounceType?: string; bouncedRecipients?: { emailAddress: string }[] };
+		bounce?: {
+			bounceType?: string;
+			bouncedRecipients?: { emailAddress: string }[];
+		};
 		complaint?: { complainedRecipients?: { emailAddress: string }[] };
 	};
 	try {
@@ -153,7 +169,10 @@ export async function handleSnsMessage(raw: unknown): Promise<number> {
 	const messageId = event.mail?.messageId;
 	let providerEvent: string | null = null;
 
-	if (event.eventType === "Bounce" && event.bounce?.bounceType === "Permanent") {
+	if (
+		event.eventType === "Bounce" &&
+		event.bounce?.bounceType === "Permanent"
+	) {
 		providerEvent = "bounce";
 		for (const r of event.bounce.bouncedRecipients ?? []) {
 			await suppress(r.emailAddress, "bounce");

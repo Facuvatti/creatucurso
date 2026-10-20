@@ -54,7 +54,8 @@ export function PanelPage({
 			<h1>Panel de la academia</h1>
 			<p>
 				<Link to="/panel/tutoria">Tutoría</Link>{" "}
-				<Link to="/panel/moderacion">Moderación</Link>
+				<Link to="/panel/moderacion">Moderación</Link>{" "}
+				<Link to="/panel/automatizaciones">Automatizaciones</Link>
 			</p>
 			{canManagePayments && (
 				<p>

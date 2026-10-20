@@ -43,7 +43,9 @@ export function escapeHtmlText(value: string): string {
 
 /** Subject: one line, so a variable can never inject a header. */
 export function renderSubject(subject: string, values: Variables): string {
-	return fillPlaceholders(subject, values).replace(/[\r\n]+/g, " ").trim();
+	return fillPlaceholders(subject, values)
+		.replace(/[\r\n]+/g, " ")
+		.trim();
 }
 
 /** Plain-text body. */
@@ -53,11 +55,7 @@ export function renderText(body: string, values: Variables): string {
 
 /** HTML body: the template and every value are escaped, links are made clickable. */
 export function renderHtmlBody(body: string, values: Variables): string {
-	const filled = fillPlaceholders(
-		escapeHtmlText(body),
-		values,
-		escapeHtmlText,
-	);
+	const filled = fillPlaceholders(escapeHtmlText(body), values, escapeHtmlText);
 	return filled
 		.replace(/https?:\/\/[^\s<]+/g, (url) => `<a href="${url}">${url}</a>`)
 		.replace(/\r?\n/g, "<br>");

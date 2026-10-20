@@ -2,7 +2,10 @@
 // events.outbox in the same transaction as the change they describe.
 // Start it with `pnpm worker`.
 import { createServer } from "node:http";
-import { processDeliveries, runAutomations } from "../areas/automations/delivery.ts";
+import {
+	processDeliveries,
+	runAutomations,
+} from "../areas/automations/delivery.ts";
 import { issueCertificate } from "../areas/certificates/certificates.ts";
 import { renewExpiringConnections } from "../areas/payments/mercadopago-connection.ts";
 import { refreshPendingDomains } from "../areas/tenancy/domains.ts";

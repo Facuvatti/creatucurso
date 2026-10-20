@@ -139,7 +139,11 @@ async function academyCapacity(organizationId: string): Promise<Capacity> {
 	);
 	const r = rows[0];
 	if (r?.status === "paused") {
-		return { ok: false, reason: "paused", retryInSeconds: PAUSED_DEFER_SECONDS };
+		return {
+			ok: false,
+			reason: "paused",
+			retryInSeconds: PAUSED_DEFER_SECONDS,
+		};
 	}
 	if (Number(r?.hour) >= MAX_PER_HOUR) {
 		return { ok: false, reason: "hour-cap", retryInSeconds: DEFER_SECONDS };
@@ -221,18 +225,27 @@ async function sendOne(d: Delivery): Promise<void> {
 		 join auth."user" u on u.id = $5
 		 join catalog.course c on c.id = $6 and c.organization_id = a.organization_id
 		 where a.id = $1 and a.organization_id = $3`,
-		[d.automation_id, d.enrollment_id, d.organization_id, d.email, d.user_id, d.course_id],
+		[
+			d.automation_id,
+			d.enrollment_id,
+			d.organization_id,
+			d.email,
+			d.user_id,
+			d.course_id,
+		],
 	);
 	const r = rows[0];
 	if (!r || !r.enabled) return finish(d.id, "skipped", "disabled");
-	if (r.enrollment_active === false) return finish(d.id, "skipped", "not-active");
+	if (r.enrollment_active === false)
+		return finish(d.id, "skipped", "not-active");
 	if (r.unsubscribed) return finish(d.id, "skipped", "unsubscribed");
 	if (r.suppressed) return finish(d.id, "skipped", "suppressed");
 	if (Number(r.recipient_sent) >= MAX_PER_RECIPIENT_PER_DAY) {
 		return finish(d.id, "skipped", "recipient-cap");
 	}
 	const capacity = await academyCapacity(d.organization_id);
-	if (!capacity.ok) return defer(d.id, capacity.reason, capacity.retryInSeconds);
+	if (!capacity.ok)
+		return defer(d.id, capacity.reason, capacity.retryInSeconds);
 
 	try {
 		const origin = tenantOrigin(r.slug);
@@ -362,7 +375,10 @@ export async function sendTestEmail(input: {
 }): Promise<{ ok: true } | { ok: false; message: string }> {
 	const capacity = await academyCapacity(input.organizationId);
 	if (!capacity.ok) {
-		return { ok: false, message: "El envío de mensajes está pausado o en el límite." };
+		return {
+			ok: false,
+			message: "El envío de mensajes está pausado o en el límite.",
+		};
 	}
 	const { rows } = await pool.query<{ slug: string }>(
 		"select slug from auth.organization where id = $1",

@@ -16,7 +16,9 @@ export async function sendEmail(message: {
 			`[email] To: ${message.to}\n[email] Subject: ${message.subject}\n${message.text}`,
 		);
 		for (const a of message.attachments ?? []) {
-			console.log(`[email] Attachment: ${a.filename} (${a.content.length} bytes)`);
+			console.log(
+				`[email] Attachment: ${a.filename} (${a.content.length} bytes)`,
+			);
 		}
 		return null;
 	}
