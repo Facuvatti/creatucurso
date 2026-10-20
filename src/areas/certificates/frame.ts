@@ -135,10 +135,10 @@ export async function prepareFrame(bytes: Buffer): Promise<FrameResult> {
 					"No se pudo convertir el PDF. Probá exportarlo de nuevo desde Canva.",
 				);
 			}
-			return finish(path.join(dir, "page.png"), output, false);
+			return await finish(path.join(dir, "page.png"), output, false);
 		}
 
-		return finish(input, output, true);
+		return await finish(input, output, true);
 	} finally {
 		await rm(dir, { recursive: true, force: true });
 	}
