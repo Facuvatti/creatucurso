@@ -134,6 +134,34 @@ create table if not exists payments.merchant (
 	created_at timestamptz not null default now()
 );
 
+-- Mercado Pago marketplace (ADR-0023): one row per academy linked by OAuth.
+create table if not exists payments.mercadopago_connection (
+	organization_id text primary key references auth.organization (id) on delete cascade,
+	-- The seller's Mercado Pago user id; webhooks carry it and map to the academy.
+	mp_user_id text not null unique,
+	-- Both encrypted with the secret box; null once disconnected.
+	access_token_encrypted text,
+	refresh_token_encrypted text,
+	public_key text,
+	expires_at timestamptz,
+	status text not null default 'connected' check (status in ('connected', 'disconnected', 'error')),
+	-- Never holds token material.
+	status_reason text,
+	refresh_attempts integer not null default 0,
+	connected_at timestamptz not null default now(),
+	updated_at timestamptz not null default now()
+);
+
+-- Single-use state of an OAuth attempt in flight (the PKCE verifier is encrypted).
+create table if not exists payments.mercadopago_oauth_state (
+	state_hash text primary key,
+	organization_id text not null references auth.organization (id) on delete cascade,
+	user_id text not null references auth."user" (id) on delete cascade,
+	code_verifier_encrypted text not null,
+	return_origin text not null,
+	expires_at timestamptz not null
+);
+
 create table if not exists payments.payment (
 	id uuid primary key default gen_random_uuid(),
 	organization_id text not null references auth.organization (id) on delete cascade,
