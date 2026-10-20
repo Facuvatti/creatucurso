@@ -1,5 +1,5 @@
 import type { PoolClient } from "pg";
-import { pool } from "../../server/db.server.ts";
+import { emitEvent, inTransaction, pool } from "../../server/db.server.ts";
 import { slugify } from "../../shared/text/slugify.ts";
 import { findRoles } from "../identity/members.ts";
 import {
@@ -89,21 +89,6 @@ function toSummary(row: CourseRow): CourseSummary {
 function isUniqueViolation(error: unknown, constraint: string): boolean {
 	const e = error as { code?: string; constraint?: string };
 	return e.code === "23505" && e.constraint === constraint;
-}
-
-async function inTransaction<T>(run: (client: PoolClient) => Promise<T>) {
-	const client = await pool.connect();
-	try {
-		await client.query("begin");
-		const result = await run(client);
-		await client.query("commit");
-		return result;
-	} catch (error) {
-		await client.query("rollback");
-		throw error;
-	} finally {
-		client.release();
-	}
 }
 
 async function outlineOf(row: CourseRow): Promise<CourseOutline> {
@@ -462,29 +447,113 @@ export async function listCoursesOfInstructor(
 
 // ---------------------------------------------------------------- enrollments
 
+export type EnrollmentStatus = "active" | "suspended" | "refunded" | "revoked";
+
 export async function enroll(input: {
 	courseId: string;
 	userId: string;
 	source: "manual" | "payment" | "free";
 	paymentId?: string;
 }): Promise<boolean> {
-	const { rowCount } = await pool.query(
-		`insert into catalog.enrollment (course_id, user_id, source, payment_id)
-		 values ($1, $2, $3, $4) on conflict do nothing`,
-		[input.courseId, input.userId, input.source, input.paymentId ?? null],
-	);
-	return (rowCount ?? 0) > 0;
+	return inTransaction(async (client) => {
+		// A new payment re-activates a refunded enrollment. Replaying the webhook
+		// of the refunded payment itself (same payment id) does not.
+		const { rows } = await client.query<{ id: string }>(
+			`insert into catalog.enrollment (course_id, user_id, source, payment_id)
+			 values ($1, $2, $3, $4)
+			 on conflict (course_id, user_id) do update
+			   set status = 'active', source = excluded.source, payment_id = excluded.payment_id,
+			       created_at = now()
+			   where catalog.enrollment.status = 'refunded'
+			     and catalog.enrollment.payment_id is distinct from excluded.payment_id
+			 returning id`,
+			[input.courseId, input.userId, input.source, input.paymentId ?? null],
+		);
+		const created = rows[0];
+		if (!created) return false;
+		await emitEvent(
+			client,
+			"enrollment.created",
+			{
+				enrollmentId: created.id,
+				courseId: input.courseId,
+				userId: input.userId,
+				source: input.source,
+			},
+			`enrollment.created:${created.id}:${input.paymentId ?? "none"}`,
+		);
+		return true;
+	});
 }
 
+/** The enrollment that grants access (status active), or null. */
 export async function findEnrollment(
 	courseId: string,
 	userId: string,
-): Promise<{ completedAt: Date | null } | null> {
-	const { rows } = await pool.query<{ completed_at: Date | null }>(
-		`select completed_at from catalog.enrollment where course_id = $1 and user_id = $2`,
+): Promise<{ completedAt: Date | null; createdAt: Date } | null> {
+	const { rows } = await pool.query<{
+		completed_at: Date | null;
+		created_at: Date;
+	}>(
+		`select completed_at, created_at from catalog.enrollment
+		 where course_id = $1 and user_id = $2 and status = 'active'`,
 		[courseId, userId],
 	);
-	return rows[0] ? { completedAt: rows[0].completed_at } : null;
+	return rows[0]
+		? { completedAt: rows[0].completed_at, createdAt: rows[0].created_at }
+		: null;
+}
+
+/** The enrollment status whatever it is, or null when the student never enrolled. */
+export async function findEnrollmentStatus(
+	courseId: string,
+	userId: string,
+): Promise<EnrollmentStatus | null> {
+	const { rows } = await pool.query<{ status: EnrollmentStatus }>(
+		`select status from catalog.enrollment where course_id = $1 and user_id = $2`,
+		[courseId, userId],
+	);
+	return rows[0]?.status ?? null;
+}
+
+/**
+ * Moves an enrollment from one of the `from` statuses to `to` inside the
+ * caller's transaction. Returns the enrollment id when something changed.
+ */
+export async function setEnrollmentStatus(
+	client: PoolClient,
+	input: {
+		courseId: string;
+		userId: string;
+		from: EnrollmentStatus[];
+		to: EnrollmentStatus;
+	},
+): Promise<string | null> {
+	const { rows } = await client.query<{ id: string }>(
+		`update catalog.enrollment set status = $4
+		 where course_id = $1 and user_id = $2 and status = any ($3::catalog.enrollment_status[])
+		 returning id`,
+		[input.courseId, input.userId, input.from, input.to],
+	);
+	return rows[0]?.id ?? null;
+}
+
+/** Completed and total lessons of a course for one student. */
+export async function lessonProgress(
+	courseId: string,
+	userId: string,
+): Promise<{ done: number; total: number }> {
+	const { rows } = await pool.query<{ total: string; done: string }>(
+		`select count(*) as total, count(p.lesson_id) as done
+		 from catalog.lesson l
+		 left join catalog.lesson_progress p on p.lesson_id = l.id and p.user_id = $2
+		 where l.course_id = $1`,
+		[courseId, userId],
+	);
+	return {
+		total: Number(rows[0]?.total ?? 0),
+		done: Number(rows[0]?.done ?? 0),
+	};
 }
 
 export async function completedLessonIds(
@@ -526,12 +595,22 @@ export async function completeLesson(
 
 		let justCompleted = false;
 		if (courseCompleted) {
-			const marked = await client.query(
+			const marked = await client.query<{ id: string }>(
 				`update catalog.enrollment set completed_at = now()
-				 where course_id = $1 and user_id = $2 and completed_at is null`,
+				 where course_id = $1 and user_id = $2 and completed_at is null and status = 'active'
+				 returning id`,
 				[courseId, userId],
 			);
-			justCompleted = (marked.rowCount ?? 0) > 0;
+			const enrollment = marked.rows[0];
+			justCompleted = !!enrollment;
+			if (enrollment) {
+				await emitEvent(
+					client,
+					"course.completed",
+					{ enrollmentId: enrollment.id, courseId, userId },
+					`course.completed:${enrollment.id}`,
+				);
+			}
 		}
 		return { courseCompleted, justCompleted };
 	});

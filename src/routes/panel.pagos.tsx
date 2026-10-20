@@ -9,8 +9,10 @@ import { can } from "../areas/identity/permissions.ts";
 import { PaymentsPanelPage } from "../components/pages/payments-panel-page.tsx";
 import {
 	activateAcademyPayments,
+	connectMercadoPagoAccount,
 	connectPaymentProvider,
 	getPaymentsPanel,
+	refundAcademyPayment,
 } from "../server/payments.functions.ts";
 
 export const Route = createFileRoute("/panel/pagos")({
@@ -60,6 +62,20 @@ function PaymentsRoute() {
 					"Proveedor conectado.",
 				)
 			}
+			onConnectMercadoPago={(values) =>
+				run(
+					() => connectMercadoPagoAccount({ data: values }),
+					"Mercado Pago conectado.",
+				)
+			}
+			onRefund={(paymentId, amount) => {
+				if (!window.confirm("¿Confirmás el reembolso? No se puede deshacer."))
+					return;
+				run(
+					() => refundAcademyPayment({ data: { paymentId, amount } }),
+					"Reembolso realizado.",
+				);
+			}}
 		/>
 	);
 }

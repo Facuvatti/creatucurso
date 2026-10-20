@@ -84,7 +84,8 @@ function CheckoutRoute() {
 		"idle",
 	);
 	const [error, setError] = useState<string>();
-	const session = useRef<Extract<CheckoutSession, { ok: true }>>(null);
+	const session =
+		useRef<Extract<CheckoutSession, { provider: "hyperswitch" }>>(null);
 	const hyper = useRef<Hyper>(null);
 	const widgets = useRef<HyperWidgets>(null);
 
@@ -97,6 +98,11 @@ function CheckoutRoute() {
 		if (!result.ok) {
 			setError(result.message);
 			return setStep("idle");
+		}
+		if (result.provider === "mercadopago") {
+			// Checkout Pro: Mercado Pago hosts the payment page.
+			window.location.href = result.redirectUrl;
+			return;
 		}
 		try {
 			await loadScript(result.sdkUrl);

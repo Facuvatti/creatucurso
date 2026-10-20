@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-export type PaymentStatus = "pending" | "succeeded" | "failed";
+export type PaymentStatus = "pending" | "succeeded" | "failed" | "refunded";
+export type Provider = "hyperswitch" | "mercadopago";
 
 /** Translates the payment gateway's status into the three states we care about. */
 export function mapGatewayStatus(status: string): PaymentStatus {
@@ -44,6 +45,7 @@ export function priceOf(course: {
 
 export type MerchantCredentials = {
 	organizationId: string;
+	provider: Provider;
 	gatewayMerchantId: string;
 	gatewayProfileId: string;
 	publishableKey: string;
@@ -56,22 +58,66 @@ export type PaymentRecord = {
 	organizationId: string;
 	courseId: string;
 	userId: string;
+	provider: Provider;
 	gatewayPaymentId: string;
+	providerPaymentId: string | null;
 	amount: number;
 	currency: string;
+	refundedAmount: number;
 	status: PaymentStatus;
 };
 
+export type PaymentRow = {
+	id: string;
+	organization_id: string;
+	course_id: string;
+	user_id: string;
+	provider: Provider;
+	gateway_payment_id: string;
+	provider_payment_id: string | null;
+	amount: number;
+	currency: string;
+	refunded_amount: number;
+	status: PaymentStatus;
+};
+
+/** Columns that `toPaymentRecord` reads. */
+export const PAYMENT_COLUMNS =
+	"id, organization_id, course_id, user_id, provider, gateway_payment_id, provider_payment_id, amount, currency, refunded_amount, status";
+
+export function toPaymentRecord(row: PaymentRow): PaymentRecord {
+	return {
+		id: row.id,
+		organizationId: row.organization_id,
+		courseId: row.course_id,
+		userId: row.user_id,
+		provider: row.provider,
+		gatewayPaymentId: row.gateway_payment_id,
+		providerPaymentId: row.provider_payment_id,
+		amount: row.amount,
+		currency: row.currency,
+		refundedAmount: row.refunded_amount,
+		status: row.status,
+	};
+}
+
 /** What has to happen once a payment succeeds (enrol the student). Must be safe to repeat. */
 export type FulfillPayment = (payment: PaymentRecord) => Promise<void>;
+
+export type WebhookEvent = {
+	type: string | null;
+	gatewayPaymentId: string | null;
+	status: string | null;
+	refundId: string | null;
+	refundAmount: number | null;
+	disputeId: string | null;
+};
 
 /**
  * Checks the webhook body sent by the gateway and returns what we use from it,
  * or null when it is not JSON. Fields we do not need are ignored.
  */
-export function parseWebhookEvent(
-	rawBody: string,
-): { gatewayPaymentId: string | null; status: string | null } | null {
+export function parseWebhookEvent(rawBody: string): WebhookEvent | null {
 	let body: unknown;
 	try {
 		body = JSON.parse(rawBody);
@@ -79,12 +125,19 @@ export function parseWebhookEvent(
 		return null;
 	}
 	if (typeof body !== "object" || body === null) return null;
-	const content = (body as { content?: { object?: Record<string, unknown> } })
-		.content;
+	const { event_type: type, content } = body as {
+		event_type?: unknown;
+		content?: { object?: Record<string, unknown> };
+	};
 	const object = content?.object;
+	const text = (value: unknown) => (typeof value === "string" ? value : null);
+	const amount = object?.refund_amount ?? object?.amount;
 	return {
-		gatewayPaymentId:
-			typeof object?.payment_id === "string" ? object.payment_id : null,
-		status: typeof object?.status === "string" ? object.status : null,
+		type: text(type),
+		gatewayPaymentId: text(object?.payment_id),
+		status: text(object?.status),
+		refundId: text(object?.refund_id),
+		refundAmount: typeof amount === "number" ? amount : null,
+		disputeId: text(object?.dispute_id),
 	};
 }

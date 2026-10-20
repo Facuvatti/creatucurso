@@ -79,6 +79,7 @@ export async function createMerchant(
 	);
 
 	return {
+		provider: "hyperswitch",
 		gatewayMerchantId: account.merchant_id,
 		gatewayProfileId: profileId,
 		publishableKey: account.publishable_key,
@@ -170,4 +171,26 @@ export async function retrieveGatewayPayment(
 		merchant.apiKey,
 	);
 	return { status: payment.status };
+}
+
+/** Refunds a payment (full when `amount` is omitted, partial otherwise, minor units). */
+export async function refundGatewayPayment(
+	{ gatewayUrl }: GatewayConfig,
+	merchant: MerchantCredentials,
+	input: { gatewayPaymentId: string; amount?: number },
+): Promise<{ refundId: string; amount: number; status: string }> {
+	const refund = await call<{
+		refund_id: string;
+		amount: number;
+		status: string;
+	}>(gatewayUrl, "POST", "/refunds", merchant.apiKey, {
+		payment_id: input.gatewayPaymentId,
+		refund_type: "instant",
+		...(input.amount === undefined ? {} : { amount: input.amount }),
+	});
+	return {
+		refundId: refund.refund_id,
+		amount: refund.amount,
+		status: refund.status,
+	};
 }

@@ -13,16 +13,21 @@ import {
 	setReviewVisibility,
 	submitReview,
 } from "../server/community.functions.ts";
-import { enrollInFreeCourse } from "../server/payments.functions.ts";
+import {
+	enrollInFreeCourse,
+	getRefundEligibility,
+	requestRefund,
+} from "../server/payments.functions.ts";
 
 export const Route = createFileRoute("/cursos/$courseSlug/")({
 	beforeLoad: ({ context }) => {
 		if (context.host.kind !== "tenant") throw notFound();
 	},
 	loader: async ({ params }) => {
-		const [result, reviews] = await Promise.all([
+		const [result, reviews, refundable] = await Promise.all([
 			getCoursePage({ data: { courseSlug: params.courseSlug } }),
 			getCourseReviews({ data: { courseSlug: params.courseSlug } }),
+			getRefundEligibility({ data: { courseSlug: params.courseSlug } }),
 		]);
 		if (result.kind === "notFound") throw notFound();
 		if (result.kind === "moved") {
@@ -32,7 +37,7 @@ export const Route = createFileRoute("/cursos/$courseSlug/")({
 				statusCode: 301,
 			});
 		}
-		return { ...result, reviews };
+		return { ...result, reviews, refundable };
 	},
 	head: ({ loaderData }) => ({
 		meta: [
@@ -46,7 +51,8 @@ export const Route = createFileRoute("/cursos/$courseSlug/")({
 });
 
 function CourseRoute() {
-	const { course, access, completedLessonIds, reviews } = Route.useLoaderData();
+	const { course, access, completedLessonIds, reviews, refundable } =
+		Route.useLoaderData();
 	const { origin, appOrigin } = Route.useRouteContext();
 	const router = useRouter();
 	const [pending, setPending] = useState(false);
@@ -63,6 +69,22 @@ function CourseRoute() {
 			loginUrl={loginUrl}
 			pending={pending}
 			message={message}
+			refundable={refundable}
+			onRequestRefund={async () => {
+				if (
+					!window.confirm(
+						"¿Querés reembolsar este curso? Vas a perder el acceso.",
+					)
+				)
+					return;
+				setPending(true);
+				const result = await requestRefund({
+					data: { courseSlug: course.slug },
+				});
+				setPending(false);
+				setMessage(result.ok ? "Reembolso realizado." : result.message);
+				if (result.ok) await router.invalidate();
+			}}
 			onEnrollFree={async () => {
 				setPending(true);
 				const result = await enrollInFreeCourse({

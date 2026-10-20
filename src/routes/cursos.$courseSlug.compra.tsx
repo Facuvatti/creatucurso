@@ -6,10 +6,13 @@ import {
 } from "../server/payments.functions.ts";
 
 export const Route = createFileRoute("/cursos/$courseSlug/compra")({
-	validateSearch: (search: Record<string, unknown>): { payment_id?: string } =>
-		typeof search.payment_id === "string"
-			? { payment_id: search.payment_id }
-			: {},
+	// Mercado Pago returns our payment id as external_reference and its own as payment_id.
+	validateSearch: (
+		search: Record<string, unknown>,
+	): { payment_id?: string } => {
+		const id = search.external_reference ?? search.payment_id;
+		return typeof id === "string" && id !== "null" ? { payment_id: id } : {};
+	},
 	beforeLoad: ({ context }) => {
 		if (context.host.kind !== "tenant") throw notFound();
 	},

@@ -10,12 +10,16 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AskRouteImport } from './routes/ask'
 import { Route as CrearAcademiaRouteImport } from './routes/crear-academia'
 import { Route as HandoffRouteImport } from './routes/handoff'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as RecuperarRouteImport } from './routes/recuperar'
+import { Route as RestablecerRouteImport } from './routes/restablecer'
 import { Route as AuthHandoffRouteImport } from './routes/auth/handoff'
 import { Route as AuthLogoutRouteImport } from './routes/auth/logout'
 import { Route as PanelIndexRouteImport } from './routes/panel.index'
+import { Route as PanelDominioRouteImport } from './routes/panel.dominio'
 import { Route as PanelPagosRouteImport } from './routes/panel.pagos'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as CursosCourseSlugIndexRouteImport } from './routes/cursos.$courseSlug.index'
@@ -23,11 +27,17 @@ import { Route as CursosCourseSlugCompraRouteImport } from './routes/cursos.$cou
 import { Route as CursosCourseSlugComprarRouteImport } from './routes/cursos.$courseSlug.comprar'
 import { Route as PanelCursosCourseIdRouteImport } from './routes/panel.cursos.$courseId'
 import { Route as ApiWebhooksHyperswitchOrganizationIdRouteImport } from './routes/api/webhooks/hyperswitch.$organizationId'
+import { Route as ApiWebhooksMercadopagoOrganizationIdRouteImport } from './routes/api/webhooks/mercadopago.$organizationId'
 import { Route as CursosCourseSlugClasesLessonSlugRouteImport } from './routes/cursos.$courseSlug.clases.$lessonSlug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AskRoute = AskRouteImport.update({
+  id: '/ask',
+  path: '/ask',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CrearAcademiaRoute = CrearAcademiaRouteImport.update({
@@ -45,6 +55,16 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RecuperarRoute = RecuperarRouteImport.update({
+  id: '/recuperar',
+  path: '/recuperar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RestablecerRoute = RestablecerRouteImport.update({
+  id: '/restablecer',
+  path: '/restablecer',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthHandoffRoute = AuthHandoffRouteImport.update({
   id: '/auth/handoff',
   path: '/auth/handoff',
@@ -58,6 +78,11 @@ const AuthLogoutRoute = AuthLogoutRouteImport.update({
 const PanelIndexRoute = PanelIndexRouteImport.update({
   id: '/panel/',
   path: '/panel/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PanelDominioRoute = PanelDominioRouteImport.update({
+  id: '/panel/dominio',
+  path: '/panel/dominio',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PanelPagosRoute = PanelPagosRouteImport.update({
@@ -96,6 +121,12 @@ const ApiWebhooksHyperswitchOrganizationIdRoute =
     path: '/api/webhooks/hyperswitch/$organizationId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiWebhooksMercadopagoOrganizationIdRoute =
+  ApiWebhooksMercadopagoOrganizationIdRouteImport.update({
+    id: '/api/webhooks/mercadopago/$organizationId',
+    path: '/api/webhooks/mercadopago/$organizationId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const CursosCourseSlugClasesLessonSlugRoute =
   CursosCourseSlugClasesLessonSlugRouteImport.update({
     id: '/cursos/$courseSlug/clases/$lessonSlug',
@@ -105,11 +136,15 @@ const CursosCourseSlugClasesLessonSlugRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/ask': typeof AskRoute
   '/crear-academia': typeof CrearAcademiaRoute
   '/handoff': typeof HandoffRoute
   '/login': typeof LoginRoute
+  '/recuperar': typeof RecuperarRoute
+  '/restablecer': typeof RestablecerRoute
   '/auth/handoff': typeof AuthHandoffRoute
   '/auth/logout': typeof AuthLogoutRoute
+  '/panel/dominio': typeof PanelDominioRoute
   '/panel/pagos': typeof PanelPagosRoute
   '/panel/': typeof PanelIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -118,15 +153,20 @@ export interface FileRoutesByFullPath {
   '/panel/cursos/$courseId': typeof PanelCursosCourseIdRoute
   '/cursos/$courseSlug/': typeof CursosCourseSlugIndexRoute
   '/api/webhooks/hyperswitch/$organizationId': typeof ApiWebhooksHyperswitchOrganizationIdRoute
+  '/api/webhooks/mercadopago/$organizationId': typeof ApiWebhooksMercadopagoOrganizationIdRoute
   '/cursos/$courseSlug/clases/$lessonSlug': typeof CursosCourseSlugClasesLessonSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/ask': typeof AskRoute
   '/crear-academia': typeof CrearAcademiaRoute
   '/handoff': typeof HandoffRoute
   '/login': typeof LoginRoute
+  '/recuperar': typeof RecuperarRoute
+  '/restablecer': typeof RestablecerRoute
   '/auth/handoff': typeof AuthHandoffRoute
   '/auth/logout': typeof AuthLogoutRoute
+  '/panel/dominio': typeof PanelDominioRoute
   '/panel/pagos': typeof PanelPagosRoute
   '/panel': typeof PanelIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -135,16 +175,21 @@ export interface FileRoutesByTo {
   '/panel/cursos/$courseId': typeof PanelCursosCourseIdRoute
   '/cursos/$courseSlug': typeof CursosCourseSlugIndexRoute
   '/api/webhooks/hyperswitch/$organizationId': typeof ApiWebhooksHyperswitchOrganizationIdRoute
+  '/api/webhooks/mercadopago/$organizationId': typeof ApiWebhooksMercadopagoOrganizationIdRoute
   '/cursos/$courseSlug/clases/$lessonSlug': typeof CursosCourseSlugClasesLessonSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/ask': typeof AskRoute
   '/crear-academia': typeof CrearAcademiaRoute
   '/handoff': typeof HandoffRoute
   '/login': typeof LoginRoute
+  '/recuperar': typeof RecuperarRoute
+  '/restablecer': typeof RestablecerRoute
   '/auth/handoff': typeof AuthHandoffRoute
   '/auth/logout': typeof AuthLogoutRoute
+  '/panel/dominio': typeof PanelDominioRoute
   '/panel/pagos': typeof PanelPagosRoute
   '/panel/': typeof PanelIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -153,17 +198,22 @@ export interface FileRoutesById {
   '/panel/cursos/$courseId': typeof PanelCursosCourseIdRoute
   '/cursos/$courseSlug/': typeof CursosCourseSlugIndexRoute
   '/api/webhooks/hyperswitch/$organizationId': typeof ApiWebhooksHyperswitchOrganizationIdRoute
+  '/api/webhooks/mercadopago/$organizationId': typeof ApiWebhooksMercadopagoOrganizationIdRoute
   '/cursos/$courseSlug/clases/$lessonSlug': typeof CursosCourseSlugClasesLessonSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/ask'
     | '/crear-academia'
     | '/handoff'
     | '/login'
+    | '/recuperar'
+    | '/restablecer'
     | '/auth/handoff'
     | '/auth/logout'
+    | '/panel/dominio'
     | '/panel/pagos'
     | '/panel/'
     | '/api/auth/$'
@@ -172,15 +222,20 @@ export interface FileRouteTypes {
     | '/panel/cursos/$courseId'
     | '/cursos/$courseSlug/'
     | '/api/webhooks/hyperswitch/$organizationId'
+    | '/api/webhooks/mercadopago/$organizationId'
     | '/cursos/$courseSlug/clases/$lessonSlug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/ask'
     | '/crear-academia'
     | '/handoff'
     | '/login'
+    | '/recuperar'
+    | '/restablecer'
     | '/auth/handoff'
     | '/auth/logout'
+    | '/panel/dominio'
     | '/panel/pagos'
     | '/panel'
     | '/api/auth/$'
@@ -189,15 +244,20 @@ export interface FileRouteTypes {
     | '/panel/cursos/$courseId'
     | '/cursos/$courseSlug'
     | '/api/webhooks/hyperswitch/$organizationId'
+    | '/api/webhooks/mercadopago/$organizationId'
     | '/cursos/$courseSlug/clases/$lessonSlug'
   id:
     | '__root__'
     | '/'
+    | '/ask'
     | '/crear-academia'
     | '/handoff'
     | '/login'
+    | '/recuperar'
+    | '/restablecer'
     | '/auth/handoff'
     | '/auth/logout'
+    | '/panel/dominio'
     | '/panel/pagos'
     | '/panel/'
     | '/api/auth/$'
@@ -206,16 +266,21 @@ export interface FileRouteTypes {
     | '/panel/cursos/$courseId'
     | '/cursos/$courseSlug/'
     | '/api/webhooks/hyperswitch/$organizationId'
+    | '/api/webhooks/mercadopago/$organizationId'
     | '/cursos/$courseSlug/clases/$lessonSlug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AskRoute: typeof AskRoute
   CrearAcademiaRoute: typeof CrearAcademiaRoute
   HandoffRoute: typeof HandoffRoute
   LoginRoute: typeof LoginRoute
+  RecuperarRoute: typeof RecuperarRoute
+  RestablecerRoute: typeof RestablecerRoute
   AuthHandoffRoute: typeof AuthHandoffRoute
   AuthLogoutRoute: typeof AuthLogoutRoute
+  PanelDominioRoute: typeof PanelDominioRoute
   PanelPagosRoute: typeof PanelPagosRoute
   PanelIndexRoute: typeof PanelIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -224,6 +289,7 @@ export interface RootRouteChildren {
   PanelCursosCourseIdRoute: typeof PanelCursosCourseIdRoute
   CursosCourseSlugIndexRoute: typeof CursosCourseSlugIndexRoute
   ApiWebhooksHyperswitchOrganizationIdRoute: typeof ApiWebhooksHyperswitchOrganizationIdRoute
+  ApiWebhooksMercadopagoOrganizationIdRoute: typeof ApiWebhooksMercadopagoOrganizationIdRoute
   CursosCourseSlugClasesLessonSlugRoute: typeof CursosCourseSlugClasesLessonSlugRoute
 }
 
@@ -234,6 +300,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ask': {
+      id: '/ask'
+      path: '/ask'
+      fullPath: '/ask'
+      preLoaderRoute: typeof AskRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/crear-academia': {
@@ -257,6 +330,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/recuperar': {
+      id: '/recuperar'
+      path: '/recuperar'
+      fullPath: '/recuperar'
+      preLoaderRoute: typeof RecuperarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/restablecer': {
+      id: '/restablecer'
+      path: '/restablecer'
+      fullPath: '/restablecer'
+      preLoaderRoute: typeof RestablecerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/handoff': {
       id: '/auth/handoff'
       path: '/auth/handoff'
@@ -276,6 +363,13 @@ declare module '@tanstack/react-router' {
       path: '/panel'
       fullPath: '/panel/'
       preLoaderRoute: typeof PanelIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/panel/dominio': {
+      id: '/panel/dominio'
+      path: '/panel/dominio'
+      fullPath: '/panel/dominio'
+      preLoaderRoute: typeof PanelDominioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/panel/pagos': {
@@ -327,6 +421,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWebhooksHyperswitchOrganizationIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/webhooks/mercadopago/$organizationId': {
+      id: '/api/webhooks/mercadopago/$organizationId'
+      path: '/api/webhooks/mercadopago/$organizationId'
+      fullPath: '/api/webhooks/mercadopago/$organizationId'
+      preLoaderRoute: typeof ApiWebhooksMercadopagoOrganizationIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cursos/$courseSlug/clases/$lessonSlug': {
       id: '/cursos/$courseSlug/clases/$lessonSlug'
       path: '/cursos/$courseSlug/clases/$lessonSlug'
@@ -339,11 +440,15 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AskRoute: AskRoute,
   CrearAcademiaRoute: CrearAcademiaRoute,
   HandoffRoute: HandoffRoute,
   LoginRoute: LoginRoute,
+  RecuperarRoute: RecuperarRoute,
+  RestablecerRoute: RestablecerRoute,
   AuthHandoffRoute: AuthHandoffRoute,
   AuthLogoutRoute: AuthLogoutRoute,
+  PanelDominioRoute: PanelDominioRoute,
   PanelPagosRoute: PanelPagosRoute,
   PanelIndexRoute: PanelIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
@@ -353,6 +458,8 @@ const rootRouteChildren: RootRouteChildren = {
   CursosCourseSlugIndexRoute: CursosCourseSlugIndexRoute,
   ApiWebhooksHyperswitchOrganizationIdRoute:
     ApiWebhooksHyperswitchOrganizationIdRoute,
+  ApiWebhooksMercadopagoOrganizationIdRoute:
+    ApiWebhooksMercadopagoOrganizationIdRoute,
   CursosCourseSlugClasesLessonSlugRoute: CursosCourseSlugClasesLessonSlugRoute,
 }
 export const routeTree = rootRouteImport

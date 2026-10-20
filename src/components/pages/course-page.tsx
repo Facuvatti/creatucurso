@@ -12,6 +12,9 @@ type Props = {
 	pending: boolean;
 	message?: string | undefined;
 	onEnrollFree: () => void;
+	/** The student may refund by themselves (decided on the server). */
+	refundable: boolean;
+	onRequestRefund: () => void;
 	children?: ReactNode;
 };
 
@@ -37,6 +40,8 @@ export function CoursePage({
 	pending,
 	message,
 	onEnrollFree,
+	refundable,
+	onRequestRefund,
 	children,
 }: Props) {
 	const first = allLessons(course)[0];
@@ -123,6 +128,13 @@ export function CoursePage({
 					<button type="button" onClick={onEnrollFree} disabled={pending}>
 						Inscribirme gratis
 					</button>
+				)}
+				{refundable && (
+					<p>
+						<button type="button" onClick={onRequestRefund} disabled={pending}>
+							Solicitar reembolso
+						</button>
+					</p>
 				)}
 				{message && <output>{message}</output>}
 			</section>

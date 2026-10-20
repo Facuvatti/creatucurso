@@ -95,12 +95,15 @@ create table if not exists catalog.lesson (
 create index if not exists lesson_module_idx on catalog.lesson (module_id, position);
 
 create type catalog.source_type as enum ('manual', 'payment', 'free');
+-- Only 'active' grants access to the course.
+create type catalog.enrollment_status as enum ('active', 'suspended', 'refunded', 'revoked');
 
 create table if not exists catalog.enrollment (
 	id uuid primary key default gen_random_uuid(),
 	course_id uuid not null references catalog.course (id) on delete cascade,
 	user_id text not null references auth."user" (id) on delete cascade,
 	source catalog.source_type not null default 'manual',
+	status catalog.enrollment_status not null default 'active',
 	payment_id text unique,
 	completed_at timestamptz,
 	created_at timestamptz not null default now(),
@@ -120,9 +123,12 @@ create schema if not exists payments;
 
 create table if not exists payments.merchant (
 	organization_id text primary key references auth.organization (id) on delete cascade,
+	provider text not null default 'hyperswitch' check (provider in ('hyperswitch', 'mercadopago')),
+	-- Mercado Pago: seller user id; profile and publishable key stay null.
 	gateway_merchant_id text not null,
-	gateway_profile_id text not null,
-	publishable_key text not null,
+	gateway_profile_id text,
+	publishable_key text,
+	-- Mercado Pago: the seller's access token.
 	api_key_encrypted text not null,
 	webhook_secret_encrypted text not null,
 	created_at timestamptz not null default now()
@@ -133,14 +139,58 @@ create table if not exists payments.payment (
 	organization_id text not null references auth.organization (id) on delete cascade,
 	course_id uuid not null,
 	user_id text not null references auth."user" (id) on delete cascade,
+	provider text not null default 'hyperswitch' check (provider in ('hyperswitch', 'mercadopago')),
+	-- Hyperswitch: its payment id. Mercado Pago: the preference id.
 	gateway_payment_id text not null unique,
+	-- Mercado Pago payment id, known once the student paid (refunds use it).
+	provider_payment_id text,
 	amount integer not null check (amount > 0),
 	currency text not null,
-	status text not null default 'pending' check (status in ('pending', 'succeeded', 'failed')),
+	refunded_amount integer not null default 0 check (refunded_amount >= 0),
+	status text not null default 'pending' check (status in ('pending', 'succeeded', 'failed', 'refunded')),
 	created_at timestamptz not null default now(),
 	updated_at timestamptz not null default now()
 );
 create index if not exists payment_user_course_idx on payments.payment (user_id, course_id);
+create index if not exists payment_provider_payment_idx on payments.payment (provider_payment_id);
+
+create table if not exists payments.refund (
+	id uuid primary key default gen_random_uuid(),
+	payment_id uuid not null references payments.payment (id) on delete cascade,
+	provider_refund_id text not null,
+	amount integer not null check (amount > 0),
+	-- 'student' (self-service), 'tenant' (owner or admin) or 'provider' (done outside the app).
+	requested_by text not null default 'provider',
+	created_at timestamptz not null default now(),
+	unique (payment_id, provider_refund_id)
+);
+
+create table if not exists payments.dispute (
+	id uuid primary key default gen_random_uuid(),
+	payment_id uuid not null references payments.payment (id) on delete cascade,
+	provider_dispute_id text not null,
+	status text not null check (status in ('open', 'won', 'lost')),
+	created_at timestamptz not null default now(),
+	updated_at timestamptz not null default now(),
+	unique (payment_id, provider_dispute_id)
+);
+
+-- Transactional outbox: written in the same transaction as the change, delivered by the worker.
+create schema if not exists events;
+
+create table if not exists events.outbox (
+	id bigint generated always as identity primary key,
+	type text not null,
+	payload jsonb not null,
+	-- Idempotency: the same business fact is written once.
+	dedupe_key text not null unique,
+	created_at timestamptz not null default now(),
+	available_at timestamptz not null default now(),
+	attempts integer not null default 0,
+	delivered_at timestamptz,
+	last_error text
+);
+create index if not exists outbox_pending_idx on events.outbox (available_at) where delivered_at is null;
 
 -- Our tables: community (public reviews and lesson comments) ---------------------------
 create schema if not exists community;

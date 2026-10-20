@@ -1,18 +1,27 @@
 import { createServerFn } from "@tanstack/react-start";
 import * as catalog from "../areas/catalog/catalog.ts";
-import {
-	addConnector,
-	retrieveGatewayPayment,
-} from "../areas/payments/hyperswitch.ts";
-import { priceOf } from "../areas/payments/payment.ts";
+import { can } from "../areas/identity/permissions.ts";
+import { addConnector } from "../areas/payments/hyperswitch.ts";
+import { type Provider, priceOf } from "../areas/payments/payment.ts";
 import {
 	activatePayments,
-	applyGatewayStatus,
+	connectMercadoPago,
 	findMerchant,
-	findPaymentByGatewayId,
+	findPaymentByAnyId,
+	findPaymentById,
+	mercadoPagoAvailable,
+	mercadoPagoWebhookUrl,
 	paymentsConfig,
+	refreshPayment,
+	refundPayment,
 	startCheckout,
 } from "../areas/payments/payments.ts";
+import {
+	findSelfRefundablePayment,
+	listPanelPayments,
+	type PanelPayment,
+	type PanelRefund,
+} from "../areas/payments/refunds.ts";
 import { oneOf, record, text, uuid } from "../shared/validate.ts";
 import { auth } from "./auth.server.ts";
 import { fulfillPayment } from "./fulfillment.server.ts";
@@ -26,19 +35,31 @@ const NOT_CONFIGURED =
 // ---------------------------------------------------------------- creator side
 
 export type PaymentsPanel = {
+	/** Hyperswitch is configured in this installation. */
 	available: boolean;
+	mercadoPagoAvailable: boolean;
+	/** The provider the academy sells with, or null when none is set up. */
+	provider: Provider | null;
 	active: boolean;
 	testConnectors: boolean;
+	/** Where the creator points Mercado Pago's notifications. */
+	mercadoPagoWebhookUrl: string;
+	payments: PanelPayment[];
+	refunds: PanelRefund[];
 };
 
 export const getPaymentsPanel = createServerFn({ method: "GET" }).handler(
 	async (): Promise<PaymentsPanel> => {
 		const { tenant } = await requireStaffContext();
-		const config = paymentsConfig();
+		const merchant = await findMerchant(tenant.id);
 		return {
-			available: config !== null,
-			active: config ? (await findMerchant(tenant.id)) !== null : false,
+			available: paymentsConfig() !== null,
+			mercadoPagoAvailable: mercadoPagoAvailable(),
+			provider: merchant?.provider ?? null,
+			active: merchant !== null,
 			testConnectors: process.env.NODE_ENV !== "production",
+			mercadoPagoWebhookUrl: mercadoPagoWebhookUrl(tenant.id),
+			...(await listPanelPayments(tenant.id)),
 		};
 	},
 );
@@ -73,7 +94,7 @@ export const connectPaymentProvider = createServerFn({ method: "POST" })
 		if (!payments) return { ok: false, message: NOT_CONFIGURED };
 
 		const merchant = await findMerchant(tenant.id);
-		if (!merchant) {
+		if (!merchant || merchant.provider !== "hyperswitch") {
 			return {
 				ok: false,
 				message: "Primero activá los cobros de tu academia.",
@@ -90,6 +111,65 @@ export const connectPaymentProvider = createServerFn({ method: "POST" })
 					"No pudimos conectar ese proveedor. Revisá los datos e intentá de nuevo.",
 			};
 		}
+	});
+
+export const connectMercadoPagoAccount = createServerFn({ method: "POST" })
+	.validator((data: unknown) => {
+		const input = record(data);
+		return {
+			accessToken: text(input, "accessToken", 500, 20),
+			webhookSecret: text(input, "webhookSecret", 500, 8),
+		};
+	})
+	.handler(async ({ data }): Promise<Result> => {
+		const { tenant } = await requireStaffContext();
+		if (!mercadoPagoAvailable()) return { ok: false, message: NOT_CONFIGURED };
+		try {
+			await connectMercadoPago({ organizationId: tenant.id, ...data });
+			return { ok: true };
+		} catch (error) {
+			console.error("Connecting Mercado Pago failed", error);
+			return {
+				ok: false,
+				message:
+					"Mercado Pago rechazó ese access token. Revisalo e intentá de nuevo.",
+			};
+		}
+	});
+
+/** Owner or admin refunds a payment, in full or in part (amount in major units). */
+export const refundAcademyPayment = createServerFn({ method: "POST" })
+	.validator((data: unknown) => {
+		const input = record(data);
+		const amount = input.amount;
+		if (
+			amount !== null &&
+			(typeof amount !== "number" ||
+				!Number.isFinite(amount) ||
+				amount <= 0 ||
+				amount > 10_000_000)
+		) {
+			throw new Error(
+				"amount must be a positive number, or null for a full refund.",
+			);
+		}
+		return { paymentId: uuid(input, "paymentId"), amount };
+	})
+	.handler(async ({ data }): Promise<Result> => {
+		const { tenant, roles } = await requireStaffContext();
+		if (!can(roles, { billing: ["manage"] })) {
+			return { ok: false, message: "No tenés permiso para hacer esto." };
+		}
+		const payment = await findPaymentById(data.paymentId);
+		if (!payment || payment.organizationId !== tenant.id) {
+			return { ok: false, message: "No encontramos el pago." };
+		}
+		return refundPayment(paymentsConfig(), payment, {
+			requestedBy: "tenant",
+			...(data.amount === null
+				? {}
+				: { amount: Math.round(data.amount * 100) }),
+		});
 	});
 
 const CURRENCIES = [
@@ -151,6 +231,7 @@ async function findPublishedCourse(organizationId: string, slug: string) {
 export type CheckoutSession =
 	| {
 			ok: true;
+			provider: "hyperswitch";
 			paymentId: string;
 			clientSecret: string;
 			publishableKey: string;
@@ -158,6 +239,7 @@ export type CheckoutSession =
 			backendUrl: string;
 			returnUrl: string;
 	  }
+	| { ok: true; provider: "mercadopago"; redirectUrl: string }
 	| { ok: false; message: string };
 
 export const startCourseCheckout = createServerFn({ method: "POST" })
@@ -172,33 +254,57 @@ export const startCourseCheckout = createServerFn({ method: "POST" })
 		if (!course) return { ok: false, message: "No encontramos el curso." };
 		const price = priceOf(course);
 		if (!price) return { ok: false, message: "Este curso es gratuito." };
-		if (await catalog.findEnrollment(course.id, user.id)) {
+		const enrollment = await catalog.findEnrollmentStatus(course.id, user.id);
+		if (enrollment === "active") {
 			return { ok: false, message: "Ya estás inscripto en este curso." };
+		}
+		if (enrollment === "suspended" || enrollment === "revoked") {
+			return {
+				ok: false,
+				message:
+					"Tu acceso a este curso está bloqueado. Contactá a la academia.",
+			};
 		}
 
 		const payments = paymentsConfig();
-		if (!payments) return { ok: false, message: NOT_CONFIGURED };
-
 		const returnUrl = `${context.origin}/cursos/${course.slug}/compra`;
-		const result = await startCheckout(payments, {
-			organizationId: tenant.id,
-			course: {
-				id: course.id,
-				name: course.name,
-				amount: price.amount,
-				currency: price.currency,
-			},
-			user: { id: user.id, email: user.email },
-			returnUrl,
-		});
+		let result: Awaited<ReturnType<typeof startCheckout>>;
+		try {
+			result = await startCheckout(payments, {
+				organizationId: tenant.id,
+				course: {
+					id: course.id,
+					name: course.name,
+					amount: price.amount,
+					currency: price.currency,
+				},
+				user: { id: user.id, email: user.email },
+				returnUrl,
+			});
+		} catch (error) {
+			console.error("Starting the checkout failed", error);
+			return {
+				ok: false,
+				message: "No pudimos iniciar el pago. Probá de nuevo más tarde.",
+			};
+		}
 		if (!result.ok) {
 			return {
 				ok: false,
 				message: "Esta academia todavía no puede cobrar. Probá más tarde.",
 			};
 		}
+		if (result.provider === "mercadopago") {
+			return {
+				ok: true,
+				provider: "mercadopago",
+				redirectUrl: result.redirectUrl,
+			};
+		}
+		if (!payments) return { ok: false, message: NOT_CONFIGURED };
 		return {
 			ok: true,
+			provider: "hyperswitch",
 			paymentId: result.gatewayPaymentId,
 			clientSecret: result.clientSecret,
 			publishableKey: result.publishableKey,
@@ -243,10 +349,9 @@ export const getPurchaseStatus = createServerFn({ method: "GET" })
 	}))
 	.handler(async ({ data }): Promise<PurchaseStatus> => {
 		const { user, tenant } = await requireTenantContext();
-		const payments = paymentsConfig();
-		if (!user || !payments) return { kind: "unknown" };
+		if (!user) return { kind: "unknown" };
 
-		const payment = await findPaymentByGatewayId(data.paymentId);
+		const payment = await findPaymentByAnyId(data.paymentId);
 		if (
 			!payment ||
 			payment.userId !== user.id ||
@@ -259,20 +364,52 @@ export const getPurchaseStatus = createServerFn({ method: "GET" })
 
 		let status = payment.status;
 		if (status === "pending") {
-			const merchant = await findMerchant(tenant.id);
-			if (merchant) {
-				const remote = await retrieveGatewayPayment(
-					payments,
-					merchant,
-					data.paymentId,
-				);
-				const applied = await applyGatewayStatus(
+			try {
+				status = await refreshPayment(
 					fulfillPayment,
-					data.paymentId,
-					remote.status,
+					paymentsConfig(),
+					payment,
 				);
-				if (applied !== "unknown-payment") status = applied;
+			} catch (error) {
+				console.error("Checking the payment failed", error);
 			}
 		}
+		if (status === "refunded") return { kind: "unknown" };
 		return { kind: status, courseSlug: course.slug };
+	});
+
+// --------------------------------------------------------- student self-service
+
+/** True when the signed-in student may refund this course by themselves. */
+export const getRefundEligibility = createServerFn({ method: "GET" })
+	.validator(checkCourse)
+	.handler(async ({ data }): Promise<boolean> => {
+		const { user, tenant } = await requireTenantContext();
+		if (!user) return false;
+		const lookup = await catalog.findCourseBySlug(tenant.id, data.courseSlug);
+		if (lookup?.kind !== "found") return false;
+		return (
+			(await findSelfRefundablePayment(lookup.course.id, user.id)) !== null
+		);
+	});
+
+export const requestRefund = createServerFn({ method: "POST" })
+	.validator(checkCourse)
+	.handler(async ({ data }): Promise<Result> => {
+		const { user, tenant } = await requireTenantContext();
+		if (!user) return { ok: false, message: "Ingresá para continuar." };
+		const lookup = await catalog.findCourseBySlug(tenant.id, data.courseSlug);
+		if (lookup?.kind !== "found") {
+			return { ok: false, message: "No encontramos el curso." };
+		}
+		// Eligibility is decided here, on the server, every time.
+		const payment = await findSelfRefundablePayment(lookup.course.id, user.id);
+		if (!payment || payment.organizationId !== tenant.id) {
+			return {
+				ok: false,
+				message:
+					"Ya no podés pedir el reembolso: pasaron más de 10 días o avanzaste más del 10% del curso.",
+			};
+		}
+		return refundPayment(paymentsConfig(), payment, { requestedBy: "student" });
 	});
