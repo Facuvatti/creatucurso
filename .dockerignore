@@ -1,0 +1,14 @@
+node_modules
+.output
+.nitro
+.tanstack
+.git
+.github
+.atl
+# Local environment files never go into an image (secrets).
+.env
+.env.*
+!.env.example
+docs
+infra
+compose*.yaml

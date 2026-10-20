@@ -1,0 +1,226 @@
+# Production stack of the APP machine: web, worker, Postgres (+ WAL-G backups),
+# Caddy, error tracker (Bugsink) and Uptime Kuma. Hyperswitch (payments machine)
+# and the media node (infra/media) are separate compose projects.
+#
+# Run from the repository root:
+#   docker compose --env-file .env.production -f infra/app/compose.yaml up -d --build
+# See docs/runbook.md.
+name: creatucurso
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+networks:
+  # Not reachable from outside and with no internet access: database and backups.
+  back:
+    internal: true
+  # Caddy, web, worker and the ops tools. Only Caddy publishes public ports.
+  front: {}
+
+volumes:
+  pgdata:
+  caddy-data:
+  caddy-config:
+  bugsink-data:
+  kuma-data:
+
+services:
+  db:
+    build: ./backup
+    image: creatucurso-db:16
+    restart: unless-stopped
+    logging: *logging
+    networks: [back]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      WALG_FILE_PREFIX: /backups/wal-g
+      WALG_LIBSODIUM_KEY: ${WALG_LIBSODIUM_KEY}
+      WALG_LIBSODIUM_KEY_TRANSFORM: hex
+    # Continuous WAL archiving to the backup disk (point-in-time recovery).
+    command:
+      - postgres
+      - -c
+      - wal_level=replica
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_command=wal-g wal-push %p
+      - -c
+      - archive_timeout=300
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ${BACKUP_DIR}:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Same image as db, shares its data directory and takes a base backup daily.
+  backup:
+    build: ./backup
+    image: creatucurso-db:16
+    restart: unless-stopped
+    logging: *logging
+    networks: [back]
+    user: postgres
+    command: ["base-backup.sh"]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
+      WALG_FILE_PREFIX: /backups/wal-g
+      WALG_LIBSODIUM_KEY: ${WALG_LIBSODIUM_KEY}
+      WALG_LIBSODIUM_KEY_TRANSFORM: hex
+      BACKUP_INTERVAL_HOURS: ${BACKUP_INTERVAL_HOURS:-24}
+      BACKUP_RETAIN_FULL: ${BACKUP_RETAIN_FULL:-7}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ${BACKUP_DIR}:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      # Healthy while the last base backup finished less than 2 intervals ago
+      # (or the first one is still running during the first 2 hours).
+      test:
+        - CMD-SHELL
+        - 'test -f /tmp/last-backup-ok && [ $$(( $$(date +%s) - $$(cat /tmp/last-backup-ok) )) -lt $$(( $${BACKUP_INTERVAL_HOURS:-24} * 7200 )) ]'
+      interval: 5m
+      timeout: 10s
+      retries: 3
+      start_period: 2h
+
+  web:
+    build:
+      context: ../..
+    image: creatucurso:latest
+    restart: unless-stopped
+    logging: *logging
+    networks: [front, back]
+    env_file: ../../.env.production
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      PORT: "3000"
+    ports:
+      - "127.0.0.1:3210:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    # HEALTHCHECK (GET /health) comes from the Dockerfile.
+
+  worker:
+    image: creatucurso:latest
+    restart: unless-stopped
+    logging: *logging
+    networks: [front, back]
+    env_file: ../../.env.production
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      WORKER_PORT: "3101"
+    command: ["node", "--env-file-if-exists=.env", "src/worker/index.ts"]
+    ports:
+      - "127.0.0.1:3211:3101"
+    depends_on:
+      db:
+        condition: service_healthy
+      web:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3101/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  caddy:
+    build:
+      context: ./caddy
+      args:
+        DNS_PROVIDER: ${DNS_PROVIDER:-cloudflare}
+    image: creatucurso-caddy:2
+    restart: unless-stopped
+    logging: *logging
+    networks: [front]
+    environment:
+      PLATFORM_DOMAIN: ${PLATFORM_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+      DNS_PROVIDER: ${DNS_PROVIDER:-cloudflare}
+      DNS_API_TOKEN: ${DNS_API_TOKEN}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      web:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:2019/config/ >/dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Error tracker that accepts the Sentry SDK (ADR-0022). Single container, SQLite.
+  bugsink:
+    image: bugsink/bugsink:2
+    restart: unless-stopped
+    logging: *logging
+    networks: [front]
+    environment:
+      SECRET_KEY: ${BUGSINK_SECRET_KEY}
+      CREATE_SUPERUSER: ${BUGSINK_SUPERUSER}
+      BASE_URL: https://errors.${PLATFORM_DOMAIN}
+      BEHIND_HTTPS_PROXY: "true"
+      PORT: "8000"
+    ports:
+      - "127.0.0.1:8211:8000"
+    volumes:
+      - bugsink-data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://127.0.0.1:8000/', timeout=4)"]
+      interval: 30s
+      timeout: 6s
+      retries: 3
+      start_period: 60s
+
+  kuma:
+    image: louislam/uptime-kuma:1
+    restart: unless-stopped
+    logging: *logging
+    networks: [front]
+    ports:
+      - "127.0.0.1:3212:3001"
+    volumes:
+      - kuma-data:/app/data
+    healthcheck:
+      test: ["CMD", "extra/healthcheck"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # One-shot tool, started by infra/app/migrate.sh (not part of "up").
+  migrate:
+    image: ghcr.io/amacneil/dbmate
+    profiles: [tools]
+    networks: [back]
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable
+      DBMATE_MIGRATIONS_DIR: /db/migrations
+      DBMATE_NO_DUMP_SCHEMA: "true"
+    volumes:
+      - ../../db/migrations:/db/migrations
+    depends_on:
+      db:
+        condition: service_healthy

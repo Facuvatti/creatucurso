@@ -4,6 +4,7 @@ dist
 dist-ssr
 *.local
 .env
+.env.production
 .nitro
 .tanstack
 .wrangler
@@ -12,3 +13,6 @@ dist-ssr
 __unconfig*
 todos.json
 
+
+# Video originals and HLS output (MEDIA_ROOT default)
+/media-data/

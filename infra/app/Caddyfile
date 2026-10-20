@@ -1,0 +1,43 @@
+# TLS and proxy for the app machine (ADR-0018). Values come from the
+# environment of the caddy service: PLATFORM_DOMAIN, ACME_EMAIL, DNS_PROVIDER,
+# DNS_API_TOKEN.
+{
+	email {$ACME_EMAIL}
+	# Caddy asks the web app before issuing a certificate for a custom domain.
+	# Internal compose address, never the public host.
+	on_demand_tls {
+		ask http://web:3000/ask
+	}
+}
+
+# Platform apex, app.<domain> and every free creator subdomain: one wildcard
+# certificate through the DNS challenge.
+{$PLATFORM_DOMAIN}, *.{$PLATFORM_DOMAIN} {
+	tls {
+		dns {$DNS_PROVIDER} {env.DNS_API_TOKEN}
+	}
+	encode zstd gzip
+
+	@errors host errors.{$PLATFORM_DOMAIN}
+	handle @errors {
+		reverse_proxy bugsink:8000
+	}
+
+	@status host status.{$PLATFORM_DOMAIN}
+	handle @status {
+		reverse_proxy kuma:3001
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+}
+
+# Creators' custom domains: certificate on first visit, only if /ask says 200.
+https:// {
+	tls {
+		on_demand
+	}
+	encode zstd gzip
+	reverse_proxy web:3000
+}

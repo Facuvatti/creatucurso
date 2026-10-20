@@ -8,6 +8,7 @@ import { ac, roles } from "../areas/identity/permissions.ts";
 import { validateTenantSlug } from "../areas/tenancy/tenants.ts";
 import { pool } from "./db.server.ts";
 import { escapeHtml, sendEmail } from "./email.server.ts";
+import { reportError } from "./log.server.ts";
 
 const google =
 	process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
@@ -41,7 +42,9 @@ export const auth = betterAuth({
 				subject: "Confirmá tu email en Creatucurso",
 				text: `Hola ${user.name}, confirmá tu email entrando a este enlace: ${url}`,
 				html: `<p>Hola ${escapeHtml(user.name)},</p><p><a href="${url}">Confirmá tu email</a></p>`,
-			}).catch((error) => console.error("[email] verification failed", error));
+			}).catch((error) =>
+				reportError("Sending the verification email failed", error),
+			);
 		},
 	},
 	emailAndPassword: {
@@ -52,7 +55,9 @@ export const auth = betterAuth({
 				subject: "Restablecé tu contraseña de Creatucurso",
 				text: `Hola ${user.name}, para elegir una contraseña nueva entrá a este enlace (vence en 1 hora): ${url}\n\nSi no lo pediste, ignorá este mensaje.`,
 				html: `<p>Hola ${escapeHtml(user.name)},</p><p><a href="${url}">Elegí una contraseña nueva</a> (el enlace vence en 1 hora).</p><p>Si no lo pediste, ignorá este mensaje.</p>`,
-			}).catch((error) => console.error("[email] reset failed", error));
+			}).catch((error) =>
+				reportError("Sending the password reset email failed", error),
+			);
 		},
 	},
 	...google,
