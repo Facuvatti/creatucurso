@@ -3,8 +3,8 @@
 import { randomBytes } from "node:crypto";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { PoolClient } from "pg";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import type { PoolClient } from "pg";
 import { pool } from "../../server/db.server.ts";
 import { log } from "../../server/log.server.ts";
 import { prepareFrame } from "./frame.ts";
@@ -44,7 +44,13 @@ export async function saveFrame(
 		 values ($1, $2, '', $3, $4, $5)
 		 on conflict (course_id) do update set width = excluded.width, height = excluded.height
 		 returning id`,
-		[organizationId, courseId, frame.width, frame.height, JSON.stringify(DEFAULT_FIELDS)],
+		[
+			organizationId,
+			courseId,
+			frame.width,
+			frame.height,
+			JSON.stringify(DEFAULT_FIELDS),
+		],
 	);
 	const id = rows[0]?.id;
 	if (!id) return { ok: false, message: "No se pudo guardar el diseño." };

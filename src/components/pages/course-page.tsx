@@ -14,6 +14,8 @@ type Props = {
 	onEnrollFree: () => void;
 	/** The student may refund by themselves (decided on the server). */
 	refundable: boolean;
+	/** The student's certificate for this course, if one was issued. */
+	certificate: { credentialId: string; status: "valid" | "revoked" } | null;
 	onRequestRefund: () => void;
 	children?: ReactNode;
 };
@@ -41,6 +43,7 @@ export function CoursePage({
 	message,
 	onEnrollFree,
 	refundable,
+	certificate,
 	onRequestRefund,
 	children,
 }: Props) {
@@ -128,6 +131,17 @@ export function CoursePage({
 					<button type="button" onClick={onEnrollFree} disabled={pending}>
 						Inscribirme gratis
 					</button>
+				)}
+				{certificate && (
+					<p data-certificate>
+						{certificate.status === "valid" ? (
+							<a href={`/certificados/${certificate.credentialId}`}>
+								Ver mi certificado
+							</a>
+						) : (
+							<span>Tu certificado fue revocado.</span>
+						)}
+					</p>
 				)}
 				{refundable && (
 					<p>

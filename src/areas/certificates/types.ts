@@ -88,7 +88,8 @@ export function checkFields(data: unknown): TemplateFields {
 	const result = {} as TemplateFields;
 	for (const key of FIELD_KEYS) {
 		const f = input[key] as Record<string, unknown> | undefined;
-		if (typeof f !== "object" || f === null) throw new Error(`${key} is missing.`);
+		if (typeof f !== "object" || f === null)
+			throw new Error(`${key} is missing.`);
 		const x = Number(f.x);
 		const y = Number(f.y);
 		const size = Number(f.size);

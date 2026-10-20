@@ -14,7 +14,7 @@ export const FRAME_MAX_BYTES = 8 * 1024 * 1024;
 const MIN_WIDTH = 1754;
 const MIN_HEIGHT = 1240;
 const MAX_SIDE = 6000;
-const RATIO = 1.414;
+const RATIO = Math.SQRT2; // A4: 1.414
 const RATIO_TOLERANCE = 0.02;
 const PDF_RENDER_WIDTH = 3508;
 const TOOL_TIMEOUT_MS = 30_000;
@@ -35,7 +35,8 @@ function detectType(bytes: Buffer): "pdf" | "png" | "jpeg" | null {
 	) {
 		return "png";
 	}
-	if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "jpeg";
+	if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff)
+		return "jpeg";
 	return null;
 }
 
@@ -46,11 +47,23 @@ function ratioOk(width: number, height: number): boolean {
 const RATIO_MESSAGE =
 	"El diseño tiene que ser apaisado en formato A4 (proporción 1,414 : 1, con 2 % de tolerancia). En Canva usá 3508 x 2480 px.";
 
-async function probe(file: string): Promise<{ width: number; height: number } | null> {
+async function probe(
+	file: string,
+): Promise<{ width: number; height: number } | null> {
 	try {
 		const { stdout } = await run(
 			"ffprobe",
-			["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "json", file],
+			[
+				"-v",
+				"error",
+				"-select_streams",
+				"v:0",
+				"-show_entries",
+				"stream=width,height",
+				"-of",
+				"json",
+				file,
+			],
 			{ timeout: TOOL_TIMEOUT_MS },
 		);
 		const stream = JSON.parse(stdout).streams?.[0];
@@ -69,7 +82,10 @@ export async function prepareFrame(bytes: Buffer): Promise<FrameResult> {
 		return reject("El archivo pesa más de 8 MB.");
 	}
 	const type = detectType(bytes);
-	if (!type) return reject("Subí un archivo PDF, PNG o JPEG. SVG y otros formatos no se aceptan.");
+	if (!type)
+		return reject(
+			"Subí un archivo PDF, PNG o JPEG. SVG y otros formatos no se aceptan.",
+		);
 
 	const dir = await mkdtemp(path.join(tmpdir(), "frame-"));
 	try {
@@ -89,18 +105,35 @@ export async function prepareFrame(bytes: Buffer): Promise<FrameResult> {
 				width = Number(size[1]);
 				height = Number(size[2]);
 			} catch {
-				return reject("No se pudo leer el PDF. Revisá que no tenga contraseña ni esté dañado.");
+				return reject(
+					"No se pudo leer el PDF. Revisá que no tenga contraseña ni esté dañado.",
+				);
 			}
 			if (!ratioOk(width, height)) return reject(RATIO_MESSAGE);
 			try {
 				await run(
 					"pdftoppm",
-					["-png", "-f", "1", "-l", "1", "-singlefile", "-scale-to-x", String(PDF_RENDER_WIDTH), "-scale-to-y", "-1", input, path.join(dir, "page")],
+					[
+						"-png",
+						"-f",
+						"1",
+						"-l",
+						"1",
+						"-singlefile",
+						"-scale-to-x",
+						String(PDF_RENDER_WIDTH),
+						"-scale-to-y",
+						"-1",
+						input,
+						path.join(dir, "page"),
+					],
 					{ timeout: TOOL_TIMEOUT_MS },
 				);
 				// Render, then re-encode below like any other image.
 			} catch {
-				return reject("No se pudo convertir el PDF. Probá exportarlo de nuevo desde Canva.");
+				return reject(
+					"No se pudo convertir el PDF. Probá exportarlo de nuevo desde Canva.",
+				);
 			}
 			return finish(path.join(dir, "page.png"), output, false);
 		}
@@ -120,17 +153,34 @@ async function finish(
 	const size = await probe(source);
 	if (!size) return reject("No se pudo leer la imagen. Puede estar dañada.");
 	if (size.width > MAX_SIDE || size.height > MAX_SIDE) {
-		return reject("La imagen es demasiado grande: el máximo es 6000 px por lado.");
+		return reject(
+			"La imagen es demasiado grande: el máximo es 6000 px por lado.",
+		);
 	}
 	if (checkMinimum && (size.width < MIN_WIDTH || size.height < MIN_HEIGHT)) {
-		return reject("La imagen es muy chica: el mínimo es 1754 x 1240 px. En Canva usá 3508 x 2480 px.");
+		return reject(
+			"La imagen es muy chica: el mínimo es 1754 x 1240 px. En Canva usá 3508 x 2480 px.",
+		);
 	}
 	if (!ratioOk(size.width, size.height)) return reject(RATIO_MESSAGE);
 
 	try {
 		await run(
 			"ffmpeg",
-			["-v", "error", "-y", "-i", source, "-frames:v", "1", "-map_metadata", "-1", "-pix_fmt", "rgba", output],
+			[
+				"-v",
+				"error",
+				"-y",
+				"-i",
+				source,
+				"-frames:v",
+				"1",
+				"-map_metadata",
+				"-1",
+				"-pix_fmt",
+				"rgba",
+				output,
+			],
 			{ timeout: TOOL_TIMEOUT_MS },
 		);
 	} catch {

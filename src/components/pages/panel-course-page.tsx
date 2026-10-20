@@ -1,9 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import type { CourseOutline } from "../../areas/catalog/types.ts";
 import type { VideoInfo } from "../../areas/media/types.ts";
+import type { CertificatePanel } from "../../server/certificates.functions.ts";
 import type { Tutor } from "../../server/community.functions.ts";
 import { formatMoney } from "../../shared/money.ts";
 import { LessonVideoUpload } from "../media/lesson-video-upload.tsx";
+import { CertificateEditor } from "../panel/certificate-editor.tsx";
 import {
 	CourseDetailsForm,
 	ExportButton,
@@ -15,6 +17,8 @@ type Props = {
 	course: CourseOutline;
 	tutors: Tutor[];
 	videos: Record<string, VideoInfo>;
+	certificates: CertificatePanel;
+	onCertificatesChanged: () => void;
 	onVideoChanged: () => void;
 	message?: string | undefined;
 	pending: boolean;
@@ -38,6 +42,8 @@ export function PanelCoursePage({
 	course,
 	tutors,
 	videos,
+	certificates,
+	onCertificatesChanged,
 	onVideoChanged,
 	message,
 	pending,
@@ -165,6 +171,12 @@ export function PanelCoursePage({
 					</button>
 				</form>
 			</section>
+
+			<CertificateEditor
+				courseId={course.id}
+				panel={certificates}
+				onChanged={onCertificatesChanged}
+			/>
 
 			<section>
 				<h2>Inscribir a una persona</h2>
