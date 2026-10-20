@@ -12,8 +12,6 @@
 			"**/.vscode/**/*",
 			"**/index.html",
 			"**/vite.config.ts",
-			"**/vitest.config.ts",
-			"**/playwright.config.ts",
 			"!**/src/routeTree.gen.ts",
 			"!**/src/styles.css"
 		]

@@ -12,5 +12,3 @@ dist-ssr
 __unconfig*
 todos.json
 
-playwright-report
-test-results

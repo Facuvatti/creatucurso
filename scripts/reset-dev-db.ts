@@ -1,9 +1,15 @@
 import { readFileSync } from "node:fs";
 import { Client } from "pg";
 
+try {
+	process.loadEnvFile();
+} catch {
+	// No .env file: use the variables already set.
+}
+
 const url =
 	process.env.DATABASE_URL ??
-	"postgres://creatucurso:creatucurso@localhost:5432/creatucurso";
+	"postgres://creatucurso:creatucurso@localhost:5433/creatucurso";
 
 const client = new Client({ connectionString: url });
 await client.connect();
