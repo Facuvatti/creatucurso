@@ -1,3 +1,5 @@
+export type ReviewReply = { body: string; createdAt: string };
+
 export type Review = {
 	id: string;
 	userId: string;
@@ -5,6 +7,8 @@ export type Review = {
 	rating: number;
 	body: string;
 	hidden: boolean;
+	/** The academy's public answer, shown under the review. */
+	reply: ReviewReply | null;
 	createdAt: string;
 };
 
@@ -20,17 +24,39 @@ export type Comment = {
 	authorName: string;
 	authorKind: AuthorKind;
 	parentId: string | null;
+	/** Empty for a deleted comment: only a tombstone is shown. */
 	body: string;
 	hidden: boolean;
+	deleted: boolean;
+	answered: boolean;
+	pinned: boolean;
+	/** Open reports; only moderators get the real number. */
+	reports: number;
+	reportedByMe: boolean;
 	createdAt: string;
 };
 
 export type PendingComment = {
 	id: string;
+	/** The top-level comment of the thread: where replies go and what "answered" marks. */
+	threadId: string;
 	courseId: string;
 	lessonId: string;
 	authorName: string;
 	body: string;
+	createdAt: string;
+};
+
+export type ReportedComment = {
+	id: string;
+	courseId: string;
+	lessonId: string;
+	authorId: string;
+	authorName: string;
+	authorMuted: boolean;
+	body: string;
+	hidden: boolean;
+	reports: number;
 	createdAt: string;
 };
 

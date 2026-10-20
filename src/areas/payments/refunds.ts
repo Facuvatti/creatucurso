@@ -1,5 +1,6 @@
 import type { PoolClient } from "pg";
 import { emitEvent, inTransaction, pool } from "../../server/db.server.ts";
+import { hideReviewForRefund, restoreReviewAfterRefund } from "../community/community.ts";
 import {
 	findEnrollment,
 	lessonProgress,
@@ -21,7 +22,7 @@ const REFUND_MAX_PROGRESS = 0.1;
  * Stores a refund (once per provider refund id) and applies its effect: the
  * payment becomes `refunded` when fully refunded, and then the student loses
  * access. A partial refund changes nothing else. Safe to repeat.
- * Later phase: revoke the certificate here (Phase 11) and hide the review.
+ * The student's review is hidden in the same transaction.
  */
 export async function recordRefund(
 	payment: PaymentRecord,
@@ -60,6 +61,8 @@ export async function recordRefund(
 				to: "refunded",
 			});
 			if (enrollmentId) {
+				await hideReviewForRefund(client, payment.courseId, payment.userId);
+				// TODO(Phase 11): revoke the student's certificate for this course here.
 				await emitEvent(
 					client,
 					"enrollment.refunded",
@@ -114,11 +117,14 @@ export async function recordDispute(
 							to: "revoked" as const,
 						}
 					: { from: ["suspended" as const], to: "active" as const };
-		await setEnrollmentStatus(client, {
+		const moved = await setEnrollmentStatus(client, {
 			courseId: payment.courseId,
 			userId: payment.userId,
 			...move,
 		});
+		if (moved && move.to === "active") {
+			await restoreReviewAfterRefund(client, payment.courseId, payment.userId);
+		}
 		await emitEvent(
 			client,
 			`dispute.${dispute.status === "open" ? "opened" : dispute.status}`,

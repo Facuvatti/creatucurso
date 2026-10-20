@@ -1,6 +1,7 @@
 import type { PoolClient } from "pg";
 import { emitEvent, inTransaction, pool } from "../../server/db.server.ts";
 import { slugify } from "../../shared/text/slugify.ts";
+import { restoreReviewAfterRefund } from "../community/community.ts";
 import { findRoles } from "../identity/members.ts";
 import {
 	courseFromImport,
@@ -471,6 +472,8 @@ export async function enroll(input: {
 		);
 		const created = rows[0];
 		if (!created) return false;
+		// A returning student (new payment after a refund) gets the refund-hidden review back.
+		await restoreReviewAfterRefund(client, input.courseId, input.userId);
 		await emitEvent(
 			client,
 			"enrollment.created",
