@@ -1,65 +1,24 @@
 import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
-import { importCourse } from "../modules/catalog/application/import-course.ts";
-import type { UploadSlot } from "../modules/catalog/domain/course-from-import.ts";
-import type { ImportIssue } from "../modules/catalog/domain/course-import.ts";
+import * as catalog from "../areas/catalog/catalog.ts";
+import type { UploadSlot } from "../areas/catalog/course-from-import.ts";
+import type { ImportIssue } from "../areas/catalog/course-import.ts";
 import {
 	allLessons,
 	type CourseOutline,
 	type CourseSummary,
 	type Lesson,
 	SlugTakenError,
-} from "../modules/catalog/domain/types.ts";
-import { can } from "../modules/identity/domain/can.ts";
+} from "../areas/catalog/types.ts";
+import { findRoles, findUserIdByEmail } from "../areas/identity/members.ts";
 import { slugify } from "../shared/text/slugify.ts";
+import { email, oneOf, record, text, uuid } from "../shared/validate.ts";
+import { accessFor, type CourseAccess } from "./access.server.ts";
 import { auth } from "./auth.server.ts";
-import {
-	getCatalog,
-	getMembershipReader,
-	getUserDirectory,
-} from "./container.server.ts";
-import {
-	type RequestContext,
-	requireStaffContext,
-	requireTenantContext,
-} from "./request.server.ts";
+import { requireStaffContext, requireTenantContext } from "./request.server.ts";
 
-export type CourseAccess = {
-	signedIn: boolean;
-	canManage: boolean;
-	isInstructor: boolean;
-	enrolled: boolean;
-	canStudy: boolean;
-};
-
-async function accessFor(
-	context: RequestContext,
-	course: CourseOutline,
-): Promise<CourseAccess> {
-	const { user, roles } = context;
-	const canManage = can(roles, { course: ["update"] });
-	const isInstructor =
-		!!user && roles.includes("tutor") && course.instructorIds.includes(user.id);
-	const enrolled = user
-		? (await getCatalog().findEnrollment(course.id, user.id)) !== null
-		: false;
-	return {
-		signedIn: !!user,
-		canManage,
-		isInstructor,
-		enrolled,
-		canStudy: canManage || isInstructor || enrolled,
-	};
-}
+export type { CourseAccess };
 
 // ---------------------------------------------------------------- public reads
-
-export const getTenantCatalog = createServerFn({ method: "GET" }).handler(
-	async (): Promise<CourseSummary[]> => {
-		const { tenant } = await requireTenantContext();
-		return getCatalog().listCourses(tenant.id, { publishedOnly: true });
-	},
-);
 
 export type CoursePageData =
 	| {
@@ -71,13 +30,28 @@ export type CoursePageData =
 	| { kind: "moved"; slug: string }
 	| { kind: "notFound" };
 
-const courseSlugInput = z.object({ courseSlug: z.string().min(1).max(200) });
+/** Trust-boundary checks for the inputs shared by several functions. */
+function checkCourseSlug(data: unknown) {
+	return { courseSlug: text(record(data), "courseSlug", 200, 1) };
+}
+
+function checkLesson(data: unknown) {
+	const input = record(data);
+	return {
+		courseSlug: text(input, "courseSlug", 200, 1),
+		lessonSlug: text(input, "lessonSlug", 200, 1),
+	};
+}
+
+function checkCourseId(data: unknown) {
+	return { courseId: uuid(record(data), "courseId") };
+}
 
 export const getCoursePage = createServerFn({ method: "GET" })
-	.validator((data: unknown) => courseSlugInput.parse(data))
+	.validator(checkCourseSlug)
 	.handler(async ({ data }): Promise<CoursePageData> => {
 		const context = await requireTenantContext();
-		const lookup = await getCatalog().findBySlug(
+		const lookup = await catalog.findCourseBySlug(
 			context.tenant.id,
 			data.courseSlug,
 		);
@@ -92,17 +66,12 @@ export const getCoursePage = createServerFn({ method: "GET" })
 
 		const completedLessonIds =
 			access.enrolled && context.user
-				? await getCatalog().completedLessonIds(course.id, context.user.id)
+				? await catalog.completedLessonIds(course.id, context.user.id)
 				: [];
 		return { kind: "found", course, access, completedLessonIds };
 	});
 
 // ------------------------------------------------------------------ learning
-
-const lessonInput = z.object({
-	courseSlug: z.string().min(1).max(200),
-	lessonSlug: z.string().min(1).max(200),
-});
 
 export type LessonPageData =
 	| {
@@ -120,10 +89,10 @@ export type LessonPageData =
 	| { kind: "notFound" };
 
 export const getLessonPage = createServerFn({ method: "GET" })
-	.validator((data: unknown) => lessonInput.parse(data))
+	.validator(checkLesson)
 	.handler(async ({ data }): Promise<LessonPageData> => {
 		const context = await requireTenantContext();
-		const lookup = await getCatalog().findBySlug(
+		const lookup = await catalog.findCourseBySlug(
 			context.tenant.id,
 			data.courseSlug,
 		);
@@ -150,7 +119,7 @@ export const getLessonPage = createServerFn({ method: "GET" })
 		);
 		const completedIds =
 			access.enrolled && context.user
-				? await getCatalog().completedLessonIds(course.id, context.user.id)
+				? await catalog.completedLessonIds(course.id, context.user.id)
 				: [];
 		const brief = (l: Lesson | undefined) =>
 			l ? { slug: l.slug, title: l.title } : null;
@@ -168,13 +137,13 @@ export const getLessonPage = createServerFn({ method: "GET" })
 	});
 
 export const completeLesson = createServerFn({ method: "POST" })
-	.validator((data: unknown) => lessonInput.parse(data))
+	.validator(checkLesson)
 	.handler(async ({ data }) => {
 		const context = await requireTenantContext();
 		const { user } = context;
 		if (!user) return { ok: false as const };
 
-		const lookup = await getCatalog().findBySlug(
+		const lookup = await catalog.findCourseBySlug(
 			context.tenant.id,
 			data.courseSlug,
 		);
@@ -182,13 +151,10 @@ export const completeLesson = createServerFn({ method: "POST" })
 		const lesson = allLessons(lookup.course).find(
 			(l) => l.slug === data.lessonSlug,
 		);
-		const enrolled = await getCatalog().findEnrollment(
-			lookup.course.id,
-			user.id,
-		);
+		const enrolled = await catalog.findEnrollment(lookup.course.id, user.id);
 		if (!lesson || !enrolled) return { ok: false as const };
 
-		const result = await getCatalog().completeLesson(
+		const result = await catalog.completeLesson(
 			lookup.course.id,
 			lesson.id,
 			user.id,
@@ -201,20 +167,21 @@ export const completeLesson = createServerFn({ method: "POST" })
 export const getPanelCourses = createServerFn({ method: "GET" }).handler(
 	async (): Promise<CourseSummary[]> => {
 		const { tenant } = await requireStaffContext();
-		return getCatalog().listCourses(tenant.id, { publishedOnly: false });
+		return catalog.listCourses(tenant.id, { publishedOnly: false });
 	},
 );
-
-const createCourseInput = z.object({
-	name: z.string().trim().min(2).max(150),
-	slug: z.string().trim().toLowerCase().max(80),
-	shortDescription: z.string().trim().max(300),
-});
 
 export type ActionResult = { ok: true } | { ok: false; message: string };
 
 export const createBasicCourse = createServerFn({ method: "POST" })
-	.validator((data: unknown) => createCourseInput.parse(data))
+	.validator((data: unknown) => {
+		const input = record(data);
+		return {
+			name: text(input, "name", 150, 2),
+			slug: text(input, "slug", 80).toLowerCase(),
+			shortDescription: text(input, "shortDescription", 300),
+		};
+	})
 	.handler(async ({ data }): Promise<ActionResult & { courseId?: string }> => {
 		const { tenant } = await requireStaffContext();
 		const slug = data.slug || slugify(data.name);
@@ -225,7 +192,7 @@ export const createBasicCourse = createServerFn({ method: "POST" })
 			};
 		}
 		try {
-			const { id } = await getCatalog().createCourse(tenant.id, {
+			const { id } = await catalog.createCourse(tenant.id, {
 				slug,
 				name: data.name,
 				shortDescription: data.shortDescription || null,
@@ -253,9 +220,17 @@ export type ImportResponse =
 	| { ok: false; errors: ImportIssue[] };
 
 export const importCourseJson = createServerFn({ method: "POST" })
-	.validator((data: unknown) =>
-		z.object({ json: z.string().min(2).max(2_000_000) }).parse(data),
-	)
+	.validator((data: unknown) => {
+		const json = record(data).json;
+		if (
+			typeof json !== "string" ||
+			json.length < 2 ||
+			json.length > 2_000_000
+		) {
+			throw new Error("json must be text of up to 2 MB.");
+		}
+		return { json };
+	})
 	.handler(async ({ data }): Promise<ImportResponse> => {
 		const { tenant } = await requireStaffContext();
 
@@ -269,31 +244,24 @@ export const importCourseJson = createServerFn({ method: "POST" })
 			};
 		}
 
-		return importCourse(input, {
-			organizationId: tenant.id,
-			catalog: getCatalog(),
-			rolesOf: (userId) => getMembershipReader().findRoles(tenant.id, userId),
-		});
+		return catalog.importCourse(tenant.id, input);
 	});
 
-const courseIdInput = z.object({ courseId: z.string().uuid() });
-
 export const getPanelCourse = createServerFn({ method: "GET" })
-	.validator((data: unknown) => courseIdInput.parse(data))
+	.validator(checkCourseId)
 	.handler(async ({ data }): Promise<CourseOutline | null> => {
 		const { tenant } = await requireStaffContext();
-		return getCatalog().findById(tenant.id, data.courseId);
+		return catalog.findCourseById(tenant.id, data.courseId);
 	});
 
 export const setCourseStatus = createServerFn({ method: "POST" })
-	.validator((data: unknown) =>
-		courseIdInput
-			.extend({ status: z.enum(["draft", "published"]) })
-			.parse(data),
-	)
+	.validator((data: unknown) => ({
+		...checkCourseId(data),
+		status: oneOf(record(data), "status", ["draft", "published"] as const),
+	}))
 	.handler(async ({ data }): Promise<ActionResult> => {
 		const { tenant } = await requireStaffContext();
-		const course = await getCatalog().findById(tenant.id, data.courseId);
+		const course = await catalog.findCourseById(tenant.id, data.courseId);
 		if (!course) return { ok: false, message: "No encontramos el curso." };
 		if (data.status === "published" && allLessons(course).length === 0) {
 			return {
@@ -301,41 +269,40 @@ export const setCourseStatus = createServerFn({ method: "POST" })
 				message: "Agregá al menos un módulo con una clase antes de publicar.",
 			};
 		}
-		await getCatalog().setStatus(tenant.id, data.courseId, data.status);
+		await catalog.setCourseStatus(tenant.id, data.courseId, data.status);
 		return { ok: true };
 	});
 
 export const addModule = createServerFn({ method: "POST" })
-	.validator((data: unknown) =>
-		courseIdInput
-			.extend({ title: z.string().trim().min(1).max(150) })
-			.parse(data),
-	)
+	.validator((data: unknown) => ({
+		...checkCourseId(data),
+		title: text(record(data), "title", 150, 1),
+	}))
 	.handler(async ({ data }): Promise<ActionResult> => {
 		const { tenant } = await requireStaffContext();
-		const course = await getCatalog().findById(tenant.id, data.courseId);
+		const course = await catalog.findCourseById(tenant.id, data.courseId);
 		if (!course) return { ok: false, message: "No encontramos el curso." };
-		await getCatalog().addModule(course.id, data.title);
+		await catalog.addModule(course.id, data.title);
 		return { ok: true };
 	});
 
 export const addLesson = createServerFn({ method: "POST" })
-	.validator((data: unknown) =>
-		courseIdInput
-			.extend({
-				moduleId: z.string().uuid(),
-				title: z.string().trim().min(1).max(150),
-				description: z.string().trim().max(2000),
-			})
-			.parse(data),
-	)
+	.validator((data: unknown) => {
+		const input = record(data);
+		return {
+			...checkCourseId(data),
+			moduleId: uuid(input, "moduleId"),
+			title: text(input, "title", 150, 1),
+			description: text(input, "description", 2000),
+		};
+	})
 	.handler(async ({ data }): Promise<ActionResult> => {
 		const { tenant } = await requireStaffContext();
-		const course = await getCatalog().findById(tenant.id, data.courseId);
+		const course = await catalog.findCourseById(tenant.id, data.courseId);
 		if (!course?.modules.some((m) => m.id === data.moduleId)) {
 			return { ok: false, message: "No encontramos el módulo." };
 		}
-		await getCatalog().addLesson(data.moduleId, {
+		await catalog.addLesson(data.moduleId, {
 			title: data.title,
 			description: data.description || null,
 		});
@@ -343,15 +310,16 @@ export const addLesson = createServerFn({ method: "POST" })
 	});
 
 export const enrollStudentByEmail = createServerFn({ method: "POST" })
-	.validator((data: unknown) =>
-		courseIdInput.extend({ email: z.string().trim().email() }).parse(data),
-	)
+	.validator((data: unknown) => ({
+		...checkCourseId(data),
+		email: email(record(data), "email"),
+	}))
 	.handler(async ({ data }): Promise<ActionResult> => {
 		const { tenant } = await requireStaffContext();
-		const course = await getCatalog().findById(tenant.id, data.courseId);
+		const course = await catalog.findCourseById(tenant.id, data.courseId);
 		if (!course) return { ok: false, message: "No encontramos el curso." };
 
-		const userId = await getUserDirectory().findIdByEmail(data.email);
+		const userId = await findUserIdByEmail(data.email);
 		if (!userId) {
 			return {
 				ok: false,
@@ -360,13 +328,13 @@ export const enrollStudentByEmail = createServerFn({ method: "POST" })
 			};
 		}
 
-		const roles = await getMembershipReader().findRoles(tenant.id, userId);
+		const roles = await findRoles(tenant.id, userId);
 		if (roles.length === 0) {
 			await auth.api.addMember({
 				body: { userId, role: "student", organizationId: tenant.id },
 			});
 		}
-		await getCatalog().enroll({
+		await catalog.enroll({
 			courseId: course.id,
 			userId,
 			source: "manual",

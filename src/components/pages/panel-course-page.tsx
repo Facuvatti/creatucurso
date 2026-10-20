@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import type { CourseOutline } from "../../modules/catalog/domain/types.ts";
+import type { CourseOutline } from "../../areas/catalog/types.ts";
 import { formatMoney } from "../../shared/money.ts";
 
 type Props = {

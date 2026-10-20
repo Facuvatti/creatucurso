@@ -1,4 +1,4 @@
-import { slugify } from "../../../shared/text/slugify.ts";
+import { slugify } from "../../shared/text/slugify.ts";
 import type { CourseImport } from "./course-import.ts";
 import { type NewCourse, toMediaRef } from "./types.ts";
 

@@ -1,8 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import type { UploadSlot } from "../../modules/catalog/domain/course-from-import.ts";
-import type { ImportIssue } from "../../modules/catalog/domain/course-import.ts";
-import type { CourseSummary } from "../../modules/catalog/domain/types.ts";
+import type { UploadSlot } from "../../areas/catalog/course-from-import.ts";
+import type { ImportIssue } from "../../areas/catalog/course-import.ts";
+import type { CourseSummary } from "../../areas/catalog/types.ts";
 import { slugify } from "../../shared/text/slugify.ts";
 
 export type ImportOutcome =
