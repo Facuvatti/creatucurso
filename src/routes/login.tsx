@@ -1,6 +1,5 @@
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { useState } from "react";
-import { z } from "zod";
 import {
 	LoginPage,
 	type LoginValues,
@@ -11,7 +10,8 @@ const handoffPath = (returnUrl: string | undefined) =>
 	`/handoff${returnUrl ? `?return=${encodeURIComponent(returnUrl)}` : ""}`;
 
 export const Route = createFileRoute("/login")({
-	validateSearch: z.object({ return: z.string().optional() }),
+	validateSearch: (search: Record<string, unknown>): { return?: string } =>
+		typeof search.return === "string" ? { return: search.return } : {},
 	beforeLoad: ({ context, search }) => {
 		if (context.host.kind !== "platform-app") throw notFound();
 		if (context.user) throw redirect({ href: handoffPath(search.return) });

@@ -5,8 +5,8 @@ import {
 	useRouter,
 } from "@tanstack/react-router";
 import { useState } from "react";
+import { can } from "../areas/identity/permissions.ts";
 import { PaymentsPanelPage } from "../components/pages/payments-panel-page.tsx";
-import { can } from "../modules/identity/domain/can.ts";
 import {
 	activateAcademyPayments,
 	connectPaymentProvider,

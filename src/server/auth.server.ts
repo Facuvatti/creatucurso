@@ -4,9 +4,9 @@ import { admin, organization, twoFactor } from "better-auth/plugins";
 import { oneTimeToken } from "better-auth/plugins/one-time-token";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { PostgresDialect } from "kysely";
-import { ac, roles } from "../modules/identity/domain/permissions.ts";
-import { validateTenantSlug } from "../modules/tenancy/domain/tenant-slug.ts";
-import { getPool } from "./container.server.ts";
+import { ac, roles } from "../areas/identity/permissions.ts";
+import { validateTenantSlug } from "../areas/tenancy/tenants.ts";
+import { pool } from "./db.server.ts";
 
 const google =
 	process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
@@ -23,7 +23,7 @@ const google =
 export const auth = betterAuth({
 	appName: "Creatucurso",
 	database: {
-		dialect: new PostgresDialect({ pool: getPool() }),
+		dialect: new PostgresDialect({ pool }),
 		type: "postgres",
 		schemaName: "auth",
 	},

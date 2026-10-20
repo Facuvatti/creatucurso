@@ -5,8 +5,8 @@ import {
 	useRouter,
 } from "@tanstack/react-router";
 import { useState } from "react";
+import { can } from "../areas/identity/permissions.ts";
 import { PanelCoursePage } from "../components/pages/panel-course-page.tsx";
-import { can } from "../modules/identity/domain/can.ts";
 import {
 	type ActionResult,
 	addLesson,

@@ -5,11 +5,11 @@ import {
 	useRouter,
 } from "@tanstack/react-router";
 import { useState } from "react";
+import { can } from "../areas/identity/permissions.ts";
 import {
 	type ImportOutcome,
 	PanelPage,
 } from "../components/pages/panel-page.tsx";
-import { can } from "../modules/identity/domain/can.ts";
 import {
 	createBasicCourse,
 	getPanelCourses,

@@ -1,22 +1,23 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
-import { z } from "zod";
-import { validateTenantSlug } from "../modules/tenancy/domain/tenant-slug.ts";
+import { listMemberships } from "../areas/identity/members.ts";
+import { validateTenantSlug } from "../areas/tenancy/tenants.ts";
+import { record, text } from "../shared/validate.ts";
 import { auth } from "./auth.server.ts";
-import { getMembershipReader } from "./container.server.ts";
-import { tenantOrigin } from "./env.server.ts";
-
-const createAcademyInput = z.object({
-	name: z.string().trim().min(2).max(100),
-	slug: z.string().trim().toLowerCase(),
-});
+import { tenantOrigin } from "./origins.server.ts";
 
 export type CreateAcademyResult =
 	| { ok: true; url: string }
 	| { ok: false; message: string };
 
 export const createAcademy = createServerFn({ method: "POST" })
-	.validator((data: unknown) => createAcademyInput.parse(data))
+	.validator((data: unknown) => {
+		const input = record(data);
+		return {
+			name: text(input, "name", 100, 2),
+			slug: text(input, "slug", 200).toLowerCase(),
+		};
+	})
 	.handler(async ({ data }): Promise<CreateAcademyResult> => {
 		const { headers } = getRequest();
 		const session = await auth.api.getSession({ headers });
@@ -57,9 +58,7 @@ export const getAppHome = createServerFn({ method: "GET" }).handler(
 		});
 		if (!session) return { academies: [], studying: [] };
 
-		const memberships = await getMembershipReader().listForUser(
-			session.user.id,
-		);
+		const memberships = await listMemberships(session.user.id);
 		const toLink = (m: (typeof memberships)[number]) => ({
 			name: m.name,
 			url: `${tenantOrigin(m.slug)}/`,
