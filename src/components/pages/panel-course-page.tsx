@@ -2,13 +2,18 @@ import { Link } from "@tanstack/react-router";
 import type { CourseOutline } from "../../areas/catalog/types.ts";
 import type { Tutor } from "../../server/community.functions.ts";
 import { formatMoney } from "../../shared/money.ts";
+import {
+	CourseDetailsForm,
+	ExportButton,
+	PublishControl,
+	StructureEditor,
+} from "../panel/course-editor.tsx";
 
 type Props = {
 	course: CourseOutline;
 	tutors: Tutor[];
 	message?: string | undefined;
 	pending: boolean;
-	onStatus: (status: "draft" | "published") => void;
 	onAddModule: (title: string) => void;
 	onAddLesson: (values: {
 		moduleId: string;
@@ -30,7 +35,6 @@ export function PanelCoursePage({
 	tutors,
 	message,
 	pending,
-	onStatus,
 	onAddModule,
 	onAddLesson,
 	onEnroll,
@@ -48,18 +52,16 @@ export function PanelCoursePage({
 			<h1>{course.name}</h1>
 			<p>
 				Estado: <strong>{published ? "publicado" : "borrador"}</strong>{" "}
-				<button
-					type="button"
-					disabled={pending}
-					onClick={() => onStatus(published ? "draft" : "published")}
-				>
-					{published ? "Pasar a borrador" : "Publicar"}
-				</button>{" "}
+				<PublishControl course={course} />{" "}
 				<Link to="/cursos/$courseSlug" params={{ courseSlug: course.slug }}>
 					Ver como alumno
-				</Link>
+				</Link>{" "}
+				<ExportButton course={course} />
 			</p>
 			{message && <output>{message}</output>}
+
+			<CourseDetailsForm course={course} />
+			<StructureEditor course={course} />
 
 			<section>
 				<h2>Precio</h2>

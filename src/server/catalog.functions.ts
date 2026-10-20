@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import * as catalog from "../areas/catalog/catalog.ts";
+import { courseToImport } from "../areas/catalog/course-export.ts";
 import type { UploadSlot } from "../areas/catalog/course-from-import.ts";
 import type { ImportIssue } from "../areas/catalog/course-import.ts";
 import {
@@ -345,3 +346,152 @@ export const enrollStudentByEmail = createServerFn({ method: "POST" })
 		});
 		return { ok: true };
 	});
+
+// ------------------------------------------------------------- content editing
+
+/** The course of this academy, or null; every edit below starts from here. */
+async function staffCourse(courseId: string) {
+	const { tenant } = await requireStaffContext();
+	return { tenant, course: await catalog.findCourseById(tenant.id, courseId) };
+}
+
+const NO_COURSE: ActionResult = {
+	ok: false,
+	message: "No encontramos el curso.",
+};
+const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+export const updateCourseDetails = createServerFn({ method: "POST" })
+	.validator((data: unknown) => {
+		const input = record(data);
+		return {
+			...checkCourseId(data),
+			name: text(input, "name", 150, 2),
+			shortDescription: text(input, "shortDescription", 300),
+			longDescription: text(input, "longDescription", 10000),
+		};
+	})
+	.handler(async ({ data }): Promise<ActionResult> => {
+		const { tenant, course } = await staffCourse(data.courseId);
+		if (!course) return NO_COURSE;
+		await catalog.updateCourseDetails(tenant.id, course.id, {
+			name: data.name,
+			shortDescription: data.shortDescription || null,
+			longDescription: data.longDescription || null,
+		});
+		return { ok: true };
+	});
+
+export const renameCourseSlug = createServerFn({ method: "POST" })
+	.validator((data: unknown) => ({
+		...checkCourseId(data),
+		slug: text(record(data), "slug", 80, 1).toLowerCase(),
+	}))
+	.handler(async ({ data }): Promise<ActionResult & { slug?: string }> => {
+		const { tenant, course } = await staffCourse(data.courseId);
+		if (!course) return NO_COURSE;
+		if (!SLUG.test(data.slug)) {
+			return {
+				ok: false,
+				message: "La dirección solo puede tener minúsculas, números y guiones.",
+			};
+		}
+		try {
+			await catalog.renameCourseSlug(tenant.id, course.id, data.slug);
+		} catch (error) {
+			if (!(error instanceof SlugTakenError)) throw error;
+			return {
+				ok: false,
+				message: "Ya existe un curso con esa dirección. Elegí otra.",
+			};
+		}
+		return { ok: true, slug: data.slug };
+	});
+
+export const updateModule = createServerFn({ method: "POST" })
+	.validator((data: unknown) => {
+		const input = record(data);
+		return {
+			...checkCourseId(data),
+			moduleId: uuid(input, "moduleId"),
+			title: text(input, "title", 150, 1),
+			description: text(input, "description", 2000),
+		};
+	})
+	.handler(async ({ data }): Promise<ActionResult> => {
+		const { course } = await staffCourse(data.courseId);
+		if (!course) return NO_COURSE;
+		await catalog.updateModule(course.id, data.moduleId, {
+			title: data.title,
+			description: data.description || null,
+		});
+		return { ok: true };
+	});
+
+export const updateLesson = createServerFn({ method: "POST" })
+	.validator((data: unknown) => {
+		const input = record(data);
+		return {
+			...checkCourseId(data),
+			lessonId: uuid(input, "lessonId"),
+			title: text(input, "title", 150, 1),
+			description: text(input, "description", 10000),
+		};
+	})
+	.handler(async ({ data }): Promise<ActionResult> => {
+		const { course } = await staffCourse(data.courseId);
+		if (!course) return NO_COURSE;
+		await catalog.updateLesson(course.id, data.lessonId, {
+			title: data.title,
+			description: data.description || null,
+		});
+		return { ok: true };
+	});
+
+export const deleteCourseItem = createServerFn({ method: "POST" })
+	.validator((data: unknown) => {
+		const input = record(data);
+		return {
+			...checkCourseId(data),
+			kind: oneOf(input, "kind", ["module", "lesson"] as const),
+			id: uuid(input, "id"),
+		};
+	})
+	.handler(async ({ data }): Promise<ActionResult> => {
+		const { course } = await staffCourse(data.courseId);
+		if (!course) return NO_COURSE;
+		if (data.kind === "module") await catalog.deleteModule(course.id, data.id);
+		else await catalog.deleteLesson(course.id, data.id);
+		return { ok: true };
+	});
+
+export const moveCourseItem = createServerFn({ method: "POST" })
+	.validator((data: unknown) => {
+		const input = record(data);
+		return {
+			...checkCourseId(data),
+			kind: oneOf(input, "kind", ["module", "lesson"] as const),
+			id: uuid(input, "id"),
+			direction: oneOf(input, "direction", ["up", "down"] as const),
+		};
+	})
+	.handler(async ({ data }): Promise<ActionResult> => {
+		const { course } = await staffCourse(data.courseId);
+		if (!course) return NO_COURSE;
+		await catalog.moveItem(course.id, data.kind, data.id, data.direction);
+		return { ok: true };
+	});
+
+/** The course as importable JSON text (docs/formato_curso_por_mcp.md). */
+export const exportCourseJson = createServerFn({ method: "GET" })
+	.validator(checkCourseId)
+	.handler(
+		async ({ data }): Promise<{ filename: string; json: string } | null> => {
+			const { course } = await staffCourse(data.courseId);
+			if (!course) return null;
+			return {
+				filename: `${course.slug}.json`,
+				json: JSON.stringify(courseToImport(course), null, 2),
+			};
+		},
+	);

@@ -569,6 +569,20 @@ export async function completedLessonIds(
 	return rows.map((r) => r.lesson_id);
 }
 
+/**
+ * The single completion rule. Today it only needs every lesson done; extra
+ * requirements (required exams) are added here later.
+ */
+export function courseRequirementsMet(progress: {
+	totalLessons: number;
+	completedLessons: number;
+}): boolean {
+	return (
+		progress.totalLessons > 0 &&
+		progress.completedLessons === progress.totalLessons
+	);
+}
+
 export async function completeLesson(
 	courseId: string,
 	lessonId: string,
@@ -589,9 +603,10 @@ export async function completeLesson(
 			 where l.course_id = $1`,
 			[courseId, userId],
 		);
-		const total = Number(counts.rows[0]?.total ?? 0);
-		const done = Number(counts.rows[0]?.done ?? 0);
-		const courseCompleted = total > 0 && done === total;
+		const courseCompleted = courseRequirementsMet({
+			totalLessons: Number(counts.rows[0]?.total ?? 0),
+			completedLessons: Number(counts.rows[0]?.done ?? 0),
+		});
 
 		let justCompleted = false;
 		if (courseCompleted) {
@@ -613,5 +628,110 @@ export async function completeLesson(
 			}
 		}
 		return { courseCompleted, justCompleted };
+	});
+}
+
+// -------------------------------------------------------------- content editing
+
+export async function updateCourseDetails(
+	organizationId: string,
+	courseId: string,
+	details: {
+		name: string;
+		shortDescription: string | null;
+		longDescription: string | null;
+	},
+): Promise<boolean> {
+	const { rowCount } = await pool.query(
+		`update catalog.course
+		 set name = $3, short_description = $4, long_description = $5, updated_at = now()
+		 where organization_id = $1 and id = $2`,
+		[
+			organizationId,
+			courseId,
+			details.name,
+			details.shortDescription,
+			details.longDescription,
+		],
+	);
+	return (rowCount ?? 0) > 0;
+}
+
+export async function updateModule(
+	courseId: string,
+	moduleId: string,
+	values: { title: string; description: string | null },
+) {
+	await pool.query(
+		`update catalog.module set title = $3, description = $4
+		 where course_id = $1 and id = $2`,
+		[courseId, moduleId, values.title, values.description],
+	);
+}
+
+/** Deleting a module deletes its lessons and their progress (cascade). */
+export async function deleteModule(courseId: string, moduleId: string) {
+	await pool.query(
+		`delete from catalog.module where course_id = $1 and id = $2`,
+		[courseId, moduleId],
+	);
+}
+
+export async function updateLesson(
+	courseId: string,
+	lessonId: string,
+	values: { title: string; description: string | null },
+) {
+	await pool.query(
+		`update catalog.lesson set title = $3, description = $4
+		 where course_id = $1 and id = $2`,
+		[courseId, lessonId, values.title, values.description],
+	);
+}
+
+export async function deleteLesson(courseId: string, lessonId: string) {
+	await pool.query(
+		`delete from catalog.lesson where course_id = $1 and id = $2`,
+		[courseId, lessonId],
+	);
+}
+
+/**
+ * Swaps a module (within its course) or a lesson (within its module) with its
+ * neighbour and rewrites every position of that list in one transaction.
+ */
+export async function moveItem(
+	courseId: string,
+	kind: "module" | "lesson",
+	id: string,
+	direction: "up" | "down",
+) {
+	await inTransaction(async (client) => {
+		// Table and columns come from this fixed choice, never from the caller.
+		const table = kind === "module" ? "catalog.module" : "catalog.lesson";
+		const scope = kind === "module" ? "course_id" : "module_id";
+		const parent = await client.query<{ scope_id: string }>(
+			`select ${scope} as scope_id from ${table} where id = $1 and course_id = $2`,
+			[id, courseId],
+		);
+		const scopeId = parent.rows[0]?.scope_id;
+		if (!scopeId) return;
+
+		const siblings = await client.query<{ id: string }>(
+			`select id from ${table} where ${scope} = $1 order by position, id for update`,
+			[scopeId],
+		);
+		const ids = siblings.rows.map((r) => r.id);
+		const from = ids.indexOf(id);
+		const to = direction === "up" ? from - 1 : from + 1;
+		if (to < 0 || to >= ids.length) return;
+		[ids[from], ids[to]] = [ids[to] as string, ids[from] as string];
+
+		await client.query(
+			`update ${table} t set position = o.pos
+			 from unnest($1::uuid[]) with ordinality as o(id, pos)
+			 where t.id = o.id`,
+			[ids],
+		);
 	});
 }

@@ -13,7 +13,6 @@ import {
 	addModule,
 	enrollStudentByEmail,
 	getPanelCourse,
-	setCourseStatus,
 } from "../server/catalog.functions.ts";
 import {
 	addTutorByEmail,
@@ -69,14 +68,6 @@ function PanelCourseRoute() {
 			tutors={tutors}
 			message={message}
 			pending={pending}
-			onStatus={(status) =>
-				run(
-					() => setCourseStatus({ data: { courseId: course.id, status } }),
-					status === "published"
-						? "Curso publicado."
-						: "El curso volvió a borrador.",
-				)
-			}
 			onAddModule={(title) =>
 				run(() => addModule({ data: { courseId: course.id, title } }))
 			}
