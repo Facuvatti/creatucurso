@@ -2,6 +2,7 @@
 // events.outbox in the same transaction as the change they describe.
 // Start it with `pnpm worker`.
 import { createServer } from "node:http";
+import { issueCertificate } from "../areas/certificates/certificates.ts";
 import { renewExpiringConnections } from "../areas/payments/mercadopago-connection.ts";
 import { refreshPendingDomains } from "../areas/tenancy/domains.ts";
 import { pool } from "../server/db.server.ts";
@@ -26,19 +27,24 @@ function log(level: "info" | "error", msg: string, extra: object = {}) {
 
 /**
  * What to do with each event. For now it only logs; later phases add
- * automations (Phase 12) and certificates (Phase 11) here. Must be safe to
+ * automations (Phase 12) here. Completed courses issue a certificate (Phase 11). Must be safe to
  * repeat: an event can be delivered again after a crash.
  */
 async function handle(event: OutboxEvent): Promise<void> {
 	switch (event.type) {
 		case "enrollment.created":
-		case "course.completed":
 		case "enrollment.refunded":
 		case "dispute.opened":
 		case "dispute.won":
 		case "dispute.lost":
 			log("info", "event delivered", { id: event.id, type: event.type });
 			return;
+		case "course.completed": {
+			log("info", "event delivered", { id: event.id, type: event.type });
+			// Idempotent per enrollment; a course without a frame yields nothing.
+			await issueCertificate(String(event.payload.enrollmentId));
+			return;
+		}
 		default:
 			log("info", "event without handler", { id: event.id, type: event.type });
 	}

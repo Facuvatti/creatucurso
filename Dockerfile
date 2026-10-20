@@ -17,7 +17,8 @@ COPY . .
 RUN pnpm build
 
 FROM node:22-bookworm-slim AS runtime
-# ffmpeg: the worker encodes uploaded videos (ADR-0019).
+# ffmpeg: the worker encodes uploaded videos (ADR-0019) and re-encodes certificate
+# frames; poppler-utils flattens a PDF frame (ADR-0025).
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends ffmpeg poppler-utils \
 	&& rm -rf /var/lib/apt/lists/*

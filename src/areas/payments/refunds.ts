@@ -1,6 +1,7 @@
 import type { PoolClient } from "pg";
 import { emitEvent, inTransaction, pool } from "../../server/db.server.ts";
 import { hideReviewForRefund, restoreReviewAfterRefund } from "../community/community.ts";
+import { revokeForEnrollment } from "../certificates/certificates.ts";
 import {
 	findEnrollment,
 	lessonProgress,
@@ -62,7 +63,7 @@ export async function recordRefund(
 			});
 			if (enrollmentId) {
 				await hideReviewForRefund(client, payment.courseId, payment.userId);
-				// TODO(Phase 11): revoke the student's certificate for this course here.
+				await revokeForEnrollment(client, payment.courseId, payment.userId, "refunded");
 				await emitEvent(
 					client,
 					"enrollment.refunded",
@@ -122,6 +123,9 @@ export async function recordDispute(
 			userId: payment.userId,
 			...move,
 		});
+		if (moved && move.to === "revoked") {
+			await revokeForEnrollment(client, payment.courseId, payment.userId, "refunded");
+		}
 		if (moved && move.to === "active") {
 			await restoreReviewAfterRefund(client, payment.courseId, payment.userId);
 		}
