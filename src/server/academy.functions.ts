@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
+import { ensureTenantSendingQuietly } from "../areas/automations/sending.ts";
 import { listMemberships } from "../areas/identity/members.ts";
 import { validateTenantSlug } from "../areas/tenancy/tenants.ts";
 import { record, text } from "../shared/validate.ts";
@@ -36,6 +37,8 @@ export const createAcademy = createServerFn({ method: "POST" })
 				body: { name: data.name, slug: data.slug },
 				headers,
 			});
+			// SES configuration set for the academy; never fails the creation.
+			void ensureTenantSendingQuietly(organization.id);
 			return { ok: true, url: `${tenantOrigin(organization.slug)}/` };
 		} catch (error) {
 			const message =

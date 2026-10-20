@@ -10,6 +10,7 @@ import { log } from "../../server/log.server.ts";
 import { tenantOrigin } from "../../server/origins.server.ts";
 import { readCertificatePdf } from "../certificates/certificates.ts";
 import { mediaRoot } from "./automations.ts";
+import { emailTags, ensureTenantSending } from "./sending.ts";
 import {
 	escapeHtmlText,
 	renderHtmlBody,
@@ -278,7 +279,16 @@ async function sendOne(d: Delivery): Promise<void> {
 			r,
 			`${origin}/baja/${unsubscribeToken(d.organization_id, d.email)}`,
 		);
-		const messageId = await sendEmail({ to: d.email, ...message, attachments });
+		// Tenant configuration set (created on first use) and tags for the SES events.
+		const configurationSet =
+			(await ensureTenantSending(d.organization_id)) ?? undefined;
+		const messageId = await sendEmail({
+			to: d.email,
+			...message,
+			attachments,
+			configurationSet,
+			tags: emailTags(d.organization_id, d.course_id),
+		});
 		await finish(d.id, "sent", null, messageId);
 	} catch (error) {
 		const code = errorCode(error);
@@ -406,6 +416,9 @@ export async function sendTestEmail(input: {
 			...message,
 			subject: `[Prueba] ${message.subject}`,
 			attachments,
+			configurationSet:
+				(await ensureTenantSending(input.organizationId)) ?? undefined,
+			tags: emailTags(input.organizationId, "test"),
 		});
 		return { ok: true };
 	} catch (error) {

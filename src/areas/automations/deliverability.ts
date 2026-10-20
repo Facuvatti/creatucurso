@@ -4,6 +4,7 @@
 import { createVerify } from "node:crypto";
 import { pool } from "../../server/db.server.ts";
 import { log, reportError } from "../../server/log.server.ts";
+import { pauseTenantSending } from "./sending.ts";
 
 // Evaluated over the last 7 days, and only with at least this many sent emails.
 const WINDOW = "7 days";
@@ -22,7 +23,9 @@ const certificates = new Map<string, string>();
 function amazonUrl(value: string | undefined): URL | null {
 	try {
 		const url = new URL(value ?? "");
-		return url.protocol === "https:" && CERT_HOST.test(url.hostname)
+		return url.protocol === "https:" &&
+			!url.port &&
+			CERT_HOST.test(url.hostname)
 			? url
 			: null;
 	} catch {
@@ -68,6 +71,7 @@ async function verifySignature(message: SnsMessage): Promise<boolean> {
 	const expectedTopic = process.env.SES_SNS_TOPIC_ARN;
 	if (expectedTopic && message.TopicArn !== expectedTopic) return false;
 
+	if (!certUrl.pathname.endsWith(".pem")) return false;
 	let pem = certificates.get(certUrl.href);
 	if (!pem) {
 		const response = await fetch(certUrl);
@@ -119,13 +123,8 @@ export async function evaluateAcademy(organizationId: string): Promise<void> {
 		 where automations.sending.status = 'active'`,
 		[organizationId, reason],
 	);
-	if (paused.rowCount) {
-		// The platform admin resumes it by hand (ADR-0026).
-		reportError(
-			"academy email sending paused",
-			new Error(`${reason} for ${organizationId}`),
-		);
-	}
+	// Disables the SES set and alerts the admin, who resumes by hand (ADR-0027).
+	if (paused.rowCount) await pauseTenantSending(organizationId, reason);
 }
 
 async function suppress(email: string, reason: "bounce" | "complaint") {
@@ -154,7 +153,7 @@ export async function handleSnsMessage(raw: unknown): Promise<number> {
 
 	let event: {
 		eventType?: string;
-		mail?: { messageId?: string };
+		mail?: { messageId?: string; tags?: Record<string, string[]> };
 		bounce?: {
 			bounceType?: string;
 			bouncedRecipients?: { emailAddress: string }[];
@@ -167,6 +166,7 @@ export async function handleSnsMessage(raw: unknown): Promise<number> {
 		return 400;
 	}
 	const messageId = event.mail?.messageId;
+	const configurationSet = event.mail?.tags?.["ses:configuration-set"]?.[0];
 	let providerEvent: string | null = null;
 
 	if (
@@ -185,7 +185,10 @@ export async function handleSnsMessage(raw: unknown): Promise<number> {
 	} else if (event.eventType === "Delivery") {
 		providerEvent = "delivered";
 	} else if (event.eventType === "Reject") {
-		reportError("ses rejected an email", new Error(messageId ?? "unknown"));
+		reportError(
+			"ses rejected an email",
+			new Error(`${messageId ?? "unknown"} (${configurationSet ?? "no set"})`),
+		);
 	}
 	if (!messageId || !providerEvent) return 200;
 
@@ -198,8 +201,18 @@ export async function handleSnsMessage(raw: unknown): Promise<number> {
 		 returning organization_id`,
 		[messageId, providerEvent],
 	);
-	if (rows[0]) {
-		await evaluateAcademy(rows[0].organization_id);
+	// The academy is the delivery's, or the one that owns the configuration set
+	// named in the event (tenant identification, docs/mails.md section 3).
+	let organizationId = rows[0]?.organization_id;
+	if (!organizationId && configurationSet) {
+		const owner = await pool.query<{ organization_id: string }>(
+			"select organization_id from automations.sending where configuration_set_name = $1",
+			[configurationSet],
+		);
+		organizationId = owner.rows[0]?.organization_id;
+	}
+	if (organizationId) {
+		await evaluateAcademy(organizationId);
 		log.info({ providerEvent }, "email event recorded");
 	}
 	return 200;

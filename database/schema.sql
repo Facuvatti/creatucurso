@@ -451,8 +451,11 @@ create table if not exists automations.sending (
 	status text not null default 'active' check (status in ('active', 'paused')),
 	daily_limit integer not null default 2000,
 	paused_at timestamptz,
-	paused_reason text
+	paused_reason text,
+	-- SES configuration set of the academy (null until provisioned).
+	configuration_set_name text
 );
+alter table automations.sending add column if not exists configuration_set_name text;
 
 -- Global suppression list: hard bounces and complaints (any academy).
 create table if not exists automations.suppression (
