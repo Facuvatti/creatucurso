@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
 	FIELD_KEYS,
 	FIELD_LABELS,
@@ -61,6 +61,27 @@ export function CertificateEditor({
 	const [busy, setBusy] = useState(false);
 	const [version, setVersion] = useState(0);
 	const [dragging, setDragging] = useState(false);
+	const [frameUrl, setFrameUrl] = useState<string>();
+
+	// Loaded with fetch (not as a CSS image) so the browser sends the session
+	// cookie the same way in every environment and the Vite dev server accepts it.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: `version` forces a reload after an upload
+	useEffect(() => {
+		let objectUrl: string | undefined;
+		let cancelled = false;
+		fetch(`/api/certificates/frame/${courseId}?v=${version}`)
+			.then((response) => (response.ok ? response.blob() : null))
+			.then((blob) => {
+				if (!blob || cancelled) return;
+				objectUrl = URL.createObjectURL(blob);
+				setFrameUrl(objectUrl);
+			})
+			.catch(() => {});
+		return () => {
+			cancelled = true;
+			if (objectUrl) URL.revokeObjectURL(objectUrl);
+		};
+	}, [courseId, version]);
 
 	// The server data changed (new frame): start from its fields again.
 	const serverFields = template?.fields;
@@ -158,7 +179,7 @@ export function CertificateEditor({
 								width: "100%",
 								aspectRatio: `${template.width} / ${template.height}`,
 								containerType: "size",
-								backgroundImage: `url(/api/certificates/frame/${courseId}?v=${version})`,
+								backgroundImage: frameUrl ? `url(${frameUrl})` : undefined,
 								backgroundSize: "100% 100%",
 								border: "1px solid #999",
 								touchAction: "none",
