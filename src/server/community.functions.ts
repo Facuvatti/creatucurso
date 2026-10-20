@@ -330,8 +330,7 @@ export const addTutorByEmail = createServerFn({ method: "POST" })
 		if (!userId) {
 			return {
 				ok: false,
-				message:
-					"No hay ninguna cuenta con ese email. Pedile que se registre primero.",
+				message: "Esa persona debe registrarse primero en la plataforma.",
 			};
 		}
 

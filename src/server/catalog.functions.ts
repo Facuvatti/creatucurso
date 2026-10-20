@@ -12,7 +12,11 @@ import {
 import { findRoles, findUserIdByEmail } from "../areas/identity/members.ts";
 import { slugify } from "../shared/text/slugify.ts";
 import { email, oneOf, record, text, uuid } from "../shared/validate.ts";
-import { accessFor, type CourseAccess } from "./access.server.ts";
+import {
+	accessFor,
+	assertEnrollment,
+	type CourseAccess,
+} from "./access.server.ts";
 import { auth } from "./auth.server.ts";
 import { requireStaffContext, requireTenantContext } from "./request.server.ts";
 
@@ -151,8 +155,8 @@ export const completeLesson = createServerFn({ method: "POST" })
 		const lesson = allLessons(lookup.course).find(
 			(l) => l.slug === data.lessonSlug,
 		);
-		const enrolled = await catalog.findEnrollment(lookup.course.id, user.id);
-		if (!lesson || !enrolled) return { ok: false as const };
+		if (!lesson) return { ok: false as const };
+		await assertEnrollment(user, lookup.course);
 
 		const result = await catalog.completeLesson(
 			lookup.course.id,

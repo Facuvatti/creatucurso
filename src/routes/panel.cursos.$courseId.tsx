@@ -15,6 +15,11 @@ import {
 	getPanelCourse,
 	setCourseStatus,
 } from "../server/catalog.functions.ts";
+import {
+	addTutorByEmail,
+	getCourseTutors,
+	removeTutor,
+} from "../server/community.functions.ts";
 import { setCoursePrice } from "../server/payments.functions.ts";
 
 export const Route = createFileRoute("/panel/cursos/$courseId")({
@@ -33,16 +38,19 @@ export const Route = createFileRoute("/panel/cursos/$courseId")({
 			data: { courseId: params.courseId },
 		});
 		if (!course) throw notFound();
-		return course;
+		const tutors = await getCourseTutors({
+			data: { courseId: params.courseId },
+		});
+		return { course, tutors };
 	},
 	head: ({ loaderData }) => ({
-		meta: [{ title: `${loaderData?.name ?? "Curso"} | Panel` }],
+		meta: [{ title: `${loaderData?.course.name ?? "Curso"} | Panel` }],
 	}),
 	component: PanelCourseRoute,
 });
 
 function PanelCourseRoute() {
-	const course = Route.useLoaderData();
+	const { course, tutors } = Route.useLoaderData();
 	const router = useRouter();
 	const [pending, setPending] = useState(false);
 	const [message, setMessage] = useState<string>();
@@ -58,6 +66,7 @@ function PanelCourseRoute() {
 	return (
 		<PanelCoursePage
 			course={course}
+			tutors={tutors}
 			message={message}
 			pending={pending}
 			onStatus={(status) =>
@@ -91,6 +100,18 @@ function PanelCourseRoute() {
 				run(
 					() => enrollStudentByEmail({ data: { courseId: course.id, email } }),
 					"Persona inscripta.",
+				)
+			}
+			onAddTutor={(email) =>
+				run(
+					() => addTutorByEmail({ data: { courseId: course.id, email } }),
+					"Tutor agregado.",
+				)
+			}
+			onRemoveTutor={(userId) =>
+				run(
+					() => removeTutor({ data: { courseId: course.id, userId } }),
+					"Tutor quitado.",
 				)
 			}
 		/>

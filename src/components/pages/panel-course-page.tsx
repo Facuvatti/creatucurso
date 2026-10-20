@@ -1,9 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import type { CourseOutline } from "../../areas/catalog/types.ts";
+import type { Tutor } from "../../server/community.functions.ts";
 import { formatMoney } from "../../shared/money.ts";
 
 type Props = {
 	course: CourseOutline;
+	tutors: Tutor[];
 	message?: string | undefined;
 	pending: boolean;
 	onStatus: (status: "draft" | "published") => void;
@@ -14,6 +16,8 @@ type Props = {
 		description: string;
 	}) => void;
 	onEnroll: (email: string) => void;
+	onAddTutor: (email: string) => void;
+	onRemoveTutor: (userId: string) => void;
 	onSetPrice: (values: { price: number | null; currency: string }) => void;
 };
 
@@ -23,12 +27,15 @@ function text(form: HTMLFormElement, name: string): string {
 
 export function PanelCoursePage({
 	course,
+	tutors,
 	message,
 	pending,
 	onStatus,
 	onAddModule,
 	onAddLesson,
 	onEnroll,
+	onAddTutor,
+	onRemoveTutor,
 	onSetPrice,
 }: Props) {
 	const published = course.status === "published";
@@ -168,6 +175,43 @@ export function PanelCoursePage({
 					/>
 					<button type="submit" disabled={pending}>
 						Inscribir
+					</button>
+				</form>
+			</section>
+
+			<section>
+				<h2>Tutores</h2>
+				{tutors.length === 0 && <p>Este curso todavía no tiene tutores.</p>}
+				<ul>
+					{tutors.map((tutor) => (
+						<li key={tutor.userId}>
+							{tutor.name} <small>({tutor.email})</small>{" "}
+							<button
+								type="button"
+								disabled={pending}
+								onClick={() => onRemoveTutor(tutor.userId)}
+							>
+								Quitar
+							</button>
+						</li>
+					))}
+				</ul>
+				<form
+					onSubmit={(event) => {
+						event.preventDefault();
+						const form = event.currentTarget;
+						onAddTutor(text(form, "tutorEmail"));
+						form.reset();
+					}}
+				>
+					<input
+						name="tutorEmail"
+						type="email"
+						placeholder="Email del tutor (debe tener cuenta)"
+						required
+					/>
+					<button type="submit" disabled={pending}>
+						Agregar tutor
 					</button>
 				</form>
 			</section>
