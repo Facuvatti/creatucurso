@@ -58,50 +58,44 @@ function stateKey(): Buffer {
 		.digest();
 }
 
-type StatePayload = {
-	organizationId: string;
-	userId: string;
-	nonce: string;
-	expiresAt: number;
-};
-
-function signState(payload: StatePayload): string {
-	const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
+/**
+ * The state sent to Mercado Pago is short on purpose (a long one is rejected):
+ * "<nonce>.<signature>". The signature covers the nonce, the academy, the user
+ * and the expiry, which are stored in the single-use row looked up by the nonce.
+ */
+function signState(
+	nonce: string,
+	organizationId: string,
+	userId: string,
+	expiresAt: number,
+): string {
 	const signature = createHmac("sha256", stateKey())
-		.update(body)
-		.digest("base64url");
-	return `${body}.${signature}`;
+		.update(`${nonce}|${organizationId}|${userId}|${expiresAt}`)
+		.digest("base64url")
+		.slice(0, 22);
+	return `${nonce}.${signature}`;
 }
 
-/** The payload of a state we signed and that has not expired, or null. */
-function verifyState(state: string): StatePayload | null {
-	const [body, signature, extra] = state.split(".");
-	if (!body || !signature || extra !== undefined) return null;
-	const expected = createHmac("sha256", stateKey())
-		.update(body)
-		.digest("base64url");
-	const received = Buffer.from(signature);
-	const wanted = Buffer.from(expected);
-	if (received.length !== wanted.length || !timingSafeEqual(received, wanted)) {
-		return null;
-	}
-	try {
-		const payload = JSON.parse(
-			Buffer.from(body, "base64url").toString("utf8"),
-		) as Partial<StatePayload>;
-		if (
-			typeof payload.organizationId !== "string" ||
-			typeof payload.userId !== "string" ||
-			typeof payload.nonce !== "string" ||
-			typeof payload.expiresAt !== "number" ||
-			payload.expiresAt < Date.now()
-		) {
-			return null;
-		}
-		return payload as StatePayload;
-	} catch {
-		return null;
-	}
+/** Splits a state into its nonce, or null when its shape is wrong. */
+function stateNonce(state: string): string | null {
+	const [nonce, signature, extra] = state.split(".");
+	if (!nonce || !signature || extra !== undefined) return null;
+	return nonce;
+}
+
+function isSignedState(
+	state: string,
+	organizationId: string,
+	userId: string,
+	expiresAt: number,
+): boolean {
+	const nonce = stateNonce(state);
+	if (!nonce) return false;
+	const received = Buffer.from(state);
+	const wanted = Buffer.from(
+		signState(nonce, organizationId, userId, expiresAt),
+	);
+	return received.length === wanted.length && timingSafeEqual(received, wanted);
 }
 
 const hashState = (state: string) =>
@@ -140,12 +134,12 @@ export async function startConnection(input: {
 		.update(codeVerifier)
 		.digest("base64url");
 	const expiresAt = Date.now() + STATE_MINUTES * 60 * 1000;
-	const state = signState({
-		organizationId: input.organizationId,
-		userId: input.userId,
-		nonce: randomBytes(16).toString("base64url"),
+	const state = signState(
+		randomBytes(16).toString("base64url"),
+		input.organizationId,
+		input.userId,
 		expiresAt,
-	});
+	);
 
 	await pool.query(
 		"delete from payments.mercadopago_oauth_state where expires_at < now()",
@@ -200,8 +194,9 @@ export async function completeConnection(input: {
 	code: string;
 	sessionUserId: string | null;
 }): Promise<ConnectionResult> {
-	const payload = verifyState(input.state);
-	if (!payload) return { ok: false, reason: "expired", returnOrigin: null };
+	if (!stateNonce(input.state)) {
+		return { ok: false, reason: "expired", returnOrigin: null };
+	}
 
 	// Deleting the row is what makes the state single use, even across servers.
 	const { rows } = await pool.query<{
@@ -219,8 +214,12 @@ export async function completeConnection(input: {
 	if (
 		!stored ||
 		stored.expires_at.getTime() < Date.now() ||
-		stored.organization_id !== payload.organizationId ||
-		stored.user_id !== payload.userId
+		!isSignedState(
+			input.state,
+			stored.organization_id,
+			stored.user_id,
+			stored.expires_at.getTime(),
+		)
 	) {
 		return { ok: false, reason: "expired", returnOrigin: null };
 	}
