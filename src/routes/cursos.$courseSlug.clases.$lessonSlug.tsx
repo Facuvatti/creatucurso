@@ -41,7 +41,7 @@ export const Route = createFileRoute("/cursos/$courseSlug/clases/$lessonSlug")({
 function LessonRoute() {
 	const { page: data, comments } = Route.useLoaderData();
 	const params = Route.useParams();
-	const { origin, appOrigin } = Route.useRouteContext();
+	const { origin, appOrigin, user } = Route.useRouteContext();
 	const router = useRouter();
 	const [pending, setPending] = useState(false);
 	const [commentMessage, setCommentMessage] = useState<string>();
@@ -77,6 +77,7 @@ function LessonRoute() {
 		<LessonPage
 			data={data}
 			pending={pending}
+			viewerEmail={user?.email ?? ""}
 			onComplete={async () => {
 				setPending(true);
 				await completeLesson({ data: params });

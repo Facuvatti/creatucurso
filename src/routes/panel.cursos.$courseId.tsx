@@ -4,7 +4,7 @@ import {
 	redirect,
 	useRouter,
 } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { can } from "../areas/identity/permissions.ts";
 import { PanelCoursePage } from "../components/pages/panel-course-page.tsx";
 import {
@@ -19,6 +19,7 @@ import {
 	getCourseTutors,
 	removeTutor,
 } from "../server/community.functions.ts";
+import { getCourseVideos } from "../server/media.functions.ts";
 import { setCoursePrice } from "../server/payments.functions.ts";
 
 export const Route = createFileRoute("/panel/cursos/$courseId")({
@@ -40,7 +41,10 @@ export const Route = createFileRoute("/panel/cursos/$courseId")({
 		const tutors = await getCourseTutors({
 			data: { courseId: params.courseId },
 		});
-		return { course, tutors };
+		const videos = await getCourseVideos({
+			data: { courseId: params.courseId },
+		});
+		return { course, tutors, videos };
 	},
 	head: ({ loaderData }) => ({
 		meta: [{ title: `${loaderData?.course.name ?? "Curso"} | Panel` }],
@@ -49,10 +53,20 @@ export const Route = createFileRoute("/panel/cursos/$courseId")({
 });
 
 function PanelCourseRoute() {
-	const { course, tutors } = Route.useLoaderData();
+	const { course, tutors, videos } = Route.useLoaderData();
 	const router = useRouter();
 	const [pending, setPending] = useState(false);
 	const [message, setMessage] = useState<string>();
+
+	// Reload while a video is being processed so its status updates by itself.
+	const processing = Object.values(videos).some(
+		(video) => video.status === "uploaded" || video.status === "encoding",
+	);
+	useEffect(() => {
+		if (!processing) return;
+		const timer = setInterval(() => router.invalidate(), 5000);
+		return () => clearInterval(timer);
+	}, [processing, router]);
 
 	async function run(action: () => Promise<ActionResult>, success?: string) {
 		setPending(true);
@@ -66,6 +80,8 @@ function PanelCourseRoute() {
 		<PanelCoursePage
 			course={course}
 			tutors={tutors}
+			videos={videos}
+			onVideoChanged={() => router.invalidate()}
 			message={message}
 			pending={pending}
 			onAddModule={(title) =>

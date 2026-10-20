@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import type { LessonPageData } from "../../server/catalog.functions.ts";
+import { LessonVideo } from "../media/lesson-video.tsx";
 
 type Ok = Extract<LessonPageData, { kind: "ok" }>;
 
@@ -8,10 +9,18 @@ type Props = {
 	data: Ok;
 	pending: boolean;
 	onComplete: () => void;
+	/** Email of the signed-in person, shown as the video watermark. */
+	viewerEmail: string;
 	children?: ReactNode;
 };
 
-export function LessonPage({ data, pending, onComplete, children }: Props) {
+export function LessonPage({
+	data,
+	pending,
+	onComplete,
+	viewerEmail,
+	children,
+}: Props) {
 	const { course, lesson } = data;
 
 	return (
@@ -27,7 +36,14 @@ export function LessonPage({ data, pending, onComplete, children }: Props) {
 
 			<section>
 				<h2>Videos</h2>
-				{lesson.videos.length === 0 ? (
+				{data.video ? (
+					<LessonVideo
+						status={data.video.status}
+						courseSlug={course.slug}
+						lessonSlug={lesson.slug}
+						viewerEmail={viewerEmail}
+					/>
+				) : lesson.videos.length === 0 ? (
 					<p>Esta clase todavía no tiene videos.</p>
 				) : (
 					<ul>

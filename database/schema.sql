@@ -232,3 +232,54 @@ create table if not exists tenancy.domain_check (
 	token text not null,
 	created_at timestamptz not null default now()
 );
+
+-- Our tables: media (Basic-tier video: upload, encoding, playback; ADR-0020) -------------
+create schema if not exists media;
+
+-- One video per lesson. `status` is also the encoder's queue: it takes the
+-- oldest 'uploaded' row with FOR UPDATE SKIP LOCKED. Quota is counted from original_bytes.
+create table if not exists media.video (
+	id uuid primary key default gen_random_uuid(),
+	organization_id text not null references auth.organization (id) on delete cascade,
+	lesson_id uuid unique references catalog.lesson (id) on delete set null,
+	uploaded_by text references auth."user" (id) on delete set null,
+	status text not null default 'uploading'
+		check (status in ('uploading', 'uploaded', 'encoding', 'ready', 'failed')),
+	error text,
+	original_path text,
+	original_bytes bigint not null check (original_bytes > 0),
+	duration_seconds integer,
+	width integer,
+	height integer,
+	renditions integer[] not null default '{}',
+	key_encrypted text,
+	created_at timestamptz not null default now(),
+	updated_at timestamptz not null default now(),
+	original_delete_after timestamptz
+);
+create index if not exists video_organization_idx on media.video (organization_id);
+create index if not exists video_queue_idx on media.video (status, created_at);
+
+-- A playback that counts against the concurrent-stream cap while last_seen_at is recent.
+create table if not exists media.playback_session (
+	id uuid primary key default gen_random_uuid(),
+	video_id uuid not null references media.video (id) on delete cascade,
+	user_id text not null references auth."user" (id) on delete cascade,
+	started_at timestamptz not null default now(),
+	last_seen_at timestamptz not null default now()
+);
+create index if not exists playback_session_seen_idx on media.playback_session (last_seen_at);
+create index if not exists playback_session_video_user_idx on media.playback_session (video_id, user_id);
+
+-- Daily usage per video, read by tenant billing (Phase 8). Bytes and seconds are
+-- reported by the player; nginx access logs stay the authoritative source of bytes.
+create table if not exists media.playback_usage (
+	video_id uuid not null references media.video (id) on delete cascade,
+	organization_id text not null references auth.organization (id) on delete cascade,
+	day date not null default current_date,
+	plays integer not null default 0,
+	seconds_watched bigint not null default 0,
+	bytes_served bigint not null default 0,
+	primary key (video_id, day)
+);
+create index if not exists playback_usage_organization_idx on media.playback_usage (organization_id, day);

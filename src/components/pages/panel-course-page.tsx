@@ -1,7 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import type { CourseOutline } from "../../areas/catalog/types.ts";
+import type { VideoInfo } from "../../areas/media/types.ts";
 import type { Tutor } from "../../server/community.functions.ts";
 import { formatMoney } from "../../shared/money.ts";
+import { LessonVideoUpload } from "../media/lesson-video-upload.tsx";
 import {
 	CourseDetailsForm,
 	ExportButton,
@@ -12,6 +14,8 @@ import {
 type Props = {
 	course: CourseOutline;
 	tutors: Tutor[];
+	videos: Record<string, VideoInfo>;
+	onVideoChanged: () => void;
 	message?: string | undefined;
 	pending: boolean;
 	onAddModule: (title: string) => void;
@@ -33,6 +37,8 @@ function text(form: HTMLFormElement, name: string): string {
 export function PanelCoursePage({
 	course,
 	tutors,
+	videos,
+	onVideoChanged,
 	message,
 	pending,
 	onAddModule,
@@ -112,10 +118,11 @@ export function PanelCoursePage({
 								{module.lessons.map((lesson) => (
 									<li key={lesson.id}>
 										{lesson.title}{" "}
-										<small>
-											({lesson.videos.length} video
-											{lesson.videos.length === 1 ? "" : "s"})
-										</small>
+										<LessonVideoUpload
+											lessonId={lesson.id}
+											video={videos[lesson.id]}
+											onChanged={onVideoChanged}
+										/>
 									</li>
 								))}
 							</ul>

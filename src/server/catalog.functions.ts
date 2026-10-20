@@ -11,6 +11,7 @@ import {
 	SlugTakenError,
 } from "../areas/catalog/types.ts";
 import { findRoles, findUserIdByEmail } from "../areas/identity/members.ts";
+import { videoOfLesson } from "../areas/media/media.ts";
 import { slugify } from "../shared/text/slugify.ts";
 import { email, oneOf, record, text, uuid } from "../shared/validate.ts";
 import {
@@ -84,6 +85,8 @@ export type LessonPageData =
 			course: { name: string; slug: string };
 			moduleTitle: string;
 			lesson: Lesson;
+			/** The lesson's protected video (played through /api/media), when it has one. */
+			video: { status: string } | null;
 			previous: { slug: string; title: string } | null;
 			next: { slug: string; title: string } | null;
 			completed: boolean;
@@ -126,6 +129,7 @@ export const getLessonPage = createServerFn({ method: "GET" })
 			access.enrolled && context.user
 				? await catalog.completedLessonIds(course.id, context.user.id)
 				: [];
+		const video = await videoOfLesson(lesson.id);
 		const brief = (l: Lesson | undefined) =>
 			l ? { slug: l.slug, title: l.title } : null;
 
@@ -134,6 +138,7 @@ export const getLessonPage = createServerFn({ method: "GET" })
 			course: { name: course.name, slug: course.slug },
 			moduleTitle: module?.title ?? "",
 			lesson,
+			video: video ? { status: video.status } : null,
 			previous: brief(lessons[index - 1]),
 			next: brief(lessons[index + 1]),
 			completed: completedIds.includes(lesson.id),
