@@ -292,7 +292,10 @@ async function sendOne(d: Delivery): Promise<void> {
 		await finish(d.id, "sent", null, messageId);
 	} catch (error) {
 		const code = errorCode(error);
-		log.error({ deliveryId: d.id, code }, "automation email failed");
+		log.error(
+			{ deliveryId: d.id, code, err: error },
+			"automation email failed",
+		);
 		if (d.attempts + 1 >= MAX_ATTEMPTS) {
 			await pool.query(
 				"update automations.message_delivery set attempts = attempts + 1 where id = $1",
