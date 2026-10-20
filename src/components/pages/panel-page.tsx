@@ -4,6 +4,7 @@ import type { UploadSlot } from "../../areas/catalog/course-from-import.ts";
 import type { ImportIssue } from "../../areas/catalog/course-import.ts";
 import type { CourseSummary } from "../../areas/catalog/types.ts";
 import { slugify } from "../../shared/text/slugify.ts";
+import { COURSE_JSON_EXAMPLE } from "../panel/course-json-example.ts";
 
 export type ImportOutcome =
 	| { kind: "idle" }
@@ -123,6 +124,26 @@ export function PanelPage({
 
 			<section>
 				<h2>Importar un curso desde un archivo JSON</h2>
+				<details>
+					<summary>Ver ejemplo del formato</summary>
+					<p>
+						Obligatorio: <code>name</code> y al menos una descripción (
+						<code>shortDescription</code> o <code>longDescription</code>), un
+						módulo con una clase y un video por clase. Las rutas de videos,
+						imágenes y apuntes son de tu computadora: después de importar te
+						mostramos cuáles archivos faltan subir. No se usa la duración. Si
+						dejás <code>slug</code> vacío se genera con el nombre.
+					</p>
+					<pre>
+						<code>{COURSE_JSON_EXAMPLE}</code>
+					</pre>
+					<a
+						href={`data:application/json;charset=utf-8,${encodeURIComponent(COURSE_JSON_EXAMPLE)}`}
+						download="curso-ejemplo.json"
+					>
+						Descargar ejemplo
+					</a>
+				</details>
 				<form
 					onSubmit={(event) => {
 						event.preventDefault();
