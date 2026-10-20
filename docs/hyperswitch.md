@@ -48,3 +48,10 @@ They are all listed with comments in `.env.example`. The ones that confuse:
 2. `Panel > Pagos`: activate payments (creates the merchant in Hyperswitch).
 3. Connect a test payment provider, set a price on a course, then buy it as a student.
 4. After paying, the student must be enrolled exactly once (the webhook can arrive twice).
+
+## Known quirks (already handled by `infra/hyperswitch/docker-compose.override.yml`)
+
+- Upstream's database health check is too short for a Raspberry Pi; we lengthen it.
+- Upstream's seed script needs bash but is run with `sh`; we run it with bash.
+- Upstream's migration step fails patching a Rust file with the current diesel; we run only the migrations.
+- `hyperswitch-web` (port 9050) builds the checkout widget from source on its first start. On a Pi this takes a long time; `http://localhost:9050/HyperLoader.js` answers once it finishes (`docker logs -f hyperswitch-hyperswitch-web-1`). The API on 8080 works without it.
