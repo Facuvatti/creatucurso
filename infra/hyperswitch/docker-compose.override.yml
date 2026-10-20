@@ -1,0 +1,18 @@
+# Copied by up.sh into the Hyperswitch checkout. Compose merges it with that
+# checkout's docker-compose.yml.
+#
+# Nothing except the API (8080) and the checkout SDK (9050) is published to the
+# host. Postgres, Redis and Superposition stay on the internal Docker network,
+# so they can never clash with a Postgres/Redis you already run on this machine.
+services:
+  pg:
+    ports: !override []
+  redis-standalone:
+    ports: !override []
+  superposition:
+    ports: !override []
+  hyperswitch-server:
+    # Lets Hyperswitch call back into the app running on your host
+    # (http://host.docker.internal:3000/api/webhooks/...).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
