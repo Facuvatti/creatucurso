@@ -8,8 +8,11 @@ import { useState } from "react";
 import { ReviewsSection } from "../components/community/reviews-section.tsx";
 import { CoursePage } from "../components/pages/course-page.tsx";
 import { getCoursePage } from "../server/catalog.functions.ts";
+import { getMyCertificate } from "../server/certificates.functions.ts";
 import {
 	getCourseReviews,
+	removeReviewReply,
+	saveReviewReply,
 	setReviewVisibility,
 	submitReview,
 } from "../server/community.functions.ts";
@@ -24,10 +27,11 @@ export const Route = createFileRoute("/cursos/$courseSlug/")({
 		if (context.host.kind !== "tenant") throw notFound();
 	},
 	loader: async ({ params }) => {
-		const [result, reviews, refundable] = await Promise.all([
+		const [result, reviews, refundable, certificate] = await Promise.all([
 			getCoursePage({ data: { courseSlug: params.courseSlug } }),
 			getCourseReviews({ data: { courseSlug: params.courseSlug } }),
 			getRefundEligibility({ data: { courseSlug: params.courseSlug } }),
+			getMyCertificate({ data: { courseSlug: params.courseSlug } }),
 		]);
 		if (result.kind === "notFound") throw notFound();
 		if (result.kind === "moved") {
@@ -37,7 +41,7 @@ export const Route = createFileRoute("/cursos/$courseSlug/")({
 				statusCode: 301,
 			});
 		}
-		return { ...result, reviews, refundable };
+		return { ...result, reviews, refundable, certificate };
 	},
 	head: ({ loaderData }) => ({
 		meta: [
@@ -51,8 +55,14 @@ export const Route = createFileRoute("/cursos/$courseSlug/")({
 });
 
 function CourseRoute() {
-	const { course, access, completedLessonIds, reviews, refundable } =
-		Route.useLoaderData();
+	const {
+		course,
+		access,
+		completedLessonIds,
+		reviews,
+		refundable,
+		certificate,
+	} = Route.useLoaderData();
 	const { origin, appOrigin } = Route.useRouteContext();
 	const router = useRouter();
 	const [pending, setPending] = useState(false);
@@ -70,6 +80,7 @@ function CourseRoute() {
 			pending={pending}
 			message={message}
 			refundable={refundable}
+			certificate={certificate}
 			onRequestRefund={async () => {
 				if (
 					!window.confirm(
@@ -113,7 +124,23 @@ function CourseRoute() {
 					}}
 					onHide={async (reviewId, hidden) => {
 						setPending(true);
-						await setReviewVisibility({ data: { reviewId, hidden } });
+						const result = await setReviewVisibility({
+							data: { reviewId, hidden },
+						});
+						setPending(false);
+						setReviewMessage(result.ok ? undefined : result.message);
+						await router.invalidate();
+					}}
+					onReply={async (reviewId, body) => {
+						setPending(true);
+						const result = await saveReviewReply({ data: { reviewId, body } });
+						setPending(false);
+						setReviewMessage(result.ok ? undefined : result.message);
+						await router.invalidate();
+					}}
+					onRemoveReply={async (reviewId) => {
+						setPending(true);
+						await removeReviewReply({ data: { reviewId } });
 						setPending(false);
 						await router.invalidate();
 					}}

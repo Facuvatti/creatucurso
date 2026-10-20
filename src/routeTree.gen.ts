@@ -21,17 +21,23 @@ import { Route as AuthHandoffRouteImport } from './routes/auth/handoff'
 import { Route as AuthLogoutRouteImport } from './routes/auth/logout'
 import { Route as PanelIndexRouteImport } from './routes/panel.index'
 import { Route as PanelDominioRouteImport } from './routes/panel.dominio'
+import { Route as PanelModeracionRouteImport } from './routes/panel.moderacion'
 import { Route as PanelPagosRouteImport } from './routes/panel.pagos'
+import { Route as PanelTutoriaRouteImport } from './routes/panel.tutoria'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiMediaHeartbeatRouteImport } from './routes/api/media/heartbeat'
 import { Route as ApiMediaSessionRouteImport } from './routes/api/media/session'
 import { Route as ApiMediaTusHookRouteImport } from './routes/api/media/tus-hook'
 import { Route as ApiMercadopagoCallbackRouteImport } from './routes/api/mercadopago/callback'
 import { Route as ApiWebhooksMercadopagoRouteImport } from './routes/api/webhooks/mercadopago'
+import { Route as CertificadosCredentialIdIndexRouteImport } from './routes/certificados.$credentialId.index'
+import { Route as CertificadosCredentialIdPdfRouteImport } from './routes/certificados.$credentialId.pdf'
 import { Route as CursosCourseSlugIndexRouteImport } from './routes/cursos.$courseSlug.index'
 import { Route as CursosCourseSlugCompraRouteImport } from './routes/cursos.$courseSlug.compra'
 import { Route as CursosCourseSlugComprarRouteImport } from './routes/cursos.$courseSlug.comprar'
 import { Route as PanelCursosCourseIdRouteImport } from './routes/panel.cursos.$courseId'
+import { Route as ApiCertificatesFrameCourseIdRouteImport } from './routes/api/certificates/frame.$courseId'
+import { Route as ApiCertificatesPreviewCourseIdRouteImport } from './routes/api/certificates/preview.$courseId'
 import { Route as ApiMediaKeyVideoIdRouteImport } from './routes/api/media/key.$videoId'
 import { Route as ApiWebhooksHyperswitchOrganizationIdRouteImport } from './routes/api/webhooks/hyperswitch.$organizationId'
 import { Route as ApiWebhooksMercadopagoOrganizationIdRouteImport } from './routes/api/webhooks/mercadopago.$organizationId'
@@ -98,9 +104,19 @@ const PanelDominioRoute = PanelDominioRouteImport.update({
   path: '/panel/dominio',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PanelModeracionRoute = PanelModeracionRouteImport.update({
+  id: '/panel/moderacion',
+  path: '/panel/moderacion',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PanelPagosRoute = PanelPagosRouteImport.update({
   id: '/panel/pagos',
   path: '/panel/pagos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PanelTutoriaRoute = PanelTutoriaRouteImport.update({
+  id: '/panel/tutoria',
+  path: '/panel/tutoria',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -133,6 +149,18 @@ const ApiWebhooksMercadopagoRoute = ApiWebhooksMercadopagoRouteImport.update({
   path: '/api/webhooks/mercadopago',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CertificadosCredentialIdIndexRoute =
+  CertificadosCredentialIdIndexRouteImport.update({
+    id: '/certificados/$credentialId/',
+    path: '/certificados/$credentialId/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const CertificadosCredentialIdPdfRoute =
+  CertificadosCredentialIdPdfRouteImport.update({
+    id: '/certificados/$credentialId/pdf',
+    path: '/certificados/$credentialId/pdf',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const CursosCourseSlugIndexRoute = CursosCourseSlugIndexRouteImport.update({
   id: '/cursos/$courseSlug/',
   path: '/cursos/$courseSlug/',
@@ -153,6 +181,18 @@ const PanelCursosCourseIdRoute = PanelCursosCourseIdRouteImport.update({
   path: '/panel/cursos/$courseId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCertificatesFrameCourseIdRoute =
+  ApiCertificatesFrameCourseIdRouteImport.update({
+    id: '/api/certificates/frame/$courseId',
+    path: '/api/certificates/frame/$courseId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiCertificatesPreviewCourseIdRoute =
+  ApiCertificatesPreviewCourseIdRouteImport.update({
+    id: '/api/certificates/preview/$courseId',
+    path: '/api/certificates/preview/$courseId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiMediaKeyVideoIdRoute = ApiMediaKeyVideoIdRouteImport.update({
   id: '/api/media/key/$videoId',
   path: '/api/media/key/$videoId',
@@ -195,7 +235,9 @@ export interface FileRoutesByFullPath {
   '/auth/handoff': typeof AuthHandoffRoute
   '/auth/logout': typeof AuthLogoutRoute
   '/panel/dominio': typeof PanelDominioRoute
+  '/panel/moderacion': typeof PanelModeracionRoute
   '/panel/pagos': typeof PanelPagosRoute
+  '/panel/tutoria': typeof PanelTutoriaRoute
   '/panel/': typeof PanelIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/media/heartbeat': typeof ApiMediaHeartbeatRoute
@@ -203,10 +245,14 @@ export interface FileRoutesByFullPath {
   '/api/media/tus-hook': typeof ApiMediaTusHookRoute
   '/api/mercadopago/callback': typeof ApiMercadopagoCallbackRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRouteWithChildren
+  '/certificados/$credentialId/pdf': typeof CertificadosCredentialIdPdfRoute
   '/cursos/$courseSlug/compra': typeof CursosCourseSlugCompraRoute
   '/cursos/$courseSlug/comprar': typeof CursosCourseSlugComprarRoute
   '/panel/cursos/$courseId': typeof PanelCursosCourseIdRoute
+  '/certificados/$credentialId/': typeof CertificadosCredentialIdIndexRoute
   '/cursos/$courseSlug/': typeof CursosCourseSlugIndexRoute
+  '/api/certificates/frame/$courseId': typeof ApiCertificatesFrameCourseIdRoute
+  '/api/certificates/preview/$courseId': typeof ApiCertificatesPreviewCourseIdRoute
   '/api/media/key/$videoId': typeof ApiMediaKeyVideoIdRoute
   '/api/webhooks/hyperswitch/$organizationId': typeof ApiWebhooksHyperswitchOrganizationIdRoute
   '/api/webhooks/mercadopago/$organizationId': typeof ApiWebhooksMercadopagoOrganizationIdRoute
@@ -225,7 +271,9 @@ export interface FileRoutesByTo {
   '/auth/handoff': typeof AuthHandoffRoute
   '/auth/logout': typeof AuthLogoutRoute
   '/panel/dominio': typeof PanelDominioRoute
+  '/panel/moderacion': typeof PanelModeracionRoute
   '/panel/pagos': typeof PanelPagosRoute
+  '/panel/tutoria': typeof PanelTutoriaRoute
   '/panel': typeof PanelIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/media/heartbeat': typeof ApiMediaHeartbeatRoute
@@ -233,10 +281,14 @@ export interface FileRoutesByTo {
   '/api/media/tus-hook': typeof ApiMediaTusHookRoute
   '/api/mercadopago/callback': typeof ApiMercadopagoCallbackRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRouteWithChildren
+  '/certificados/$credentialId/pdf': typeof CertificadosCredentialIdPdfRoute
   '/cursos/$courseSlug/compra': typeof CursosCourseSlugCompraRoute
   '/cursos/$courseSlug/comprar': typeof CursosCourseSlugComprarRoute
   '/panel/cursos/$courseId': typeof PanelCursosCourseIdRoute
+  '/certificados/$credentialId': typeof CertificadosCredentialIdIndexRoute
   '/cursos/$courseSlug': typeof CursosCourseSlugIndexRoute
+  '/api/certificates/frame/$courseId': typeof ApiCertificatesFrameCourseIdRoute
+  '/api/certificates/preview/$courseId': typeof ApiCertificatesPreviewCourseIdRoute
   '/api/media/key/$videoId': typeof ApiMediaKeyVideoIdRoute
   '/api/webhooks/hyperswitch/$organizationId': typeof ApiWebhooksHyperswitchOrganizationIdRoute
   '/api/webhooks/mercadopago/$organizationId': typeof ApiWebhooksMercadopagoOrganizationIdRoute
@@ -256,7 +308,9 @@ export interface FileRoutesById {
   '/auth/handoff': typeof AuthHandoffRoute
   '/auth/logout': typeof AuthLogoutRoute
   '/panel/dominio': typeof PanelDominioRoute
+  '/panel/moderacion': typeof PanelModeracionRoute
   '/panel/pagos': typeof PanelPagosRoute
+  '/panel/tutoria': typeof PanelTutoriaRoute
   '/panel/': typeof PanelIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/media/heartbeat': typeof ApiMediaHeartbeatRoute
@@ -264,10 +318,14 @@ export interface FileRoutesById {
   '/api/media/tus-hook': typeof ApiMediaTusHookRoute
   '/api/mercadopago/callback': typeof ApiMercadopagoCallbackRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRouteWithChildren
+  '/certificados/$credentialId/pdf': typeof CertificadosCredentialIdPdfRoute
   '/cursos/$courseSlug/compra': typeof CursosCourseSlugCompraRoute
   '/cursos/$courseSlug/comprar': typeof CursosCourseSlugComprarRoute
   '/panel/cursos/$courseId': typeof PanelCursosCourseIdRoute
+  '/certificados/$credentialId/': typeof CertificadosCredentialIdIndexRoute
   '/cursos/$courseSlug/': typeof CursosCourseSlugIndexRoute
+  '/api/certificates/frame/$courseId': typeof ApiCertificatesFrameCourseIdRoute
+  '/api/certificates/preview/$courseId': typeof ApiCertificatesPreviewCourseIdRoute
   '/api/media/key/$videoId': typeof ApiMediaKeyVideoIdRoute
   '/api/webhooks/hyperswitch/$organizationId': typeof ApiWebhooksHyperswitchOrganizationIdRoute
   '/api/webhooks/mercadopago/$organizationId': typeof ApiWebhooksMercadopagoOrganizationIdRoute
@@ -288,7 +346,9 @@ export interface FileRouteTypes {
     | '/auth/handoff'
     | '/auth/logout'
     | '/panel/dominio'
+    | '/panel/moderacion'
     | '/panel/pagos'
+    | '/panel/tutoria'
     | '/panel/'
     | '/api/auth/$'
     | '/api/media/heartbeat'
@@ -296,10 +356,14 @@ export interface FileRouteTypes {
     | '/api/media/tus-hook'
     | '/api/mercadopago/callback'
     | '/api/webhooks/mercadopago'
+    | '/certificados/$credentialId/pdf'
     | '/cursos/$courseSlug/compra'
     | '/cursos/$courseSlug/comprar'
     | '/panel/cursos/$courseId'
+    | '/certificados/$credentialId/'
     | '/cursos/$courseSlug/'
+    | '/api/certificates/frame/$courseId'
+    | '/api/certificates/preview/$courseId'
     | '/api/media/key/$videoId'
     | '/api/webhooks/hyperswitch/$organizationId'
     | '/api/webhooks/mercadopago/$organizationId'
@@ -318,7 +382,9 @@ export interface FileRouteTypes {
     | '/auth/handoff'
     | '/auth/logout'
     | '/panel/dominio'
+    | '/panel/moderacion'
     | '/panel/pagos'
+    | '/panel/tutoria'
     | '/panel'
     | '/api/auth/$'
     | '/api/media/heartbeat'
@@ -326,10 +392,14 @@ export interface FileRouteTypes {
     | '/api/media/tus-hook'
     | '/api/mercadopago/callback'
     | '/api/webhooks/mercadopago'
+    | '/certificados/$credentialId/pdf'
     | '/cursos/$courseSlug/compra'
     | '/cursos/$courseSlug/comprar'
     | '/panel/cursos/$courseId'
+    | '/certificados/$credentialId'
     | '/cursos/$courseSlug'
+    | '/api/certificates/frame/$courseId'
+    | '/api/certificates/preview/$courseId'
     | '/api/media/key/$videoId'
     | '/api/webhooks/hyperswitch/$organizationId'
     | '/api/webhooks/mercadopago/$organizationId'
@@ -348,7 +418,9 @@ export interface FileRouteTypes {
     | '/auth/handoff'
     | '/auth/logout'
     | '/panel/dominio'
+    | '/panel/moderacion'
     | '/panel/pagos'
+    | '/panel/tutoria'
     | '/panel/'
     | '/api/auth/$'
     | '/api/media/heartbeat'
@@ -356,10 +428,14 @@ export interface FileRouteTypes {
     | '/api/media/tus-hook'
     | '/api/mercadopago/callback'
     | '/api/webhooks/mercadopago'
+    | '/certificados/$credentialId/pdf'
     | '/cursos/$courseSlug/compra'
     | '/cursos/$courseSlug/comprar'
     | '/panel/cursos/$courseId'
+    | '/certificados/$credentialId/'
     | '/cursos/$courseSlug/'
+    | '/api/certificates/frame/$courseId'
+    | '/api/certificates/preview/$courseId'
     | '/api/media/key/$videoId'
     | '/api/webhooks/hyperswitch/$organizationId'
     | '/api/webhooks/mercadopago/$organizationId'
@@ -379,7 +455,9 @@ export interface RootRouteChildren {
   AuthHandoffRoute: typeof AuthHandoffRoute
   AuthLogoutRoute: typeof AuthLogoutRoute
   PanelDominioRoute: typeof PanelDominioRoute
+  PanelModeracionRoute: typeof PanelModeracionRoute
   PanelPagosRoute: typeof PanelPagosRoute
+  PanelTutoriaRoute: typeof PanelTutoriaRoute
   PanelIndexRoute: typeof PanelIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiMediaHeartbeatRoute: typeof ApiMediaHeartbeatRoute
@@ -387,10 +465,14 @@ export interface RootRouteChildren {
   ApiMediaTusHookRoute: typeof ApiMediaTusHookRoute
   ApiMercadopagoCallbackRoute: typeof ApiMercadopagoCallbackRoute
   ApiWebhooksMercadopagoRoute: typeof ApiWebhooksMercadopagoRouteWithChildren
+  CertificadosCredentialIdPdfRoute: typeof CertificadosCredentialIdPdfRoute
   CursosCourseSlugCompraRoute: typeof CursosCourseSlugCompraRoute
   CursosCourseSlugComprarRoute: typeof CursosCourseSlugComprarRoute
   PanelCursosCourseIdRoute: typeof PanelCursosCourseIdRoute
+  CertificadosCredentialIdIndexRoute: typeof CertificadosCredentialIdIndexRoute
   CursosCourseSlugIndexRoute: typeof CursosCourseSlugIndexRoute
+  ApiCertificatesFrameCourseIdRoute: typeof ApiCertificatesFrameCourseIdRoute
+  ApiCertificatesPreviewCourseIdRoute: typeof ApiCertificatesPreviewCourseIdRoute
   ApiMediaKeyVideoIdRoute: typeof ApiMediaKeyVideoIdRoute
   ApiWebhooksHyperswitchOrganizationIdRoute: typeof ApiWebhooksHyperswitchOrganizationIdRoute
   CursosCourseSlugClasesLessonSlugRoute: typeof CursosCourseSlugClasesLessonSlugRoute
@@ -483,11 +565,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PanelDominioRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/panel/moderacion': {
+      id: '/panel/moderacion'
+      path: '/panel/moderacion'
+      fullPath: '/panel/moderacion'
+      preLoaderRoute: typeof PanelModeracionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/panel/pagos': {
       id: '/panel/pagos'
       path: '/panel/pagos'
       fullPath: '/panel/pagos'
       preLoaderRoute: typeof PanelPagosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/panel/tutoria': {
+      id: '/panel/tutoria'
+      path: '/panel/tutoria'
+      fullPath: '/panel/tutoria'
+      preLoaderRoute: typeof PanelTutoriaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -532,6 +628,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWebhooksMercadopagoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/certificados/$credentialId/': {
+      id: '/certificados/$credentialId/'
+      path: '/certificados/$credentialId'
+      fullPath: '/certificados/$credentialId/'
+      preLoaderRoute: typeof CertificadosCredentialIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/certificados/$credentialId/pdf': {
+      id: '/certificados/$credentialId/pdf'
+      path: '/certificados/$credentialId/pdf'
+      fullPath: '/certificados/$credentialId/pdf'
+      preLoaderRoute: typeof CertificadosCredentialIdPdfRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cursos/$courseSlug/': {
       id: '/cursos/$courseSlug/'
       path: '/cursos/$courseSlug'
@@ -558,6 +668,20 @@ declare module '@tanstack/react-router' {
       path: '/panel/cursos/$courseId'
       fullPath: '/panel/cursos/$courseId'
       preLoaderRoute: typeof PanelCursosCourseIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/certificates/frame/$courseId': {
+      id: '/api/certificates/frame/$courseId'
+      path: '/api/certificates/frame/$courseId'
+      fullPath: '/api/certificates/frame/$courseId'
+      preLoaderRoute: typeof ApiCertificatesFrameCourseIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/certificates/preview/$courseId': {
+      id: '/api/certificates/preview/$courseId'
+      path: '/api/certificates/preview/$courseId'
+      fullPath: '/api/certificates/preview/$courseId'
+      preLoaderRoute: typeof ApiCertificatesPreviewCourseIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/media/key/$videoId': {
@@ -625,7 +749,9 @@ const rootRouteChildren: RootRouteChildren = {
   AuthHandoffRoute: AuthHandoffRoute,
   AuthLogoutRoute: AuthLogoutRoute,
   PanelDominioRoute: PanelDominioRoute,
+  PanelModeracionRoute: PanelModeracionRoute,
   PanelPagosRoute: PanelPagosRoute,
+  PanelTutoriaRoute: PanelTutoriaRoute,
   PanelIndexRoute: PanelIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiMediaHeartbeatRoute: ApiMediaHeartbeatRoute,
@@ -633,10 +759,14 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMediaTusHookRoute: ApiMediaTusHookRoute,
   ApiMercadopagoCallbackRoute: ApiMercadopagoCallbackRoute,
   ApiWebhooksMercadopagoRoute: ApiWebhooksMercadopagoRouteWithChildren,
+  CertificadosCredentialIdPdfRoute: CertificadosCredentialIdPdfRoute,
   CursosCourseSlugCompraRoute: CursosCourseSlugCompraRoute,
   CursosCourseSlugComprarRoute: CursosCourseSlugComprarRoute,
   PanelCursosCourseIdRoute: PanelCursosCourseIdRoute,
+  CertificadosCredentialIdIndexRoute: CertificadosCredentialIdIndexRoute,
   CursosCourseSlugIndexRoute: CursosCourseSlugIndexRoute,
+  ApiCertificatesFrameCourseIdRoute: ApiCertificatesFrameCourseIdRoute,
+  ApiCertificatesPreviewCourseIdRoute: ApiCertificatesPreviewCourseIdRoute,
   ApiMediaKeyVideoIdRoute: ApiMediaKeyVideoIdRoute,
   ApiWebhooksHyperswitchOrganizationIdRoute:
     ApiWebhooksHyperswitchOrganizationIdRoute,

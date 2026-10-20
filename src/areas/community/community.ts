@@ -276,7 +276,8 @@ export async function addComment(input: {
 	if (Number(rows[0]?.last_minute) >= COMMENTS_PER_MINUTE) {
 		return {
 			ok: false,
-			message: "Estás comentando muy rápido. Esperá un minuto e intentá de nuevo.",
+			message:
+				"Estás comentando muy rápido. Esperá un minuto e intentá de nuevo.",
 		};
 	}
 	if (Number(rows[0]?.last_day) >= COMMENTS_PER_DAY) {
@@ -439,9 +440,10 @@ export async function reportComment(
 }
 
 export async function dismissReports(commentId: string) {
-	await pool.query("delete from community.comment_report where comment_id = $1", [
-		commentId,
-	]);
+	await pool.query(
+		"delete from community.comment_report where comment_id = $1",
+		[commentId],
+	);
 }
 
 /** Moderation delete: the row stays as a tombstone so replies keep their place. */

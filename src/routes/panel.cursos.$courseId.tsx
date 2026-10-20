@@ -14,6 +14,7 @@ import {
 	enrollStudentByEmail,
 	getPanelCourse,
 } from "../server/catalog.functions.ts";
+import { getCertificatePanel } from "../server/certificates.functions.ts";
 import {
 	addTutorByEmail,
 	getCourseTutors,
@@ -44,7 +45,10 @@ export const Route = createFileRoute("/panel/cursos/$courseId")({
 		const videos = await getCourseVideos({
 			data: { courseId: params.courseId },
 		});
-		return { course, tutors, videos };
+		const certificates = await getCertificatePanel({
+			data: { courseId: params.courseId },
+		});
+		return { course, tutors, videos, certificates };
 	},
 	head: ({ loaderData }) => ({
 		meta: [{ title: `${loaderData?.course.name ?? "Curso"} | Panel` }],
@@ -53,7 +57,7 @@ export const Route = createFileRoute("/panel/cursos/$courseId")({
 });
 
 function PanelCourseRoute() {
-	const { course, tutors, videos } = Route.useLoaderData();
+	const { course, tutors, videos, certificates } = Route.useLoaderData();
 	const router = useRouter();
 	const [pending, setPending] = useState(false);
 	const [message, setMessage] = useState<string>();
@@ -81,6 +85,8 @@ function PanelCourseRoute() {
 			course={course}
 			tutors={tutors}
 			videos={videos}
+			certificates={certificates}
+			onCertificatesChanged={() => router.invalidate()}
 			onVideoChanged={() => router.invalidate()}
 			message={message}
 			pending={pending}

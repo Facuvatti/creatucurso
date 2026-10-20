@@ -11,6 +11,8 @@ import { completeLesson, getLessonPage } from "../server/catalog.functions.ts";
 import {
 	getLessonComments,
 	postComment,
+	reportComment,
+	setCommentFlag,
 	setCommentVisibility,
 } from "../server/community.functions.ts";
 
@@ -103,6 +105,26 @@ function LessonRoute() {
 						setPending(true);
 						await setCommentVisibility({ data: { commentId, hidden } });
 						setPending(false);
+						await router.invalidate();
+					}}
+					onFlag={async (commentId, flag, value) => {
+						setPending(true);
+						const result = await setCommentFlag({
+							data: { commentId, flag, value },
+						});
+						setPending(false);
+						setCommentMessage(result.ok ? undefined : result.message);
+						await router.invalidate();
+					}}
+					onReport={async (commentId) => {
+						setPending(true);
+						const result = await reportComment({ data: { commentId } });
+						setPending(false);
+						setCommentMessage(
+							result.ok
+								? "Gracias, el equipo va a revisar el comentario."
+								: result.message,
+						);
 						await router.invalidate();
 					}}
 				/>

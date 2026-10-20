@@ -25,7 +25,13 @@ export const Route = createFileRoute("/panel/")({
 				href: `${context.appOrigin}/login?return=${encodeURIComponent(here)}`,
 			});
 		}
-		if (!can(context.roles, { course: ["update"] })) throw notFound();
+		if (!can(context.roles, { course: ["update"] })) {
+			// Tutors have no course admin: their home is the tutoring inbox.
+			if (can(context.roles, { comment: ["moderate"] })) {
+				throw redirect({ to: "/panel/tutoria" });
+			}
+			throw notFound();
+		}
 	},
 	loader: () => getPanelCourses(),
 	head: () => ({ meta: [{ title: "Panel de la academia" }] }),

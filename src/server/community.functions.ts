@@ -1,11 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import * as catalog from "../areas/catalog/catalog.ts";
-import type { CourseSummary } from "../areas/catalog/types.ts";
+import type { CourseOutline, CourseSummary } from "../areas/catalog/types.ts";
 import * as community from "../areas/community/community.ts";
 import type {
 	Comment,
 	FeaturedReview,
 	PendingComment,
+	ReportedComment,
 	Review,
 	ReviewSummary,
 } from "../areas/community/types.ts";
@@ -15,7 +16,7 @@ import {
 	findUserIdByEmail,
 } from "../areas/identity/members.ts";
 import { can } from "../areas/identity/permissions.ts";
-import { bool, email, record, text, uuid } from "../shared/validate.ts";
+import { bool, email, oneOf, record, text, uuid } from "../shared/validate.ts";
 import { accessFor } from "./access.server.ts";
 import { auth } from "./auth.server.ts";
 import { requireStaffContext, requireTenantContext } from "./request.server.ts";
@@ -164,7 +165,49 @@ export const setReviewVisibility = createServerFn({ method: "POST" })
 		if (!can(roles, { review: ["moderate"] })) {
 			return { ok: false, message: "No tenés permiso para moderar." };
 		}
-		await community.setReviewHidden(tenant.id, data.reviewId, data.hidden);
+		const changed = await community.setReviewHidden(
+			tenant.id,
+			data.reviewId,
+			data.hidden,
+		);
+		return changed
+			? { ok: true }
+			: {
+					ok: false,
+					message:
+						"No se puede mostrar la reseña de alguien sin acceso al curso.",
+				};
+	});
+
+export const saveReviewReply = createServerFn({ method: "POST" })
+	.validator((data: unknown) => ({
+		reviewId: uuid(record(data), "reviewId"),
+		body: text(record(data), "body", 2000, 1),
+	}))
+	.handler(async ({ data }): Promise<Result> => {
+		const { tenant, user, roles } = await requireTenantContext();
+		if (!user || !can(roles, { review: ["moderate"] })) {
+			return { ok: false, message: "No tenés permiso para responder reseñas." };
+		}
+		const saved = await community.saveReviewReply({
+			organizationId: tenant.id,
+			reviewId: data.reviewId,
+			userId: user.id,
+			body: data.body,
+		});
+		return saved
+			? { ok: true }
+			: { ok: false, message: "No encontramos la reseña." };
+	});
+
+export const removeReviewReply = createServerFn({ method: "POST" })
+	.validator((data: unknown) => ({ reviewId: uuid(record(data), "reviewId") }))
+	.handler(async ({ data }): Promise<Result> => {
+		const { tenant, roles } = await requireTenantContext();
+		if (!can(roles, { review: ["moderate"] })) {
+			return { ok: false, message: "No tenés permiso para responder reseñas." };
+		}
+		await community.removeReviewReply(tenant.id, data.reviewId);
 		return { ok: true };
 	});
 
@@ -179,7 +222,10 @@ function checkLesson(data: unknown) {
 
 export type CommentsData = {
 	comments: Comment[];
+	viewerId: string | null;
 	canPost: boolean;
+	/** The academy silenced this person: show a message instead of the form. */
+	muted: boolean;
 	canModerate: boolean;
 };
 
@@ -212,11 +258,18 @@ export const getLessonComments = createServerFn({ method: "GET" })
 		const canModerate =
 			can(context.roles, { comment: ["moderate"] }) &&
 			(access.canManage || access.isInstructor);
+		const muted = context.user
+			? await community.isMuted(context.tenant.id, context.user.id)
+			: false;
 		return {
 			comments: await community.listComments(found.lesson.id, {
 				includeHidden: canModerate,
+				viewerId: context.user?.id ?? null,
+				seeReports: canModerate,
 			}),
-			canPost: can(context.roles, { comment: ["create"] }),
+			viewerId: context.user?.id ?? null,
+			canPost: can(context.roles, { comment: ["create"] }) && !muted,
+			muted,
 			canModerate,
 		};
 	});
@@ -230,7 +283,7 @@ export const postComment = createServerFn({ method: "POST" })
 		}
 		return {
 			...checkLesson(data),
-			body: text(input, "body", 4000, 1),
+			body: text(input, "body", community.COMMENT_MAX_LENGTH, 1),
 			parentId: parentId === null ? null : uuid(input, "parentId"),
 		};
 	})
@@ -260,16 +313,46 @@ export const postComment = createServerFn({ method: "POST" })
 			}
 		}
 
-		await community.addComment({
+		return community.addComment({
 			organizationId: tenant.id,
 			courseId: found.course.id,
 			lessonId: found.lesson.id,
 			userId: user.id,
 			parentId: data.parentId,
 			body: data.body,
+			fromTeam: access.canManage || access.isInstructor,
 		});
-		return { ok: true };
 	});
+
+/** The comment, when this person may moderate its course (staff or its tutor). */
+async function moderatedComment(
+	context: Awaited<ReturnType<typeof requireTenantContext>>,
+	commentId: string,
+): Promise<
+	| {
+			ok: true;
+			place: NonNullable<
+				Awaited<ReturnType<typeof community.findCommentPlace>>
+			>;
+	  }
+	| { ok: false; message: string }
+> {
+	if (!context.user || !can(context.roles, { comment: ["moderate"] })) {
+		return { ok: false, message: "No tenés permiso para moderar." };
+	}
+	const place = await community.findCommentPlace(context.tenant.id, commentId);
+	const course = place
+		? await catalog.findCourseById(context.tenant.id, place.courseId)
+		: null;
+	if (!place || !course) {
+		return { ok: false, message: "No encontramos el comentario." };
+	}
+	const access = await accessFor(context, course);
+	if (!access.canManage && !access.isInstructor) {
+		return { ok: false, message: "No tenés permiso para moderar este curso." };
+	}
+	return { ok: true, place };
+}
 
 export const setCommentVisibility = createServerFn({ method: "POST" })
 	.validator((data: unknown) => ({
@@ -278,25 +361,151 @@ export const setCommentVisibility = createServerFn({ method: "POST" })
 	}))
 	.handler(async ({ data }): Promise<Result> => {
 		const context = await requireTenantContext();
-		const { user, tenant, roles } = context;
-		if (!user || !can(roles, { comment: ["moderate"] })) {
-			return { ok: false, message: "No tenés permiso para moderar." };
-		}
+		const found = await moderatedComment(context, data.commentId);
+		if (!found.ok) return found;
+		await community.setCommentHidden(
+			context.tenant.id,
+			data.commentId,
+			data.hidden,
+		);
+		return { ok: true };
+	});
+
+/** Mark a thread as answered or pin it to the top of the lesson's comments. */
+export const setCommentFlag = createServerFn({ method: "POST" })
+	.validator((data: unknown) => ({
+		commentId: uuid(record(data), "commentId"),
+		flag: oneOf(record(data), "flag", ["answered", "pinned"] as const),
+		value: bool(record(data), "value"),
+	}))
+	.handler(async ({ data }): Promise<Result> => {
+		const context = await requireTenantContext();
+		const found = await moderatedComment(context, data.commentId);
+		if (!found.ok) return found;
+		const changed = await community.setCommentFlag(
+			context.tenant.id,
+			data.commentId,
+			data.flag,
+			data.value,
+		);
+		return changed
+			? { ok: true }
+			: { ok: false, message: "Solo se puede marcar el comentario principal." };
+	});
+
+/** Any student, tutor or staff member who can read the lesson may report a comment. */
+export const reportComment = createServerFn({ method: "POST" })
+	.validator((data: unknown) => ({
+		commentId: uuid(record(data), "commentId"),
+	}))
+	.handler(async ({ data }): Promise<Result> => {
+		const context = await requireTenantContext();
+		const { user, tenant } = context;
+		if (!user) return { ok: false, message: "Ingresá para reportar." };
 		const place = await community.findCommentPlace(tenant.id, data.commentId);
 		const course = place
 			? await catalog.findCourseById(tenant.id, place.courseId)
 			: null;
-		if (!place || !course)
+		if (!place || !course || place.deleted) {
 			return { ok: false, message: "No encontramos el comentario." };
-
-		const access = await accessFor(context, course);
-		if (!access.canManage && !access.isInstructor) {
-			return {
-				ok: false,
-				message: "No tenés permiso para moderar este curso.",
-			};
 		}
-		await community.setCommentHidden(tenant.id, data.commentId, data.hidden);
+		if (!(await accessFor(context, course)).canStudy) {
+			return { ok: false, message: "No podés reportar este comentario." };
+		}
+		if (place.userId === user.id) {
+			return { ok: false, message: "No podés reportar tu propio comentario." };
+		}
+		const added = await community.reportComment(data.commentId, user.id);
+		return added
+			? { ok: true }
+			: { ok: false, message: "Ya reportaste este comentario." };
+	});
+
+export type QueueItem = ReportedComment & {
+	courseName: string;
+	courseSlug: string;
+	lessonSlug: string;
+	lessonTitle: string;
+};
+
+/** Staff and tutors see the lessons of the courses they manage, with each course's outline. */
+async function manageableCourses(
+	context: Awaited<ReturnType<typeof requireTenantContext>>,
+) {
+	const { tenant, user, roles } = context;
+	if (!user || !can(roles, { comment: ["moderate"] })) return null;
+	const summaries = can(roles, { course: ["update"] })
+		? await catalog.listCourses(tenant.id, { publishedOnly: false })
+		: await catalog.listCoursesOfInstructor(tenant.id, user.id);
+	const outlines = (
+		await Promise.all(
+			summaries.map((c) => catalog.findCourseById(tenant.id, c.id)),
+		)
+	).flatMap((outline) => (outline ? [outline] : []));
+	return new Map(outlines.map((outline) => [outline.id, outline]));
+}
+
+function lessonIn(course: CourseOutline | undefined, lessonId: string) {
+	return course?.modules
+		.flatMap((m) => m.lessons)
+		.find((l) => l.id === lessonId);
+}
+
+export const getModerationQueue = createServerFn({ method: "GET" }).handler(
+	async (): Promise<{ items: QueueItem[]; canMute: boolean }> => {
+		const context = await requireTenantContext();
+		const courses = await manageableCourses(context);
+		if (!courses) return { items: [], canMute: false };
+		const reported = await community.reportedComments(context.tenant.id, [
+			...courses.keys(),
+		]);
+		return {
+			canMute: can(context.roles, { course: ["update"] }),
+			items: reported.flatMap((item) => {
+				const course = courses.get(item.courseId);
+				const lesson = lessonIn(course, item.lessonId);
+				return course && lesson
+					? [
+							{
+								...item,
+								courseName: course.name,
+								courseSlug: course.slug,
+								lessonSlug: lesson.slug,
+								lessonTitle: lesson.title,
+							},
+						]
+					: [];
+			}),
+		};
+	},
+);
+
+/** Queue actions: drop the reports, or delete leaving a tombstone. */
+export const moderateReportedComment = createServerFn({ method: "POST" })
+	.validator((data: unknown) => ({
+		commentId: uuid(record(data), "commentId"),
+		action: oneOf(record(data), "action", ["dismiss", "delete"] as const),
+	}))
+	.handler(async ({ data }): Promise<Result> => {
+		const context = await requireTenantContext();
+		const found = await moderatedComment(context, data.commentId);
+		if (!found.ok) return found;
+		if (data.action === "dismiss") {
+			await community.dismissReports(data.commentId);
+		} else {
+			await community.deleteComment(context.tenant.id, data.commentId);
+		}
+		return { ok: true };
+	});
+
+export const setStudentMuted = createServerFn({ method: "POST" })
+	.validator((data: unknown) => ({
+		userId: text(record(data), "userId", 200, 1),
+		muted: bool(record(data), "muted"),
+	}))
+	.handler(async ({ data }): Promise<Result> => {
+		const { tenant } = await requireStaffContext();
+		await community.setMuted(tenant.id, data.userId, data.muted);
 		return { ok: true };
 	});
 
@@ -369,37 +578,15 @@ export type InboxItem = PendingComment & {
 /** Comments waiting for an answer, for the tutor's courses (or all courses for staff). */
 export const getTutorInbox = createServerFn({ method: "GET" }).handler(
 	async (): Promise<InboxItem[]> => {
-		const { tenant, user, roles } = await requireTenantContext();
-		if (
-			!user ||
-			!can(roles, { comment: ["reply"] }) ||
-			(roles.includes("student") && roles.length === 1)
-		) {
-			return [];
-		}
-
-		const isStaff = can(roles, { course: ["update"] });
-		const courses = isStaff
-			? await catalog.listCourses(tenant.id, { publishedOnly: false })
-			: await catalog.listCoursesOfInstructor(tenant.id, user.id);
-		const pending = await community.commentsAwaitingReply(
-			tenant.id,
-			courses.map((c) => c.id),
-		);
-
-		const outlines = new Map(
-			(
-				await Promise.all(
-					courses.map((c) => catalog.findCourseById(tenant.id, c.id)),
-				)
-			).flatMap((outline) => (outline ? [[outline.id, outline] as const] : [])),
-		);
-
+		const context = await requireTenantContext();
+		const courses = await manageableCourses(context);
+		if (!courses) return [];
+		const pending = await community.commentsAwaitingReply(context.tenant.id, [
+			...courses.keys(),
+		]);
 		return pending.flatMap((item) => {
-			const course = outlines.get(item.courseId);
-			const lesson = course?.modules
-				.flatMap((m) => m.lessons)
-				.find((l) => l.id === item.lessonId);
+			const course = courses.get(item.courseId);
+			const lesson = lessonIn(course, item.lessonId);
 			return course && lesson
 				? [
 						{
