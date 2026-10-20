@@ -72,8 +72,11 @@ export type NewCourse = {
 };
 
 export class SlugTakenError extends Error {
-	constructor(readonly slug: string) {
+	readonly slug: string;
+
+	constructor(slug: string) {
 		super(`The address "${slug}" is already used by another course.`);
+		this.slug = slug;
 	}
 }
 
