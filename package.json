@@ -15,6 +15,7 @@
     "check": "biome check",
     "typecheck": "tsc --noEmit",
     "start": "node --env-file-if-exists=.env .output/server/index.mjs",
+    "worker": "node --env-file=.env src/worker/index.ts",
     "db:auth": "node scripts/sync-auth-schema.ts",
     "db:auth:check": "node scripts/sync-auth-schema.ts --check",
     "db:reset": "node --env-file=.env scripts/reset-dev-db.ts"
