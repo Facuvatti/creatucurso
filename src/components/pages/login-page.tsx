@@ -56,6 +56,11 @@ export function LoginPage({
 					{signingUp ? "Crear cuenta" : "Ingresar"}
 				</button>
 			</form>
+			{!signingUp && (
+				<p>
+					<a href="/recuperar">Olvidé mi contraseña</a>
+				</p>
+			)}
 			<button type="button" onClick={onToggleMode}>
 				{signingUp ? "Ya tengo cuenta" : "Quiero crear una cuenta"}
 			</button>
