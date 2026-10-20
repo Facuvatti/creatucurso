@@ -55,3 +55,10 @@ They are all listed with comments in `.env.example`. The ones that confuse:
 - Upstream's seed script needs bash but is run with `sh`; we run it with bash.
 - Upstream's migration step fails patching a Rust file with the current diesel; we run only the migrations.
 - `hyperswitch-web` (port 9050) builds the checkout widget from source on its first start. On a Pi this takes a long time; `http://localhost:9050/HyperLoader.js` answers once it finishes (`docker logs -f hyperswitch-hyperswitch-web-1`). The API on 8080 works without it.
+
+## Refunds and disputes
+
+The app refunds with `POST /refunds` and listens to `refund_succeeded` and `dispute_*` webhook events
+(see `handleWebhook` in `src/areas/payments/payments.ts`). Field names of the refund and dispute event
+bodies were written from the documentation and are unverified against a real Hyperswitch.
+Mercado Pago does not go through Hyperswitch: see `docs/mercadopago.md`.
