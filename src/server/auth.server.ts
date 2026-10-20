@@ -31,7 +31,7 @@ export const auth = betterAuth({
 	},
 	// Email verification is sent on sign-up but does not block login
 	// (requireEmailVerification stays off), so the flow works before an email
-	// provider is configured. Turn it on once Resend is set up.
+	// provider is configured. Turn it on once SES is live.
 	emailVerification: {
 		sendOnSignUp: true,
 		autoSignInAfterVerification: true,
