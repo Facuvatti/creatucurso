@@ -7,6 +7,11 @@
 services:
   pg:
     ports: !override []
+    # First start initialises the database; upstream gives it only ~20 s,
+    # which is not enough on a Raspberry Pi.
+    healthcheck:
+      start_period: 120s
+      retries: 30
   redis-standalone:
     ports: !override []
   superposition:
@@ -16,3 +21,19 @@ services:
     # (http://host.docker.internal:3000/api/webhooks/...).
     extra_hosts:
       - "host.docker.internal:host-gateway"
+  # Upstream runs a bash script with `sh` (Alpine busybox) and it fails with
+  # "bad for loop variable". Run it with bash.
+  superposition-init:
+    command: sh -c "apk add --no-cache bash curl jq yq && bash /seed_superposition.sh"
+  # Upstream's migration step also patches a Rust source file (schema.rs) with a
+  # diesel version that no longer matches the patch ("error applying hunk #5")
+  # and exits 1, which blocks the API from starting. The migrations themselves
+  # apply fine, so we run only them and print the schema to /tmp instead.
+  migration_runner:
+    command: >
+      bash -c "
+      apt-get update && apt-get install -y curl xz-utils &&
+      curl --proto '=https' --tlsv1.2 -LsSf https://github.com/diesel-rs/diesel/releases/download/v2.3.5/diesel_cli-installer.sh | bash &&
+      export PATH=\"$${PATH}:$${HOME}/.cargo/bin\" &&
+      printf '[print_schema]\nfile = \"/tmp/schema.rs\"\nfilter = { except_tables = [\"^blocklist$\"] }\n' > /tmp/diesel.toml &&
+      diesel migration --database-url \"$${DATABASE_URL}\" run --migration-dir /app/migrations --config-file /tmp/diesel.toml"
