@@ -64,5 +64,5 @@ function Home() {
 			/>
 		);
 	}
-	return <LandingPage />;
+	return <LandingPage appOrigin={appOrigin} />;
 }
