@@ -3,6 +3,7 @@
 // Start it with `pnpm worker`.
 import { createServer } from "node:http";
 import { renewExpiringConnections } from "../areas/payments/mercadopago-connection.ts";
+import { refreshPendingDomains } from "../areas/tenancy/domains.ts";
 import { pool } from "../server/db.server.ts";
 
 const POLL_MS = 2000;
@@ -108,6 +109,19 @@ async function renewMercadoPagoTokens() {
 	}
 }
 
+// Custom domains: check the CNAME of pending ones and poll certificate issuance.
+const DOMAINS_EVERY_MS = 60 * 1000;
+
+async function checkDomains() {
+	try {
+		await refreshPendingDomains();
+	} catch (error) {
+		log("error", "domain check failed", {
+			error: error instanceof Error ? error.name : "unknown",
+		});
+	}
+}
+
 async function loop() {
 	while (!stopping) {
 		let taken = 0;
@@ -139,11 +153,15 @@ const server = createServer((request, response) => {
 void renewMercadoPagoTokens();
 const renewTimer = setInterval(renewMercadoPagoTokens, RENEW_EVERY_MS);
 
+void checkDomains();
+const domainsTimer = setInterval(checkDomains, DOMAINS_EVERY_MS);
+
 server.listen(port, () => log("info", "worker started", { port }));
 
 function stop() {
 	stopping = true;
 	clearInterval(renewTimer);
+	clearInterval(domainsTimer);
 	server.close();
 	pool.end().finally(() => process.exit(0));
 }

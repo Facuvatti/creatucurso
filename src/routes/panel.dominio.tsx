@@ -52,7 +52,7 @@ function DomainRoute() {
 			onSave={(domain) =>
 				run(() => saveDomain({ data: { domain } }), "Dominio guardado.")
 			}
-			onVerify={() => run(() => checkDomain(), "Dominio verificado.")}
+			onVerify={() => run(() => checkDomain(), "Estado actualizado.")}
 			onRemove={() => run(() => deleteDomain(), "Dominio quitado.")}
 		/>
 	);

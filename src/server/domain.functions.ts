@@ -2,10 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 import {
 	type DomainState,
 	getDomainState,
+	refreshDomain,
 	removeDomain,
 	requestDomain,
 	validateCustomDomain,
-	verifyDomain,
 } from "../areas/tenancy/domains.ts";
 import { record, text } from "../shared/validate.ts";
 import { requireTenantContext } from "./request.server.ts";
@@ -44,13 +44,11 @@ export const saveDomain = createServerFn({ method: "POST" })
 export const checkDomain = createServerFn({ method: "POST" }).handler(
 	async (): Promise<DomainResult> => {
 		const { tenant } = await requireOwner();
-		return (await verifyDomain(tenant.id))
-			? { ok: true }
-			: {
-					ok: false,
-					message:
-						"Todavía no vemos el registro TXT. Los cambios de DNS pueden tardar unos minutos.",
-				};
+		await refreshDomain(tenant.id);
+		const state = await getDomainState(tenant.id);
+		return state.status === "pending_dns" || state.status === "error"
+			? { ok: false, message: state.reason ?? "Todavía no está listo." }
+			: { ok: true };
 	},
 );
 

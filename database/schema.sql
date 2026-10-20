@@ -252,12 +252,18 @@ create table if not exists community.comment (
 create index if not exists comment_lesson_idx on community.comment (lesson_id, created_at);
 create index if not exists comment_course_idx on community.comment (course_id, created_at);
 
--- Our tables: tenancy (DNS proof for custom domains) -----------------------------------
+-- Our tables: tenancy (custom domain state; ADR-0024) -----------------------------------
 create schema if not exists tenancy;
 
+-- One row per organization with a custom domain. The creator proves ownership with a
+-- CNAME to our fallback origin; then the Cloudflare custom hostname issues the certificate.
 create table if not exists tenancy.domain_check (
 	organization_id text primary key references auth.organization (id) on delete cascade,
-	token text not null,
+	cloudflare_hostname_id text,
+	status text not null default 'pending_dns'
+		check (status in ('pending_dns', 'issuing_certificate', 'active', 'error')),
+	status_reason text,
+	last_checked_at timestamptz,
 	created_at timestamptz not null default now()
 );
 

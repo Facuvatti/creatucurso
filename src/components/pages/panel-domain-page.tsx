@@ -10,6 +10,13 @@ type Props = {
 	onRemove: () => void;
 };
 
+const STATUS_LABEL = {
+	pending_dns: "Pendiente de DNS",
+	issuing_certificate: "Emitiendo certificado",
+	active: "Activo",
+	error: "Error",
+} as const;
+
 export function PanelDomainPage({
 	state,
 	message,
@@ -26,59 +33,70 @@ export function PanelDomainPage({
 			<h1>Dominio propio</h1>
 			{message && <output>{message}</output>}
 
-			{state.domain && state.verified && (
-				<p>
-					<strong>{state.domain}</strong> está verificado. Apuntalo con un
-					registro CNAME a esta plataforma.
-				</p>
+			{!state.enabled && !state.domain && (
+				<p>Los dominios propios no están habilitados en esta plataforma.</p>
 			)}
 
-			{state.domain && !state.verified && state.txtName && (
+			{state.domain && state.status && (
 				<section>
 					<p>
-						Para demostrar que <strong>{state.domain}</strong> es tuyo, creá
-						este registro DNS TXT:
+						<strong>{state.domain}</strong>: {STATUS_LABEL[state.status]}
 					</p>
-					<dl>
-						<dt>Nombre</dt>
-						<dd>
-							<code>{state.txtName}</code>
-						</dd>
-						<dt>Valor</dt>
-						<dd>
-							<code>{state.txtValue}</code>
-						</dd>
-					</dl>
-					<button type="button" disabled={pending} onClick={onVerify}>
-						Verificar
-					</button>
+					{state.reason && <p>{state.reason}</p>}
+
+					{state.status === "active" ? (
+						<p>Tu dominio ya funciona.</p>
+					) : (
+						<>
+							<p>
+								En el sitio donde compraste el dominio, creá este registro DNS.
+								Es el único paso; el resto es automático.
+							</p>
+							<dl>
+								<dt>Tipo</dt>
+								<dd>
+									<code>CNAME</code>
+								</dd>
+								<dt>Nombre</dt>
+								<dd>
+									<code>{state.cnameName}</code>
+								</dd>
+								<dt>Valor</dt>
+								<dd>
+									<code>{state.cnameTarget}</code>
+								</dd>
+							</dl>
+							<button type="button" disabled={pending} onClick={onVerify}>
+								Verificar ahora
+							</button>
+						</>
+					)}
+					<p>
+						<button type="button" disabled={pending} onClick={onRemove}>
+							Quitar dominio
+						</button>
+					</p>
 				</section>
 			)}
 
-			{state.domain && (
-				<p>
-					<button type="button" disabled={pending} onClick={onRemove}>
-						Quitar dominio
+			{state.enabled && (
+				<form
+					onSubmit={(event) => {
+						event.preventDefault();
+						const form = event.currentTarget;
+						onSave(String(new FormData(form).get("domain") ?? ""));
+						form.reset();
+					}}
+				>
+					<label>
+						{state.domain ? "Cambiar dominio" : "Tu dominio"}
+						<input name="domain" placeholder="cursos.tudominio.com" required />
+					</label>
+					<button type="submit" disabled={pending}>
+						Guardar
 					</button>
-				</p>
+				</form>
 			)}
-
-			<form
-				onSubmit={(event) => {
-					event.preventDefault();
-					const form = event.currentTarget;
-					onSave(String(new FormData(form).get("domain") ?? ""));
-					form.reset();
-				}}
-			>
-				<label>
-					{state.domain ? "Cambiar dominio" : "Tu dominio"}
-					<input name="domain" placeholder="cursos.tudominio.com" required />
-				</label>
-				<button type="submit" disabled={pending}>
-					Guardar
-				</button>
-			</form>
 		</main>
 	);
 }

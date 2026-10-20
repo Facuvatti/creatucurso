@@ -73,6 +73,11 @@ async function cached(
 	return request;
 }
 
+/** Forgets cached lookups, so a verified or removed custom domain takes effect at once. */
+export function forgetTenantCache(): void {
+	entries.clear();
+}
+
 async function findOne(
 	condition: string,
 	value: string,
