@@ -5,13 +5,14 @@ import pino from "pino";
  * The one logger of the app: JSON lines on stdout (Docker collects them).
  * In development the lines are pretty-printed through pino-pretty.
  */
-export const log = pino({
-	level: process.env.LOG_LEVEL ?? "info",
-	transport:
-		process.env.NODE_ENV === "production"
-			? undefined
-			: { target: "pino-pretty", options: { colorize: true } },
-});
+// The worker-thread "transport" cannot be resolved under Vite, so in development
+// pino-pretty is used as a plain stream instead.
+const pretty =
+	process.env.NODE_ENV === "production"
+		? undefined
+		: (await import("pino-pretty")).default({ colorize: true });
+
+export const log = pino({ level: process.env.LOG_LEVEL ?? "info" }, pretty);
 
 // Error reporting is off unless SENTRY_DSN is set. The SDK also reports
 // uncaught exceptions and unhandled promise rejections of this process.
