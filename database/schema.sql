@@ -343,3 +343,39 @@ create table if not exists media.playback_usage (
 	primary key (video_id, day)
 );
 create index if not exists playback_usage_organization_idx on media.playback_usage (organization_id, day);
+
+-- Our tables: certificates (frame per course and issued certificates; ADR-0025) -----------
+create schema if not exists certificates;
+
+-- One frame per course. image_path is relative to MEDIA_ROOT. `fields` holds, for
+-- studentName / courseTitle / date / verificationCode: x and y (percent of the frame),
+-- size (percent of the frame height), align and color.
+create table if not exists certificates.template (
+	id uuid primary key default gen_random_uuid(),
+	organization_id text not null references auth.organization (id) on delete cascade,
+	course_id uuid not null unique references catalog.course (id) on delete cascade,
+	image_path text not null,
+	width integer not null,
+	height integer not null,
+	fields jsonb not null,
+	created_at timestamptz not null default now()
+);
+
+-- One certificate per enrollment (idempotent issuing). credential_id is the public id.
+create table if not exists certificates.certificate (
+	id uuid primary key default gen_random_uuid(),
+	credential_id text not null unique,
+	organization_id text not null references auth.organization (id) on delete cascade,
+	course_id uuid not null references catalog.course (id) on delete cascade,
+	enrollment_id uuid not null unique references catalog.enrollment (id) on delete cascade,
+	user_id text not null references auth."user" (id) on delete cascade,
+	student_name text not null,
+	course_title text not null,
+	issued_at timestamptz not null default now(),
+	status text not null default 'valid' check (status in ('valid', 'revoked')),
+	revoked_at timestamptz,
+	revoked_reason text,
+	pdf_path text not null
+);
+create index if not exists certificate_course_idx on certificates.certificate (course_id, issued_at desc);
+create index if not exists certificate_user_idx on certificates.certificate (user_id);

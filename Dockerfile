@@ -19,7 +19,7 @@ RUN pnpm build
 FROM node:22-bookworm-slim AS runtime
 # ffmpeg: the worker encodes uploaded videos (ADR-0019).
 RUN apt-get update \
-	&& apt-get install -y --no-install-recommends ffmpeg \
+	&& apt-get install -y --no-install-recommends ffmpeg poppler-utils \
 	&& rm -rf /var/lib/apt/lists/*
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=3000
 WORKDIR /app
