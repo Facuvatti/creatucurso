@@ -231,6 +231,12 @@ create table if not exists community.review (
 	rating smallint not null check (rating between 1 and 5),
 	body text not null default '' check (length(body) <= 2000),
 	hidden boolean not null default false,
+	-- Why it is hidden: a refund hide is undone when the enrollment is active again; a moderation hide is not.
+	hidden_reason text check (hidden_reason in ('moderation', 'refund')),
+	-- One public reply from the academy per review.
+	reply_body text check (length(reply_body) <= 2000),
+	reply_user_id text references auth."user" (id) on delete set null,
+	reply_at timestamptz,
 	created_at timestamptz not null default now(),
 	updated_at timestamptz not null default now(),
 	unique (course_id, user_id)
@@ -245,12 +251,32 @@ create table if not exists community.comment (
 	lesson_id uuid not null,
 	user_id text not null references auth."user" (id) on delete cascade,
 	parent_id uuid references community.comment (id) on delete cascade,
-	body text not null check (length(body) between 1 and 4000),
+	body text not null check (length(body) between 1 and 10000),
 	hidden boolean not null default false,
+	answered boolean not null default false,
+	pinned boolean not null default false,
+	-- Moderation delete: a tombstone stays in the thread so replies do not break.
+	deleted_at timestamptz,
 	created_at timestamptz not null default now()
 );
 create index if not exists comment_lesson_idx on community.comment (lesson_id, created_at);
 create index if not exists comment_course_idx on community.comment (course_id, created_at);
+
+-- One report per person and comment; the moderation queue lists comments with open reports.
+create table if not exists community.comment_report (
+	comment_id uuid not null references community.comment (id) on delete cascade,
+	user_id text not null references auth."user" (id) on delete cascade,
+	created_at timestamptz not null default now(),
+	primary key (comment_id, user_id)
+);
+
+-- Students the academy silenced in comments (reviews are not affected).
+create table if not exists community.comment_mute (
+	organization_id text not null references auth.organization (id) on delete cascade,
+	user_id text not null references auth."user" (id) on delete cascade,
+	created_at timestamptz not null default now(),
+	primary key (organization_id, user_id)
+);
 
 -- Our tables: tenancy (custom domain state; ADR-0024) -----------------------------------
 create schema if not exists tenancy;
