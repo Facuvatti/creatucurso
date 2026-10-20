@@ -1,6 +1,6 @@
 # ADR-0016: Transactional email through Resend
 
-**Status:** Accepted
+**Status:** Superseded by ADR-0027 (Amazon SES)
 **Date:** 2026-10-20
 
 ## Context
