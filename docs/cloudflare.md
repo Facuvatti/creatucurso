@@ -50,13 +50,36 @@ certificate only covers one level (`*.example.com`).
 The same tunnel makes them reachable: the webhook URL shown in
 **Panel > Cobros** already uses your public domain once `PLATFORM_DOMAIN` is set.
 
-## Custom domains of creators (later)
+## Custom domains of creators (Cloudflare for SaaS)
 
-With a tunnel there is no Caddy to issue certificates for `cursos.maria.com`.
-The Cloudflare way is **Cloudflare for SaaS (Custom Hostnames)**: the creator
-points a CNAME to `app.example.com`, you add the hostname in Cloudflare and it
-issues the certificate. This is not wired into the app yet; subdomains
-(`maria.example.com`) work without it.
+Creators type `cursos.maria.com` in **Panel > Dominio propio** and create one
+record at their registrar: `CNAME cursos -> dominios.example.com`. Everything
+else is automatic (ADR-0024). One-time platform setup:
+
+1. **SSL/TLS > Custom Hostnames** on the platform zone: enable it.
+2. **Fallback origin**: in **DNS** create a proxied (orange) `CNAME`
+   `dominios` -> `<tunnel-id>.cfargotunnel.com`, then set `dominios.example.com`
+   as the fallback origin in Custom Hostnames.
+3. **API token** (My Profile > API Tokens) with permission
+   *Zone > SSL and Certificates > Edit* on the platform zone. Copy the
+   **Zone ID** (zone Overview page).
+4. **Tunnel ingress**: besides `*.example.com`, add a catch-all
+   `service: http://<host>:4310` (not the default 404), so any customer hostname
+   reaches the app. The app answers 404 for hostnames it does not know.
+5. `.env`:
+
+   ```
+   CLOUDFLARE_API_TOKEN=...
+   CLOUDFLARE_ZONE_ID=...
+   CUSTOM_DOMAIN_TARGET=dominios.example.com   # optional, this is the default
+   ```
+
+   Restart the web app and the worker (`pnpm worker` checks pending domains
+   every minute). Without token and zone the panel says custom domains are not enabled.
+
+Notes: apex domains (`maria.com`) cannot use a CNAME, creators must use a
+subdomain. The app reads the customer hostname from `Host`; `X-Forwarded-Host`
+is ignored.
 
 ## When you have a public IP (alternative)
 

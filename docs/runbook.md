@@ -90,6 +90,7 @@ Pass when the user count and newest rows match production (within the archive_ti
 | Stack healthy from clean checkout | `dc up -d --build`, then `dc ps` shows every service healthy |
 | Wildcard subdomain resolves | open `https://anything.<domain>`; browser shows a valid certificate (page may say the academy does not exist) |
 | Custom domain | add a verified custom domain in the panel, open it over HTTPS; a domain not in the panel must NOT get a certificate (`dc logs caddy`) |
+| Custom domain (Cloudflare tunnel) | needs `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ZONE_ID` (setup in `docs/cloudflare.md`, ADR-0024): add `cursos.<test domain>` in the panel, create the CNAME, wait for "Activo" (worker checks every minute), open it over HTTPS |
 | Worker consumes the outbox | buy a test course, then `curl https://app.<domain>/health`: `outboxBacklog` returns to 0; `dc logs worker` shows `event delivered` |
 | Errors reach the tracker | `dc exec web node -e "import('@sentry/node').then(S=>{S.init({dsn:process.env.SENTRY_DSN});S.captureMessage('test');return S.flush(2000)})"`; the message shows in Bugsink |
 | Uptime alerts | stop `worker` for 2 minutes; Kuma shows it down; start it again |
