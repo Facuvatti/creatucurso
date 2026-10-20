@@ -9,7 +9,7 @@ try {
 
 const url =
 	process.env.DATABASE_URL ??
-	"postgres://creatucurso:creatucurso@localhost:5433/creatucurso";
+	"postgres://creatucurso:creatucurso@localhost:5439/creatucurso";
 
 const client = new Client({ connectionString: url });
 await client.connect();
