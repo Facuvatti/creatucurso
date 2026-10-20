@@ -1,32 +1,46 @@
-# creatucurso
+# Creatucurso
 
-A minimal TanStack Start app with one route and plain CSS.
+A platform where creators sell online courses from their own subdomain
+(`maria.<domain>`) or custom domain. Payments go straight to the creator
+(Hyperswitch or Mercado Pago), videos are protected (encrypted HLS), and the
+platform owner runs everything on a small ARM machine. TanStack Start + Postgres +
+better-auth, Node 22, pnpm 10.
 
-```bash
+## Run in development
+
+```sh
+cp .env.example .env                       # then edit the values you need
+docker compose -f compose.dev.yaml up -d   # Postgres on port 5439
 pnpm install
-pnpm dev
+pnpm db:reset                              # creates the schema from database/schema.sql
+pnpm dev                                   # http://localhost:3000 and http://app.localhost:3000
+pnpm worker                                # optional: outbox worker
+infra/hyperswitch/up.sh up                 # optional: local payments (slow the first time)
 ```
 
-Edit `src/routes/index.tsx` to get started. Add route files under
-`src/routes`; TanStack Router updates `src/routeTree.gen.ts` for you.
+`pnpm typecheck` and `pnpm build` are what CI runs. There is no automated test
+suite; the owner runs the manual acceptance checklists (see the runbook).
 
-Build the production app with:
+## Ports
 
-```bash
-pnpm build
-```
+| Port | What | Where |
+|---|---|---|
+| 3000 | web app | development |
+| 3101 | worker health route | development |
+| 5439 | Postgres | development |
+| 8080 | Hyperswitch API | development |
+| 9050 | Hyperswitch checkout widget | development |
+| 3210 | web (loopback) | production |
+| 3211 | worker (loopback) | production |
+| 3212 | Uptime Kuma (loopback) | production |
+| 8211 | Bugsink (loopback) | production |
+| 80, 443 | Caddy | production |
 
-## Deploy with Nitro
+## Documentation
 
-This project uses Nitro as a generic server adapter, so it can run on any Node-compatible host.
-
-```bash
-npm run build
-node dist/server/index.mjs
-```
-
-The build output is a self-contained Node server. To deploy, push the `dist/` directory to your host (Render, Fly.io, your own VPS, etc.) and run the server command above.
-
-For host-specific presets (Vercel, Netlify, Cloudflare, AWS Lambda, etc.) and tuning, see https://v3.nitro.build/deploy.
-
-
+- [Production runbook](docs/runbook.md): first-time setup, deploy, rollback, backups, incidents.
+- [Hyperswitch locally](docs/hyperswitch.md) and [Mercado Pago](docs/mercadopago.md).
+- Decisions in [docs/adr](docs/adr), for example [code conventions](docs/adr/0014-simple-code-conventions.md),
+  [Caddy and TLS](docs/adr/0018-caddy-on-demand-tls.md), [ARM table](docs/adr/0019-arm-compatibility.md)
+  and [ops stack](docs/adr/0022-ops-stack.md).
+- Production files: `Dockerfile`, `infra/app/` (compose, Caddy, backups, migrations) and `.env.production.example`.
