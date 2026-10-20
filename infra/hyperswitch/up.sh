@@ -22,9 +22,9 @@ case "${1:-status}" in
     cp "$HERE/docker-compose.override.yml" "$DIR/docker-compose.override.yml"
     # The first start downloads several GB on a Raspberry Pi; be patient.
     compose up -d "${SERVICES[@]}"
-    echo "Waiting for http://localhost:8080/health ..."
+    echo "Waiting for http://localhost:18080/health ..."
     for _ in $(seq 1 90); do
-      if curl -fsS -m 3 http://localhost:8080/health >/dev/null 2>&1; then
+      if curl -fsS -m 3 http://localhost:18080/health >/dev/null 2>&1; then
         echo "Hyperswitch is up."; exit 0
       fi
       sleep 5
@@ -32,7 +32,7 @@ case "${1:-status}" in
     echo "Not healthy yet. Run: $0 logs" >&2; exit 1 ;;
   status)
     compose ps
-    curl -fsS -m 3 http://localhost:8080/health && echo || echo "API not answering on :8080" ;;
+    curl -fsS -m 3 http://localhost:18080/health && echo || echo "API not answering on :18080" ;;
   logs) compose logs -f --tail=100 hyperswitch-server ;;
   down) compose down ;;
   reset) compose down -v ;;

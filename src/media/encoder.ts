@@ -364,7 +364,7 @@ async function writeAllowedOrigins() {
 // ---------------------------------------------------------------------- main
 
 async function main() {
-	const port = Number(process.env.MEDIA_ENCODER_PORT ?? 3102);
+	const port = Number(process.env.MEDIA_ENCODER_PORT ?? 4312);
 	let lastTickAt = Date.now();
 	let stopping = false;
 

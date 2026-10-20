@@ -14,7 +14,7 @@ The checks below are what the owner must do.
 2. In the seller's developer panel create an application (Checkout Pro). Copy its **TEST access token**
    (`TEST-...`).
 3. Make the app reachable from the internet while testing locally (the webhook is called by Mercado Pago):
-   `cloudflared tunnel --url http://localhost:3000` (or ngrok). Set in `.env`
+   `cloudflared tunnel --url http://localhost:4310` (or ngrok). Set in `.env`
    `MERCADOPAGO_WEBHOOK_BASE_URL=https://<your-tunnel-host>` and restart the app.
    Also set `SECRETS_ENCRYPTION_KEY` (`openssl rand -base64 32`).
 4. In the application: Webhooks > Configure notifications > test mode, URL

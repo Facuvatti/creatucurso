@@ -15,15 +15,15 @@ infra/hyperswitch/up.sh reset    # stop and wipe Hyperswitch's database
 ```
 
 The first start pulls several GB of images (slow on a Raspberry Pi). It is ready
-when `curl http://localhost:8080/health` answers `health is good`.
+when `curl http://localhost:18080/health` answers `health is good`.
 
 Only two ports are published on your machine, so nothing clashes with other
 Postgres/Redis you run:
 
 | Port | What | Used by |
 |---|---|---|
-| 8080 | Hyperswitch API | the app (server) and the browser (checkout) |
-| 9050 | Checkout widget (`HyperLoader.js`) | the browser |
+| 18080 | Hyperswitch API | the app (server) and the browser (checkout) |
+| 19050 | Checkout widget (`HyperLoader.js`) | the browser |
 
 Hyperswitch's own Postgres, Redis and Superposition are internal to Docker.
 To change the checkout location: `HYPERSWITCH_DIR=/some/path infra/hyperswitch/up.sh up`.
@@ -33,7 +33,7 @@ To change the checkout location: `HYPERSWITCH_DIR=/some/path infra/hyperswitch/u
 They are all listed with comments in `.env.example`. The ones that confuse:
 
 - `HYPERSWITCH_URL` vs `HYPERSWITCH_PUBLIC_URL`: same thing locally
-  (`http://localhost:8080`). They differ in production, where the server may use an
+  (`http://localhost:18080`). They differ in production, where the server may use an
   internal address and the browser a public one.
 - `HYPERSWITCH_ADMIN_API_KEY`: `test_admin` for this Docker setup.
 - `HYPERSWITCH_WEBHOOK_BASE_URL`: the address the **Hyperswitch container** uses to
@@ -54,7 +54,7 @@ They are all listed with comments in `.env.example`. The ones that confuse:
 - Upstream's database health check is too short for a Raspberry Pi; we lengthen it.
 - Upstream's seed script needs bash but is run with `sh`; we run it with bash.
 - Upstream's migration step fails patching a Rust file with the current diesel; we run only the migrations.
-- `hyperswitch-web` (port 9050) builds the checkout widget from source on its first start. On a Pi this takes a long time; `http://localhost:9050/HyperLoader.js` answers once it finishes (`docker logs -f hyperswitch-hyperswitch-web-1`). The API on 8080 works without it.
+- `hyperswitch-web` (port 19050) builds the checkout widget from source on its first start. On a Pi this takes a long time; `http://localhost:119050/HyperLoader.js` answers once it finishes (`docker logs -f hyperswitch-hyperswitch-web-1`). The API on 8080 works without it.
 
 ## Refunds and disputes
 

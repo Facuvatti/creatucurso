@@ -110,7 +110,7 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       PORT: "3000"
     ports:
-      - "127.0.0.1:3210:3000"
+      - "127.0.0.1:4320:3000"
     depends_on:
       db:
         condition: service_healthy
@@ -124,17 +124,17 @@ services:
     env_file: ../../.env.production
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      WORKER_PORT: "3101"
+      WORKER_PORT: "4311"
     command: ["node", "--env-file-if-exists=.env", "src/worker/index.ts"]
     ports:
-      - "127.0.0.1:3211:3101"
+      - "127.0.0.1:4321:4311"
     depends_on:
       db:
         condition: service_healthy
       web:
         condition: service_started
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3101/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4311/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -184,7 +184,7 @@ services:
       BEHIND_HTTPS_PROXY: "true"
       PORT: "8000"
     ports:
-      - "127.0.0.1:8211:8000"
+      - "127.0.0.1:4323:8000"
     volumes:
       - bugsink-data:/data
     healthcheck:
@@ -200,7 +200,7 @@ services:
     logging: *logging
     networks: [front]
     ports:
-      - "127.0.0.1:3212:3001"
+      - "127.0.0.1:4322:3001"
     volumes:
       - kuma-data:/app/data
     healthcheck:

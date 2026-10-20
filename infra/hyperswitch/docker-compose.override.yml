@@ -1,7 +1,7 @@
 # Copied by up.sh into the Hyperswitch checkout. Compose merges it with that
 # checkout's docker-compose.yml.
 #
-# Nothing except the API (8080) and the checkout SDK (9050) is published to the
+# Nothing except the API (18080) and the checkout SDK (19050) is published to the
 # host. Postgres, Redis and Superposition stay on the internal Docker network,
 # so they can never clash with a Postgres/Redis you already run on this machine.
 services:
@@ -17,6 +17,8 @@ services:
   superposition:
     ports: !override []
   hyperswitch-server:
+    ports: !override
+      - "18080:8080"
     # Lets Hyperswitch call back into the app running on your host
     # (http://host.docker.internal:3000/api/webhooks/...).
     extra_hosts:
@@ -37,3 +39,10 @@ services:
       export PATH=\"$${PATH}:$${HOME}/.cargo/bin\" &&
       printf '[print_schema]\nfile = \"/tmp/schema.rs\"\nfilter = { except_tables = [\"^blocklist$\"] }\n' > /tmp/diesel.toml &&
       diesel migration --database-url \"$${DATABASE_URL}\" run --migration-dir /app/migrations --config-file /tmp/diesel.toml"
+  # Host ports are deliberately unusual so they never clash with other apps.
+  hyperswitch-web:
+    ports: !override
+      - "19050:9050"
+    environment:
+      # The browser reaches the API on the new host port.
+      - ENV_BACKEND_URL=http://localhost:18080

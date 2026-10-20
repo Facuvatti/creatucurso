@@ -5,12 +5,12 @@ function originFor(subdomain: string): string {
 	return `${scheme}://${subdomain}.${domain}${port}`;
 }
 
-/** Public URL of a creator's free subdomain, for example http://maria.localhost:3000 */
+/** Public URL of a creator's free subdomain, for example http://maria.localhost:4310 */
 export function tenantOrigin(slug: string): string {
 	return originFor(slug);
 }
 
-/** Public URL of the central app, for example http://app.localhost:3000 */
+/** Public URL of the central app, for example http://app.localhost:4310 */
 export function appOrigin(): string {
 	return originFor("app");
 }

@@ -7,7 +7,7 @@ import { pool } from "../server/db.server.ts";
 const POLL_MS = 2000;
 const BATCH_SIZE = 10;
 const MAX_BACKOFF_SECONDS = 3600;
-const port = Number(process.env.WORKER_PORT ?? 3101);
+const port = Number(process.env.WORKER_PORT ?? 4311);
 
 type OutboxEvent = {
 	id: string;

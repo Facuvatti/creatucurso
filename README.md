@@ -13,7 +13,7 @@ cp .env.example .env                       # then edit the values you need
 docker compose -f compose.dev.yaml up -d   # Postgres on port 5439
 pnpm install
 pnpm db:reset                              # creates the schema from database/schema.sql
-pnpm dev                                   # http://localhost:3000 and http://app.localhost:3000
+pnpm dev                                   # http://localhost:4310 and http://app.localhost:4310
 pnpm worker                                # optional: outbox worker
 infra/hyperswitch/up.sh up                 # optional: local payments (slow the first time)
 ```
