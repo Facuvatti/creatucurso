@@ -2,6 +2,7 @@
 // events.outbox in the same transaction as the change they describe.
 // Start it with `pnpm worker`.
 import { createServer } from "node:http";
+import { processDeliveries, runAutomations } from "../areas/automations/delivery.ts";
 import { issueCertificate } from "../areas/certificates/certificates.ts";
 import { renewExpiringConnections } from "../areas/payments/mercadopago-connection.ts";
 import { refreshPendingDomains } from "../areas/tenancy/domains.ts";
@@ -26,13 +27,17 @@ function log(level: "info" | "error", msg: string, extra: object = {}) {
 }
 
 /**
- * What to do with each event. For now it only logs; later phases add
- * automations (Phase 12) here. Completed courses issue a certificate (Phase 11). Must be safe to
+ * What to do with each event. Enrollments and completed courses run the academy's
+ * automations (Phase 12). Completed courses issue a certificate (Phase 11). Must be safe to
  * repeat: an event can be delivered again after a crash.
  */
 async function handle(event: OutboxEvent): Promise<void> {
 	switch (event.type) {
 		case "enrollment.created":
+			log("info", "event delivered", { id: event.id, type: event.type });
+			// A failing email is retried on its own delivery row, never by this event.
+			await runAutomations(event);
+			return;
 		case "enrollment.refunded":
 		case "dispute.opened":
 		case "dispute.won":
@@ -43,6 +48,8 @@ async function handle(event: OutboxEvent): Promise<void> {
 			log("info", "event delivered", { id: event.id, type: event.type });
 			// Idempotent per enrollment; a course without a frame yields nothing.
 			await issueCertificate(String(event.payload.enrollmentId));
+			// After the certificate exists, so {{certificateUrl}} can be filled.
+			await runAutomations(event);
 			return;
 		}
 		default:
@@ -128,6 +135,17 @@ async function checkDomains() {
 	}
 }
 
+// Automation emails: retry the failed ones (backoff) and the ones held by a limit.
+const DELIVERIES_EVERY_MS = 30 * 1000;
+
+async function retryDeliveries() {
+	try {
+		await processDeliveries();
+	} catch (error) {
+		log("error", "delivery retry failed", { error: String(error) });
+	}
+}
+
 async function loop() {
 	while (!stopping) {
 		let taken = 0;
@@ -162,12 +180,15 @@ const renewTimer = setInterval(renewMercadoPagoTokens, RENEW_EVERY_MS);
 void checkDomains();
 const domainsTimer = setInterval(checkDomains, DOMAINS_EVERY_MS);
 
+const deliveriesTimer = setInterval(retryDeliveries, DELIVERIES_EVERY_MS);
+
 server.listen(port, () => log("info", "worker started", { port }));
 
 function stop() {
 	stopping = true;
 	clearInterval(renewTimer);
 	clearInterval(domainsTimer);
+	clearInterval(deliveriesTimer);
 	server.close();
 	pool.end().finally(() => process.exit(0));
 }

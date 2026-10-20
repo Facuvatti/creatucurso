@@ -19,6 +19,7 @@ import { Route as RecuperarRouteImport } from './routes/recuperar'
 import { Route as RestablecerRouteImport } from './routes/restablecer'
 import { Route as AuthHandoffRouteImport } from './routes/auth/handoff'
 import { Route as AuthLogoutRouteImport } from './routes/auth/logout'
+import { Route as BajaTokenRouteImport } from './routes/baja.$token'
 import { Route as PanelIndexRouteImport } from './routes/panel.index'
 import { Route as PanelDominioRouteImport } from './routes/panel.dominio'
 import { Route as PanelModeracionRouteImport } from './routes/panel.moderacion'
@@ -30,6 +31,7 @@ import { Route as ApiMediaSessionRouteImport } from './routes/api/media/session'
 import { Route as ApiMediaTusHookRouteImport } from './routes/api/media/tus-hook'
 import { Route as ApiMercadopagoCallbackRouteImport } from './routes/api/mercadopago/callback'
 import { Route as ApiWebhooksMercadopagoRouteImport } from './routes/api/webhooks/mercadopago'
+import { Route as ApiWebhooksSesRouteImport } from './routes/api/webhooks/ses'
 import { Route as CertificadosCredentialIdIndexRouteImport } from './routes/certificados.$credentialId.index'
 import { Route as CertificadosCredentialIdPdfRouteImport } from './routes/certificados.$credentialId.pdf'
 import { Route as CursosCourseSlugIndexRouteImport } from './routes/cursos.$courseSlug.index'
@@ -94,6 +96,11 @@ const AuthLogoutRoute = AuthLogoutRouteImport.update({
   path: '/auth/logout',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BajaTokenRoute = BajaTokenRouteImport.update({
+  id: '/baja/$token',
+  path: '/baja/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PanelIndexRoute = PanelIndexRouteImport.update({
   id: '/panel/',
   path: '/panel/',
@@ -147,6 +154,11 @@ const ApiMercadopagoCallbackRoute = ApiMercadopagoCallbackRouteImport.update({
 const ApiWebhooksMercadopagoRoute = ApiWebhooksMercadopagoRouteImport.update({
   id: '/api/webhooks/mercadopago',
   path: '/api/webhooks/mercadopago',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWebhooksSesRoute = ApiWebhooksSesRouteImport.update({
+  id: '/api/webhooks/ses',
+  path: '/api/webhooks/ses',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CertificadosCredentialIdIndexRoute =
@@ -234,6 +246,7 @@ export interface FileRoutesByFullPath {
   '/restablecer': typeof RestablecerRoute
   '/auth/handoff': typeof AuthHandoffRoute
   '/auth/logout': typeof AuthLogoutRoute
+  '/baja/$token': typeof BajaTokenRoute
   '/panel/dominio': typeof PanelDominioRoute
   '/panel/moderacion': typeof PanelModeracionRoute
   '/panel/pagos': typeof PanelPagosRoute
@@ -245,6 +258,7 @@ export interface FileRoutesByFullPath {
   '/api/media/tus-hook': typeof ApiMediaTusHookRoute
   '/api/mercadopago/callback': typeof ApiMercadopagoCallbackRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRouteWithChildren
+  '/api/webhooks/ses': typeof ApiWebhooksSesRoute
   '/certificados/$credentialId/pdf': typeof CertificadosCredentialIdPdfRoute
   '/cursos/$courseSlug/compra': typeof CursosCourseSlugCompraRoute
   '/cursos/$courseSlug/comprar': typeof CursosCourseSlugComprarRoute
@@ -270,6 +284,7 @@ export interface FileRoutesByTo {
   '/restablecer': typeof RestablecerRoute
   '/auth/handoff': typeof AuthHandoffRoute
   '/auth/logout': typeof AuthLogoutRoute
+  '/baja/$token': typeof BajaTokenRoute
   '/panel/dominio': typeof PanelDominioRoute
   '/panel/moderacion': typeof PanelModeracionRoute
   '/panel/pagos': typeof PanelPagosRoute
@@ -281,6 +296,7 @@ export interface FileRoutesByTo {
   '/api/media/tus-hook': typeof ApiMediaTusHookRoute
   '/api/mercadopago/callback': typeof ApiMercadopagoCallbackRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRouteWithChildren
+  '/api/webhooks/ses': typeof ApiWebhooksSesRoute
   '/certificados/$credentialId/pdf': typeof CertificadosCredentialIdPdfRoute
   '/cursos/$courseSlug/compra': typeof CursosCourseSlugCompraRoute
   '/cursos/$courseSlug/comprar': typeof CursosCourseSlugComprarRoute
@@ -307,6 +323,7 @@ export interface FileRoutesById {
   '/restablecer': typeof RestablecerRoute
   '/auth/handoff': typeof AuthHandoffRoute
   '/auth/logout': typeof AuthLogoutRoute
+  '/baja/$token': typeof BajaTokenRoute
   '/panel/dominio': typeof PanelDominioRoute
   '/panel/moderacion': typeof PanelModeracionRoute
   '/panel/pagos': typeof PanelPagosRoute
@@ -318,6 +335,7 @@ export interface FileRoutesById {
   '/api/media/tus-hook': typeof ApiMediaTusHookRoute
   '/api/mercadopago/callback': typeof ApiMercadopagoCallbackRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRouteWithChildren
+  '/api/webhooks/ses': typeof ApiWebhooksSesRoute
   '/certificados/$credentialId/pdf': typeof CertificadosCredentialIdPdfRoute
   '/cursos/$courseSlug/compra': typeof CursosCourseSlugCompraRoute
   '/cursos/$courseSlug/comprar': typeof CursosCourseSlugComprarRoute
@@ -345,6 +363,7 @@ export interface FileRouteTypes {
     | '/restablecer'
     | '/auth/handoff'
     | '/auth/logout'
+    | '/baja/$token'
     | '/panel/dominio'
     | '/panel/moderacion'
     | '/panel/pagos'
@@ -356,6 +375,7 @@ export interface FileRouteTypes {
     | '/api/media/tus-hook'
     | '/api/mercadopago/callback'
     | '/api/webhooks/mercadopago'
+    | '/api/webhooks/ses'
     | '/certificados/$credentialId/pdf'
     | '/cursos/$courseSlug/compra'
     | '/cursos/$courseSlug/comprar'
@@ -381,6 +401,7 @@ export interface FileRouteTypes {
     | '/restablecer'
     | '/auth/handoff'
     | '/auth/logout'
+    | '/baja/$token'
     | '/panel/dominio'
     | '/panel/moderacion'
     | '/panel/pagos'
@@ -392,6 +413,7 @@ export interface FileRouteTypes {
     | '/api/media/tus-hook'
     | '/api/mercadopago/callback'
     | '/api/webhooks/mercadopago'
+    | '/api/webhooks/ses'
     | '/certificados/$credentialId/pdf'
     | '/cursos/$courseSlug/compra'
     | '/cursos/$courseSlug/comprar'
@@ -417,6 +439,7 @@ export interface FileRouteTypes {
     | '/restablecer'
     | '/auth/handoff'
     | '/auth/logout'
+    | '/baja/$token'
     | '/panel/dominio'
     | '/panel/moderacion'
     | '/panel/pagos'
@@ -428,6 +451,7 @@ export interface FileRouteTypes {
     | '/api/media/tus-hook'
     | '/api/mercadopago/callback'
     | '/api/webhooks/mercadopago'
+    | '/api/webhooks/ses'
     | '/certificados/$credentialId/pdf'
     | '/cursos/$courseSlug/compra'
     | '/cursos/$courseSlug/comprar'
@@ -454,6 +478,7 @@ export interface RootRouteChildren {
   RestablecerRoute: typeof RestablecerRoute
   AuthHandoffRoute: typeof AuthHandoffRoute
   AuthLogoutRoute: typeof AuthLogoutRoute
+  BajaTokenRoute: typeof BajaTokenRoute
   PanelDominioRoute: typeof PanelDominioRoute
   PanelModeracionRoute: typeof PanelModeracionRoute
   PanelPagosRoute: typeof PanelPagosRoute
@@ -465,6 +490,7 @@ export interface RootRouteChildren {
   ApiMediaTusHookRoute: typeof ApiMediaTusHookRoute
   ApiMercadopagoCallbackRoute: typeof ApiMercadopagoCallbackRoute
   ApiWebhooksMercadopagoRoute: typeof ApiWebhooksMercadopagoRouteWithChildren
+  ApiWebhooksSesRoute: typeof ApiWebhooksSesRoute
   CertificadosCredentialIdPdfRoute: typeof CertificadosCredentialIdPdfRoute
   CursosCourseSlugCompraRoute: typeof CursosCourseSlugCompraRoute
   CursosCourseSlugComprarRoute: typeof CursosCourseSlugComprarRoute
@@ -551,6 +577,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthLogoutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/baja/$token': {
+      id: '/baja/$token'
+      path: '/baja/$token'
+      fullPath: '/baja/$token'
+      preLoaderRoute: typeof BajaTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/panel/': {
       id: '/panel/'
       path: '/panel'
@@ -626,6 +659,13 @@ declare module '@tanstack/react-router' {
       path: '/api/webhooks/mercadopago'
       fullPath: '/api/webhooks/mercadopago'
       preLoaderRoute: typeof ApiWebhooksMercadopagoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/webhooks/ses': {
+      id: '/api/webhooks/ses'
+      path: '/api/webhooks/ses'
+      fullPath: '/api/webhooks/ses'
+      preLoaderRoute: typeof ApiWebhooksSesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/certificados/$credentialId/': {
@@ -748,6 +788,7 @@ const rootRouteChildren: RootRouteChildren = {
   RestablecerRoute: RestablecerRoute,
   AuthHandoffRoute: AuthHandoffRoute,
   AuthLogoutRoute: AuthLogoutRoute,
+  BajaTokenRoute: BajaTokenRoute,
   PanelDominioRoute: PanelDominioRoute,
   PanelModeracionRoute: PanelModeracionRoute,
   PanelPagosRoute: PanelPagosRoute,
@@ -759,6 +800,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMediaTusHookRoute: ApiMediaTusHookRoute,
   ApiMercadopagoCallbackRoute: ApiMercadopagoCallbackRoute,
   ApiWebhooksMercadopagoRoute: ApiWebhooksMercadopagoRouteWithChildren,
+  ApiWebhooksSesRoute: ApiWebhooksSesRoute,
   CertificadosCredentialIdPdfRoute: CertificadosCredentialIdPdfRoute,
   CursosCourseSlugCompraRoute: CursosCourseSlugCompraRoute,
   CursosCourseSlugComprarRoute: CursosCourseSlugComprarRoute,
