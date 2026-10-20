@@ -16,6 +16,10 @@ export const RESERVED_SUBDOMAINS = new Set([
 	"static",
 	"cdn",
 	"media",
+	"www",
+	"app",
+	"assets",
+	"status",
 ]);
 const DNS_LABEL = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
 const IPV4 = /^\d{1,3}(\.\d{1,3}){3}$/;

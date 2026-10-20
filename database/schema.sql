@@ -173,3 +173,12 @@ create table if not exists community.comment (
 );
 create index if not exists comment_lesson_idx on community.comment (lesson_id, created_at);
 create index if not exists comment_course_idx on community.comment (course_id, created_at);
+
+-- Our tables: tenancy (DNS proof for custom domains) -----------------------------------
+create schema if not exists tenancy;
+
+create table if not exists tenancy.domain_check (
+	organization_id text primary key references auth.organization (id) on delete cascade,
+	token text not null,
+	created_at timestamptz not null default now()
+);

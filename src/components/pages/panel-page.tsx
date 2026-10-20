@@ -53,7 +53,8 @@ export function PanelPage({
 			<h1>Panel de la academia</h1>
 			{canManagePayments && (
 				<p>
-					<Link to="/panel/pagos">Cobros</Link>
+					<Link to="/panel/pagos">Cobros</Link>{" "}
+					<Link to="/panel/dominio">Dominio propio</Link>
 				</p>
 			)}
 

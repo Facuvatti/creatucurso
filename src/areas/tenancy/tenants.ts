@@ -22,7 +22,7 @@ export function validateTenantSlug(slug: string): string | null {
 	if (!SLUG.test(slug)) {
 		return "Usá entre 3 y 63 letras minúsculas, números o guiones, sin empezar ni terminar con guion.";
 	}
-	if (slug === "www" || slug === "app" || RESERVED_SUBDOMAINS.has(slug)) {
+	if (RESERVED_SUBDOMAINS.has(slug)) {
 		return "Ese nombre está reservado.";
 	}
 	return null;
