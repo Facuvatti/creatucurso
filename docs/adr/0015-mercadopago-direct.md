@@ -1,6 +1,6 @@
 # ADR-0015: Mercado Pago is integrated directly, not through Hyperswitch
 
-**Status:** Accepted
+**Status:** Superseded by ADR-0023 (Marketplace with OAuth)
 **Date:** 2026-10-20
 **Deciders:** Facu
 

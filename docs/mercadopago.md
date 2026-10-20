@@ -1,52 +1,65 @@
-# Mercado Pago (direct integration)
+# Mercado Pago (marketplace with OAuth)
 
-See ADR-0015. Code: `src/areas/payments/mercadopago.ts` (API calls, signature) and
-`src/areas/payments/payments.ts` (checkout, webhook, refunds). Webhook route:
-`/api/webhooks/mercadopago/<organizationId>`.
+See ADR-0023. Code: `src/areas/payments/mercadopago.ts` (API calls, signature),
+`mercadopago-connection.ts` (OAuth, tokens, renewal), `payments.ts` (checkout, webhooks, refunds),
+`src/routes/api/mercadopago/callback.ts` and `src/routes/api/webhooks/mercadopago.ts`.
 
-**Status: written against the official documentation but never run against Mercado Pago.**
-The checks below are what the owner must do.
+**Status: verified against a local mock, never against real Mercado Pago.** The checklist below is what the
+owner must do with test users.
+
+## Platform setup (once)
+
+1. Developer panel (Your integrations): create an application for Checkout Pro with **Marketplace / Split
+   payments** and OAuth, with **PKCE** on. Scopes: `offline_access`, `read`, `write` (without `offline_access`
+   there is no refresh token and a connection expires after 180 days).
+2. **Redirect URL:** `<app origin>/api/mercadopago/callback`, for example `https://app.tudominio.com/api/mercadopago/callback`.
+3. **Webhooks > Configure notifications:** URL `<base>/api/webhooks/mercadopago` (`<base>` is the app origin, or
+   `MERCADOPAGO_WEBHOOK_BASE_URL` when the public URL differs, like a tunnel). Topics: **Pagos** (`payment`),
+   **Contracargos** (`topic_chargebacks_wh`) and **Vinculación de aplicaciones** (`mp-connect`).
+   The **secret signature** shown there is the webhook secret variable.
+4. `.env` (see `.env.example`): the application id and secret from Credentials, the webhook secret,
+   `SECRETS_ENCRYPTION_KEY` (`openssl rand -base64 32`), and optionally the fee percent, `MP_AUTH_URL`,
+   `MP_API_URL` and `MERCADOPAGO_WEBHOOK_BASE_URL`. Restart the app and `pnpm worker` (the worker renews tokens).
+5. Create **test users** (Test accounts): one **seller** and one **buyer**.
 
 ## How to test
 
-1. Create a **test seller** user (Mercado Pago Developers > Your integrations > Test accounts)
-   and a **test buyer** user. Use the seller's credentials, never your real ones.
-2. In the seller's developer panel create an application (Checkout Pro). Copy its **TEST access token**
-   (`TEST-...`).
-3. Make the app reachable from the internet while testing locally (the webhook is called by Mercado Pago):
-   `cloudflared tunnel --url http://localhost:4310` (or ngrok). Set in `.env`
-   `MERCADOPAGO_WEBHOOK_BASE_URL=https://<your-tunnel-host>` and restart the app.
-   Also set `SECRETS_ENCRYPTION_KEY` (`openssl rand -base64 32`).
-4. In the application: Webhooks > Configure notifications > test mode, URL
-   `https://<tunnel>/api/webhooks/mercadopago/<organizationId>` (Panel > Cobros shows the exact URL).
-   Enable events **Pagos** and **Contracargos** (`topic_chargebacks_wh`). Copy the **secret signature**.
-5. Panel > Cobros > Mercado Pago: paste the access token and the secret signature, save.
-   The app calls `GET /users/me` to validate the token.
-6. Put a price on a course and buy it as another user (log in on the tenant subdomain). Pay with a test card
-   (https://www.mercadopago.com.ar/developers/es/docs/checkout-pro/additional-content/your-integrations/test/cards)
-   as the test buyer.
+1. Panel > Cobros > "Conectar Mercado Pago" as an academy owner; log in to Mercado Pago with the **test seller**
+   and authorize. You return to the panel with "Mercado Pago conectado".
+2. Put a price on a course and buy it as another user with the **test buyer** and a test card
+   (https://www.mercadopago.com.ar/developers/es/docs/checkout-pro/additional-content/your-integrations/test/cards).
+3. Check: redirect to Mercado Pago, coming back to `/cursos/<slug>/compra` shows "Pago confirmado", the student is
+   enrolled exactly once (the webhook and the page poll both fire).
 
 ## What to check
 
-- Redirect to Mercado Pago works; coming back to `/cursos/<slug>/compra` shows "Pago confirmado" and the
-  student is enrolled exactly once (the webhook and the page poll both fire).
-- Webhook with a wrong secret answers 401; with the right one answers 200 (check `x-signature` handling:
-  manifest `id:<data.id>;request-id:<x-request-id>;ts:<ts>;`, HMAC-SHA256 hex). If it always answers 401,
-  log the incoming `x-signature`, `x-request-id` and `data.id` first: that is the likeliest thing to be off.
-- Panel > Cobros: full refund and partial refund (amount) work; full refund removes access; partial does not.
-  A refund done from the Mercado Pago dashboard also arrives (via the payment's `refunds` list).
-- Student "Solicitar reembolso" on the course page: visible only within 10 days and under 10% completed.
-- Chargebacks (hard to test; Mercado Pago has no simulator that I know of): unverified assumptions
-  - The chargeback is fetched with `GET /v1/chargebacks/{id}` and header `X-Caller-Id` = seller id.
-  - `coverage_applied === true` means the seller won; a payment in status `charged_back` means lost;
-    anything else is treated as "open" (suspends access). Confirm field names against a real case.
-  - The `data.id` in the signed manifest may differ for chargeback notifications.
-- `events.outbox` has rows for `enrollment.created`, `enrollment.refunded`, `dispute.*`; `pnpm worker`
-  marks them delivered (`curl localhost:3101/health`).
+- Webhook: wrong signature answers 401, unknown seller `user_id` answers 404 `no-merchant`, valid answers 200.
+  Signature manifest `id:<data.id>;request-id:<x-request-id>;ts:<ts>;`, HMAC-SHA256 hex. Parts absent from the
+  notification (`data.id` on `mp-connect`) are left out. If it always answers 401, compare the manifest first.
+- Refunds from Panel > Cobros: full and partial; a refund done in the Mercado Pago dashboard also arrives.
+- Fee: with a fee percent of 10 the preference carries `marketplace_fee` (an amount, 10% of the price) and the
+  platform account receives it on each sale.
+- Revocation: revoke the app from the seller's Mercado Pago account. The `mp-connect` notification, or the next
+  call (401), turns the panel to "Mercado Pago está desconectado" and checkout answers "Este curso no puede
+  cobrarse en este momento".
+- Renewal: tokens last 180 days. Move a connection's `expires_at` within 30 days, run `pnpm worker` and check that
+  both tokens changed (Mercado Pago rotates the refresh token).
+- "Desconectar" deletes our tokens. The documentation has no revocation call, so the creator also revokes the app
+  in Mercado Pago.
+- Unverified assumptions: the exact `action` of the `mp-connect` notification (we match `unlink` or `deauthori`;
+  anything else is checked with a call to the API); chargeback fields (`coverage_applied`, header `X-Caller-Id`
+  = seller id); that the authorization host `auth.mercadopago.com` is right for Argentina (docs) and not `.com.ar`.
 
-## Notes
+## Data
 
-- Amounts: the app stores minor units (cents); Mercado Pago receives/returns major units (divided/multiplied by 100).
-- The webhook body is never trusted: every notification triggers `GET /v1/payments/{id}`.
-- Switching provider in Panel > Cobros replaces the credentials; old payments of the other provider
-  cannot be refunded from the app.
+- `payments.mercadopago_connection`: one row per academy (seller id, encrypted tokens, expiry, status, reason, attempts).
+- `payments.mercadopago_oauth_state`: single-use rows of attempts in flight (encrypted PKCE verifier).
+- Amounts: the app stores minor units; Mercado Pago receives and returns major units.
+- The webhook body is never trusted: every notification triggers a `GET` with the academy's token.
+
+## Legacy (remove after migration)
+
+Academies that pasted credentials before ADR-0023 keep working with their own token and the per-academy route
+`/api/webhooks/mercadopago/<organizationId>` (their own webhook secret). Their panel shows a banner and the
+"Conectar Mercado Pago" button; completing OAuth deletes the pasted credentials. When no `payments.merchant` row
+with provider `mercadopago` is left, delete the code marked `LEGACY`.
