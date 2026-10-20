@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { handleWebhook } from "../../../modules/payments/application/payments-service.ts";
-import { getPayments } from "../../../server/container.server.ts";
+import {
+	handleWebhook,
+	paymentsConfig,
+} from "../../../areas/payments/payments.ts";
 import { fulfillPayment } from "../../../server/fulfillment.server.ts";
 
 // Called by Hyperswitch (not by a browser), so it does not depend on the host.
@@ -10,11 +12,10 @@ export const Route = createFileRoute(
 	server: {
 		handlers: {
 			POST: async ({ request, params }) => {
-				const payments = getPayments();
-				if (!payments)
+				if (!paymentsConfig())
 					return new Response("Payments are not configured", { status: 503 });
 
-				const result = await handleWebhook(payments, fulfillPayment, {
+				const result = await handleWebhook(fulfillPayment, {
 					organizationId: params.organizationId,
 					rawBody: await request.text(),
 					signature: request.headers.get("x-webhook-signature-512"),

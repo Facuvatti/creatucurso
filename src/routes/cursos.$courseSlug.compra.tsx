@@ -1,13 +1,15 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { z } from "zod";
 import {
 	getPurchaseStatus,
 	type PurchaseStatus,
 } from "../server/payments.functions.ts";
 
 export const Route = createFileRoute("/cursos/$courseSlug/compra")({
-	validateSearch: z.object({ payment_id: z.string().optional() }),
+	validateSearch: (search: Record<string, unknown>): { payment_id?: string } =>
+		typeof search.payment_id === "string"
+			? { payment_id: search.payment_id }
+			: {},
 	beforeLoad: ({ context }) => {
 		if (context.host.kind !== "tenant") throw notFound();
 	},

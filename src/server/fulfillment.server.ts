@@ -1,13 +1,11 @@
-import type { FulfillPayment } from "../modules/payments/application/ports.ts";
+import { enroll } from "../areas/catalog/catalog.ts";
+import { findRoles } from "../areas/identity/members.ts";
+import type { FulfillPayment } from "../areas/payments/payment.ts";
 import { auth } from "./auth.server.ts";
-import { getCatalog, getMembershipReader } from "./container.server.ts";
 
 /** Gives the student access once a payment has succeeded. Safe to repeat. */
 export const fulfillPayment: FulfillPayment = async (payment) => {
-	const roles = await getMembershipReader().findRoles(
-		payment.organizationId,
-		payment.userId,
-	);
+	const roles = await findRoles(payment.organizationId, payment.userId);
 	if (roles.length === 0) {
 		await auth.api.addMember({
 			body: {
@@ -17,7 +15,7 @@ export const fulfillPayment: FulfillPayment = async (payment) => {
 			},
 		});
 	}
-	await getCatalog().enroll({
+	await enroll({
 		courseId: payment.courseId,
 		userId: payment.userId,
 		source: "payment",

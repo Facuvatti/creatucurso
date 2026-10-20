@@ -1,13 +1,20 @@
 import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
+import * as catalog from "../areas/catalog/catalog.ts";
+import {
+	addConnector,
+	retrieveGatewayPayment,
+} from "../areas/payments/hyperswitch.ts";
+import { priceOf } from "../areas/payments/payment.ts";
 import {
 	activatePayments,
 	applyGatewayStatus,
+	findMerchant,
+	findPaymentByGatewayId,
+	paymentsConfig,
 	startCheckout,
-} from "../modules/payments/application/payments-service.ts";
-import { priceOf } from "../modules/payments/domain/payment.ts";
+} from "../areas/payments/payments.ts";
+import { oneOf, record, text, uuid } from "../shared/validate.ts";
 import { auth } from "./auth.server.ts";
-import { getCatalog, getPayments } from "./container.server.ts";
 import { fulfillPayment } from "./fulfillment.server.ts";
 import { requireStaffContext, requireTenantContext } from "./request.server.ts";
 
@@ -27,12 +34,10 @@ export type PaymentsPanel = {
 export const getPaymentsPanel = createServerFn({ method: "GET" }).handler(
 	async (): Promise<PaymentsPanel> => {
 		const { tenant } = await requireStaffContext();
-		const payments = getPayments();
+		const config = paymentsConfig();
 		return {
-			available: payments !== null,
-			active: payments
-				? (await payments.repository.findMerchant(tenant.id)) !== null
-				: false,
+			available: config !== null,
+			active: config ? (await findMerchant(tenant.id)) !== null : false,
 			testConnectors: process.env.NODE_ENV !== "production",
 		};
 	},
@@ -42,7 +47,7 @@ export const activateAcademyPayments = createServerFn({
 	method: "POST",
 }).handler(async (): Promise<Result> => {
 	const { tenant } = await requireStaffContext();
-	const payments = getPayments();
+	const payments = paymentsConfig();
 	if (!payments) return { ok: false, message: NOT_CONFIGURED };
 
 	await activatePayments(payments, {
@@ -53,19 +58,21 @@ export const activateAcademyPayments = createServerFn({
 	return { ok: true };
 });
 
-const connectInput = z.object({
-	connectorName: z.string().regex(/^[a-z0-9_]{2,40}$/),
-	apiKey: z.string().trim().min(8).max(500),
-});
-
 export const connectPaymentProvider = createServerFn({ method: "POST" })
-	.validator((data: unknown) => connectInput.parse(data))
+	.validator((data: unknown) => {
+		const input = record(data);
+		const connectorName = text(input, "connectorName", 40, 2);
+		if (!/^[a-z0-9_]{2,40}$/.test(connectorName)) {
+			throw new Error("connectorName has an invalid format.");
+		}
+		return { connectorName, apiKey: text(input, "apiKey", 500, 8) };
+	})
 	.handler(async ({ data }): Promise<Result> => {
 		const { tenant } = await requireStaffContext();
-		const payments = getPayments();
+		const payments = paymentsConfig();
 		if (!payments) return { ok: false, message: NOT_CONFIGURED };
 
-		const merchant = await payments.repository.findMerchant(tenant.id);
+		const merchant = await findMerchant(tenant.id);
 		if (!merchant) {
 			return {
 				ok: false,
@@ -73,7 +80,7 @@ export const connectPaymentProvider = createServerFn({ method: "POST" })
 			};
 		}
 		try {
-			await payments.gateway.addConnector(merchant, data);
+			await addConnector(payments, merchant, data);
 			return { ok: true };
 		} catch (error) {
 			console.error("Connecting the payment provider failed", error);
@@ -85,18 +92,40 @@ export const connectPaymentProvider = createServerFn({ method: "POST" })
 		}
 	});
 
-const priceInput = z.object({
-	courseId: z.string().uuid(),
-	price: z.number().min(0).max(10_000_000).nullable(),
-	currency: z.enum(["ARS", "USD", "EUR", "BRL", "MXN", "CLP", "COP", "UYU"]),
-});
+const CURRENCIES = [
+	"ARS",
+	"USD",
+	"EUR",
+	"BRL",
+	"MXN",
+	"CLP",
+	"COP",
+	"UYU",
+] as const;
 
 export const setCoursePrice = createServerFn({ method: "POST" })
-	.validator((data: unknown) => priceInput.parse(data))
+	.validator((data: unknown) => {
+		const input = record(data);
+		const price = input.price;
+		if (
+			price !== null &&
+			(typeof price !== "number" ||
+				!Number.isFinite(price) ||
+				price < 0 ||
+				price > 10_000_000)
+		) {
+			throw new Error("price must be a number from 0 to 10000000, or null.");
+		}
+		return {
+			courseId: uuid(input, "courseId"),
+			price,
+			currency: oneOf(input, "currency", CURRENCIES),
+		};
+	})
 	.handler(async ({ data }): Promise<Result> => {
 		const { tenant } = await requireStaffContext();
 		const amount = data.price === null ? 0 : Math.round(data.price * 100);
-		const saved = await getCatalog().setPrice(
+		const saved = await catalog.setCoursePrice(
 			tenant.id,
 			data.courseId,
 			amount > 0 ? { amount, currency: data.currency } : null,
@@ -108,10 +137,12 @@ export const setCoursePrice = createServerFn({ method: "POST" })
 
 // ---------------------------------------------------------------- student side
 
-const courseInput = z.object({ courseSlug: z.string().min(1).max(200) });
+function checkCourse(data: unknown) {
+	return { courseSlug: text(record(data), "courseSlug", 200, 1) };
+}
 
 async function findPublishedCourse(organizationId: string, slug: string) {
-	const lookup = await getCatalog().findBySlug(organizationId, slug);
+	const lookup = await catalog.findCourseBySlug(organizationId, slug);
 	return lookup?.kind === "found" && lookup.course.status === "published"
 		? lookup.course
 		: null;
@@ -130,7 +161,7 @@ export type CheckoutSession =
 	| { ok: false; message: string };
 
 export const startCourseCheckout = createServerFn({ method: "POST" })
-	.validator((data: unknown) => courseInput.parse(data))
+	.validator(checkCourse)
 	.handler(async ({ data }): Promise<CheckoutSession> => {
 		const context = await requireTenantContext();
 		const { user, tenant } = context;
@@ -141,11 +172,11 @@ export const startCourseCheckout = createServerFn({ method: "POST" })
 		if (!course) return { ok: false, message: "No encontramos el curso." };
 		const price = priceOf(course);
 		if (!price) return { ok: false, message: "Este curso es gratuito." };
-		if (await getCatalog().findEnrollment(course.id, user.id)) {
+		if (await catalog.findEnrollment(course.id, user.id)) {
 			return { ok: false, message: "Ya estás inscripto en este curso." };
 		}
 
-		const payments = getPayments();
+		const payments = paymentsConfig();
 		if (!payments) return { ok: false, message: NOT_CONFIGURED };
 
 		const returnUrl = `${context.origin}/cursos/${course.slug}/compra`;
@@ -178,7 +209,7 @@ export const startCourseCheckout = createServerFn({ method: "POST" })
 	});
 
 export const enrollInFreeCourse = createServerFn({ method: "POST" })
-	.validator((data: unknown) => courseInput.parse(data))
+	.validator(checkCourse)
 	.handler(async ({ data }): Promise<Result> => {
 		const { user, tenant, roles } = await requireTenantContext();
 		if (!user) return { ok: false, message: "Ingresá para inscribirte." };
@@ -193,7 +224,7 @@ export const enrollInFreeCourse = createServerFn({ method: "POST" })
 				body: { userId: user.id, role: "student", organizationId: tenant.id },
 			});
 		}
-		await getCatalog().enroll({
+		await catalog.enroll({
 			courseId: course.id,
 			userId: user.id,
 			source: "free",
@@ -207,15 +238,15 @@ export type PurchaseStatus =
 	| { kind: "succeeded"; courseSlug: string };
 
 export const getPurchaseStatus = createServerFn({ method: "GET" })
-	.validator((data: unknown) =>
-		z.object({ paymentId: z.string().min(1).max(100) }).parse(data),
-	)
+	.validator((data: unknown) => ({
+		paymentId: text(record(data), "paymentId", 100, 1),
+	}))
 	.handler(async ({ data }): Promise<PurchaseStatus> => {
 		const { user, tenant } = await requireTenantContext();
-		const payments = getPayments();
+		const payments = paymentsConfig();
 		if (!user || !payments) return { kind: "unknown" };
 
-		const payment = await payments.repository.findByGatewayId(data.paymentId);
+		const payment = await findPaymentByGatewayId(data.paymentId);
 		if (
 			!payment ||
 			payment.userId !== user.id ||
@@ -223,19 +254,19 @@ export const getPurchaseStatus = createServerFn({ method: "GET" })
 		) {
 			return { kind: "unknown" };
 		}
-		const course = await getCatalog().findById(tenant.id, payment.courseId);
+		const course = await catalog.findCourseById(tenant.id, payment.courseId);
 		if (!course) return { kind: "unknown" };
 
 		let status = payment.status;
 		if (status === "pending") {
-			const merchant = await payments.repository.findMerchant(tenant.id);
+			const merchant = await findMerchant(tenant.id);
 			if (merchant) {
-				const remote = await payments.gateway.retrievePayment(
+				const remote = await retrieveGatewayPayment(
+					payments,
 					merchant,
 					data.paymentId,
 				);
 				const applied = await applyGatewayStatus(
-					payments,
 					fulfillPayment,
 					data.paymentId,
 					remote.status,
