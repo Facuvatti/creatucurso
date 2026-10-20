@@ -26,6 +26,8 @@ import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiMediaHeartbeatRouteImport } from './routes/api/media/heartbeat'
 import { Route as ApiMediaSessionRouteImport } from './routes/api/media/session'
 import { Route as ApiMediaTusHookRouteImport } from './routes/api/media/tus-hook'
+import { Route as ApiMercadopagoCallbackRouteImport } from './routes/api/mercadopago/callback'
+import { Route as ApiWebhooksMercadopagoRouteImport } from './routes/api/webhooks/mercadopago'
 import { Route as CursosCourseSlugIndexRouteImport } from './routes/cursos.$courseSlug.index'
 import { Route as CursosCourseSlugCompraRouteImport } from './routes/cursos.$courseSlug.compra'
 import { Route as CursosCourseSlugComprarRouteImport } from './routes/cursos.$courseSlug.comprar'
@@ -121,6 +123,16 @@ const ApiMediaTusHookRoute = ApiMediaTusHookRouteImport.update({
   path: '/api/media/tus-hook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMercadopagoCallbackRoute = ApiMercadopagoCallbackRouteImport.update({
+  id: '/api/mercadopago/callback',
+  path: '/api/mercadopago/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWebhooksMercadopagoRoute = ApiWebhooksMercadopagoRouteImport.update({
+  id: '/api/webhooks/mercadopago',
+  path: '/api/webhooks/mercadopago',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CursosCourseSlugIndexRoute = CursosCourseSlugIndexRouteImport.update({
   id: '/cursos/$courseSlug/',
   path: '/cursos/$courseSlug/',
@@ -154,9 +166,9 @@ const ApiWebhooksHyperswitchOrganizationIdRoute =
   } as any)
 const ApiWebhooksMercadopagoOrganizationIdRoute =
   ApiWebhooksMercadopagoOrganizationIdRouteImport.update({
-    id: '/api/webhooks/mercadopago/$organizationId',
-    path: '/api/webhooks/mercadopago/$organizationId',
-    getParentRoute: () => rootRouteImport,
+    id: '/$organizationId',
+    path: '/$organizationId',
+    getParentRoute: () => ApiWebhooksMercadopagoRoute,
   } as any)
 const CursosCourseSlugClasesLessonSlugRoute =
   CursosCourseSlugClasesLessonSlugRouteImport.update({
@@ -189,6 +201,8 @@ export interface FileRoutesByFullPath {
   '/api/media/heartbeat': typeof ApiMediaHeartbeatRoute
   '/api/media/session': typeof ApiMediaSessionRoute
   '/api/media/tus-hook': typeof ApiMediaTusHookRoute
+  '/api/mercadopago/callback': typeof ApiMercadopagoCallbackRoute
+  '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRouteWithChildren
   '/cursos/$courseSlug/compra': typeof CursosCourseSlugCompraRoute
   '/cursos/$courseSlug/comprar': typeof CursosCourseSlugComprarRoute
   '/panel/cursos/$courseId': typeof PanelCursosCourseIdRoute
@@ -217,6 +231,8 @@ export interface FileRoutesByTo {
   '/api/media/heartbeat': typeof ApiMediaHeartbeatRoute
   '/api/media/session': typeof ApiMediaSessionRoute
   '/api/media/tus-hook': typeof ApiMediaTusHookRoute
+  '/api/mercadopago/callback': typeof ApiMercadopagoCallbackRoute
+  '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRouteWithChildren
   '/cursos/$courseSlug/compra': typeof CursosCourseSlugCompraRoute
   '/cursos/$courseSlug/comprar': typeof CursosCourseSlugComprarRoute
   '/panel/cursos/$courseId': typeof PanelCursosCourseIdRoute
@@ -246,6 +262,8 @@ export interface FileRoutesById {
   '/api/media/heartbeat': typeof ApiMediaHeartbeatRoute
   '/api/media/session': typeof ApiMediaSessionRoute
   '/api/media/tus-hook': typeof ApiMediaTusHookRoute
+  '/api/mercadopago/callback': typeof ApiMercadopagoCallbackRoute
+  '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRouteWithChildren
   '/cursos/$courseSlug/compra': typeof CursosCourseSlugCompraRoute
   '/cursos/$courseSlug/comprar': typeof CursosCourseSlugComprarRoute
   '/panel/cursos/$courseId': typeof PanelCursosCourseIdRoute
@@ -276,6 +294,8 @@ export interface FileRouteTypes {
     | '/api/media/heartbeat'
     | '/api/media/session'
     | '/api/media/tus-hook'
+    | '/api/mercadopago/callback'
+    | '/api/webhooks/mercadopago'
     | '/cursos/$courseSlug/compra'
     | '/cursos/$courseSlug/comprar'
     | '/panel/cursos/$courseId'
@@ -304,6 +324,8 @@ export interface FileRouteTypes {
     | '/api/media/heartbeat'
     | '/api/media/session'
     | '/api/media/tus-hook'
+    | '/api/mercadopago/callback'
+    | '/api/webhooks/mercadopago'
     | '/cursos/$courseSlug/compra'
     | '/cursos/$courseSlug/comprar'
     | '/panel/cursos/$courseId'
@@ -332,6 +354,8 @@ export interface FileRouteTypes {
     | '/api/media/heartbeat'
     | '/api/media/session'
     | '/api/media/tus-hook'
+    | '/api/mercadopago/callback'
+    | '/api/webhooks/mercadopago'
     | '/cursos/$courseSlug/compra'
     | '/cursos/$courseSlug/comprar'
     | '/panel/cursos/$courseId'
@@ -361,13 +385,14 @@ export interface RootRouteChildren {
   ApiMediaHeartbeatRoute: typeof ApiMediaHeartbeatRoute
   ApiMediaSessionRoute: typeof ApiMediaSessionRoute
   ApiMediaTusHookRoute: typeof ApiMediaTusHookRoute
+  ApiMercadopagoCallbackRoute: typeof ApiMercadopagoCallbackRoute
+  ApiWebhooksMercadopagoRoute: typeof ApiWebhooksMercadopagoRouteWithChildren
   CursosCourseSlugCompraRoute: typeof CursosCourseSlugCompraRoute
   CursosCourseSlugComprarRoute: typeof CursosCourseSlugComprarRoute
   PanelCursosCourseIdRoute: typeof PanelCursosCourseIdRoute
   CursosCourseSlugIndexRoute: typeof CursosCourseSlugIndexRoute
   ApiMediaKeyVideoIdRoute: typeof ApiMediaKeyVideoIdRoute
   ApiWebhooksHyperswitchOrganizationIdRoute: typeof ApiWebhooksHyperswitchOrganizationIdRoute
-  ApiWebhooksMercadopagoOrganizationIdRoute: typeof ApiWebhooksMercadopagoOrganizationIdRoute
   CursosCourseSlugClasesLessonSlugRoute: typeof CursosCourseSlugClasesLessonSlugRoute
   ApiMediaPlaylistVideoIdNameRoute: typeof ApiMediaPlaylistVideoIdNameRoute
 }
@@ -493,6 +518,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMediaTusHookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/mercadopago/callback': {
+      id: '/api/mercadopago/callback'
+      path: '/api/mercadopago/callback'
+      fullPath: '/api/mercadopago/callback'
+      preLoaderRoute: typeof ApiMercadopagoCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/webhooks/mercadopago': {
+      id: '/api/webhooks/mercadopago'
+      path: '/api/webhooks/mercadopago'
+      fullPath: '/api/webhooks/mercadopago'
+      preLoaderRoute: typeof ApiWebhooksMercadopagoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cursos/$courseSlug/': {
       id: '/cursos/$courseSlug/'
       path: '/cursos/$courseSlug'
@@ -537,10 +576,10 @@ declare module '@tanstack/react-router' {
     }
     '/api/webhooks/mercadopago/$organizationId': {
       id: '/api/webhooks/mercadopago/$organizationId'
-      path: '/api/webhooks/mercadopago/$organizationId'
+      path: '/$organizationId'
       fullPath: '/api/webhooks/mercadopago/$organizationId'
       preLoaderRoute: typeof ApiWebhooksMercadopagoOrganizationIdRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof ApiWebhooksMercadopagoRoute
     }
     '/cursos/$courseSlug/clases/$lessonSlug': {
       id: '/cursos/$courseSlug/clases/$lessonSlug'
@@ -558,6 +597,21 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface ApiWebhooksMercadopagoRouteChildren {
+  ApiWebhooksMercadopagoOrganizationIdRoute: typeof ApiWebhooksMercadopagoOrganizationIdRoute
+}
+
+const ApiWebhooksMercadopagoRouteChildren: ApiWebhooksMercadopagoRouteChildren =
+  {
+    ApiWebhooksMercadopagoOrganizationIdRoute:
+      ApiWebhooksMercadopagoOrganizationIdRoute,
+  }
+
+const ApiWebhooksMercadopagoRouteWithChildren =
+  ApiWebhooksMercadopagoRoute._addFileChildren(
+    ApiWebhooksMercadopagoRouteChildren,
+  )
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -577,6 +631,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMediaHeartbeatRoute: ApiMediaHeartbeatRoute,
   ApiMediaSessionRoute: ApiMediaSessionRoute,
   ApiMediaTusHookRoute: ApiMediaTusHookRoute,
+  ApiMercadopagoCallbackRoute: ApiMercadopagoCallbackRoute,
+  ApiWebhooksMercadopagoRoute: ApiWebhooksMercadopagoRouteWithChildren,
   CursosCourseSlugCompraRoute: CursosCourseSlugCompraRoute,
   CursosCourseSlugComprarRoute: CursosCourseSlugComprarRoute,
   PanelCursosCourseIdRoute: PanelCursosCourseIdRoute,
@@ -584,8 +640,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMediaKeyVideoIdRoute: ApiMediaKeyVideoIdRoute,
   ApiWebhooksHyperswitchOrganizationIdRoute:
     ApiWebhooksHyperswitchOrganizationIdRoute,
-  ApiWebhooksMercadopagoOrganizationIdRoute:
-    ApiWebhooksMercadopagoOrganizationIdRoute,
   CursosCourseSlugClasesLessonSlugRoute: CursosCourseSlugClasesLessonSlugRoute,
   ApiMediaPlaylistVideoIdNameRoute: ApiMediaPlaylistVideoIdNameRoute,
 }

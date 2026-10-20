@@ -1,42 +1,166 @@
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 
-/** Every Mercado Pago call goes here; change it only to point at a mock. */
-const MERCADOPAGO_API = "https://api.mercadopago.com";
+/** API base. The env override exists only so a local mock can stand in for Mercado Pago. */
+function apiUrl(): string {
+	return process.env.MP_API_URL || "https://api.mercadopago.com";
+}
 
+/**
+ * A failed call. The message carries only the HTTP status and Mercado Pago's
+ * error code, never the response body (it may hold payment data).
+ */
 export class MercadoPagoError extends Error {
-	constructor(
-		readonly status: number,
-		message: string,
-	) {
-		super(message);
+	// Explicit fields: Node runs the worker directly and cannot strip parameter properties.
+	readonly status: number;
+	readonly code: string | null;
+
+	constructor(status: number, code: string | null, what: string) {
+		super(`Mercado Pago ${what} failed: ${status}${code ? ` ${code}` : ""}`);
 		this.name = "MercadoPagoError";
+		this.status = status;
+		this.code = code;
 	}
 }
 
-async function call<T>(
+/** Text that is safe to log about any error: no bodies, no tokens. */
+export function describeError(error: unknown): string {
+	if (error instanceof MercadoPagoError) return error.message;
+	return error instanceof Error ? error.name : "unknown error";
+}
+
+/** The short code Mercado Pago puts in `error` (or `message`) of a failure. */
+function errorCode(text: string): string | null {
+	try {
+		const body = JSON.parse(text) as { error?: unknown; message?: unknown };
+		for (const value of [body.error, body.message]) {
+			if (typeof value === "string" && /^[\w .:-]{1,60}$/.test(value)) {
+				return value;
+			}
+		}
+	} catch {
+		// Not JSON.
+	}
+	return null;
+}
+
+async function request<T>(
+	method: "GET" | "POST",
+	path: string,
+	options: { body?: unknown; headers?: Record<string, string> },
+): Promise<T> {
+	const response = await fetch(`${apiUrl()}${path}`, {
+		method,
+		headers: { "content-type": "application/json", ...options.headers },
+		body: options.body === undefined ? null : JSON.stringify(options.body),
+		signal: AbortSignal.timeout(15_000),
+	});
+	const text = await response.text();
+	if (!response.ok) {
+		// The query string is left out of the message: it may hold ids of people.
+		throw new MercadoPagoError(
+			response.status,
+			errorCode(text),
+			`${method} ${path.split("?")[0]}`,
+		);
+	}
+	return JSON.parse(text) as T;
+}
+
+function call<T>(
 	method: "GET" | "POST",
 	path: string,
 	accessToken: string,
 	options: { body?: unknown; headers?: Record<string, string> } = {},
 ): Promise<T> {
-	const response = await fetch(`${MERCADOPAGO_API}${path}`, {
-		method,
-		headers: {
-			authorization: `Bearer ${accessToken}`,
-			"content-type": "application/json",
-			...options.headers,
-		},
-		body: options.body === undefined ? null : JSON.stringify(options.body),
+	return request<T>(method, path, {
+		...options,
+		headers: { authorization: `Bearer ${accessToken}`, ...options.headers },
 	});
-	const text = await response.text();
-	if (!response.ok) {
+}
+
+// ---------------------------------------------------------------------- OAuth
+
+export type OAuthTokens = {
+	accessToken: string;
+	refreshToken: string | null;
+	publicKey: string | null;
+	userId: string;
+	expiresAt: Date;
+};
+
+/** Checks the token response by hand: the fields we store must be there. */
+function readTokens(raw: unknown): OAuthTokens {
+	const body = (typeof raw === "object" && raw !== null ? raw : {}) as Record<
+		string,
+		unknown
+	>;
+	const userId = body.user_id;
+	if (
+		typeof body.access_token !== "string" ||
+		(typeof userId !== "number" && typeof userId !== "string")
+	) {
 		throw new MercadoPagoError(
-			response.status,
-			`Mercado Pago ${method} ${path} failed with ${response.status}: ${text.slice(0, 300)}`,
+			502,
+			"invalid_token_response",
+			"POST /oauth/token",
 		);
 	}
-	return JSON.parse(text) as T;
+	// Access tokens last 180 days when Mercado Pago does not say otherwise.
+	const seconds =
+		typeof body.expires_in === "number" ? body.expires_in : 180 * 86_400;
+	return {
+		accessToken: body.access_token,
+		refreshToken:
+			typeof body.refresh_token === "string" ? body.refresh_token : null,
+		publicKey: typeof body.public_key === "string" ? body.public_key : null,
+		userId: String(userId),
+		expiresAt: new Date(Date.now() + seconds * 1000),
+	};
 }
+
+/** The platform application's id and secret (the credentials of our one MP app). */
+function appCredentials() {
+	const clientId = process.env.MP_CLIENT_ID;
+	const secret = process.env.MP_CLIENT_SECRET;
+	if (!clientId || !secret) {
+		throw new Error("The Mercado Pago application is not configured.");
+	}
+	return { client_id: clientId, client_secret: secret };
+}
+
+/** Exchanges the code Mercado Pago sent to the callback for the seller's tokens. */
+export async function exchangeAuthorizationCode(input: {
+	code: string;
+	redirectUri: string;
+	codeVerifier: string;
+}): Promise<OAuthTokens> {
+	const raw = await request<unknown>("POST", "/oauth/token", {
+		body: {
+			...appCredentials(),
+			grant_type: "authorization_code",
+			code: input.code,
+			redirect_uri: input.redirectUri,
+			code_verifier: input.codeVerifier,
+		},
+	});
+	return readTokens(raw);
+}
+
+/** Mercado Pago rotates the refresh token: the caller must store the new one. */
+export async function refreshAccessToken(
+	refreshToken: string,
+): Promise<OAuthTokens> {
+	const raw = await request<unknown>("POST", "/oauth/token", {
+		body: {
+			...appCredentials(),
+			grant_type: "refresh_token",
+			refresh_token: refreshToken,
+		},
+	});
+	return readTokens(raw);
+}
+
+// ------------------------------------------------------------------- payments
 
 /** The seller account the access token belongs to (also checks the token works). */
 export async function getSeller(accessToken: string): Promise<{ id: string }> {
@@ -59,6 +183,8 @@ export async function createPreference(
 		backUrl: string;
 		notificationUrl: string;
 		payerEmail: string;
+		/** Marketplace fee in minor units; left out of the preference when 0. */
+		fee: number;
 	},
 ): Promise<{ preferenceId: string; initPoint: string }> {
 	const preference = await call<{ id: string; init_point: string }>(
@@ -84,6 +210,8 @@ export async function createPreference(
 				auto_return: "approved",
 				notification_url: input.notificationUrl,
 				external_reference: input.paymentId,
+				// An amount in the preference's currency, not a percentage.
+				...(input.fee > 0 ? { marketplace_fee: input.fee / 100 } : {}),
 			},
 		},
 	);
@@ -160,6 +288,7 @@ export async function refundPayment(
 /**
  * Checks the x-signature header ("ts=...,v1=..."): HMAC-SHA256 of
  * "id:<data.id>;request-id:<x-request-id>;ts:<ts>;" with the webhook secret.
+ * Parts missing from the notification (data.id on mp-connect) are left out.
  */
 export function isValidSignature(input: {
 	signature: string | null;
@@ -167,7 +296,7 @@ export function isValidSignature(input: {
 	dataId: string | null;
 	secret: string;
 }): boolean {
-	if (!input.signature || !input.requestId || !input.dataId) return false;
+	if (!input.signature) return false;
 	let ts = "";
 	let v1 = "";
 	for (const part of input.signature.split(",")) {
@@ -177,11 +306,51 @@ export function isValidSignature(input: {
 	}
 	if (!ts || !v1) return false;
 	// Mercado Pago lowercases alphanumeric ids when it signs.
-	const manifest = `id:${input.dataId.toLowerCase()};request-id:${input.requestId};ts:${ts};`;
+	const manifest = `${input.dataId ? `id:${input.dataId.toLowerCase()};` : ""}${
+		input.requestId ? `request-id:${input.requestId};` : ""
+	}ts:${ts};`;
 	const expected = createHmac("sha256", input.secret)
 		.update(manifest)
 		.digest("hex");
 	const received = Buffer.from(v1.toLowerCase(), "utf8");
 	const wanted = Buffer.from(expected, "utf8");
 	return received.length === wanted.length && timingSafeEqual(received, wanted);
+}
+
+export type Notification = {
+	topic: string | null;
+	action: string | null;
+	dataId: string | null;
+	/** The seller (`user_id`) the notification is about. */
+	sellerId: string | null;
+};
+
+/** What we use from a notification. The signature is computed over the `data.id` of the query string. */
+export async function readNotification(
+	request: Request,
+): Promise<Notification> {
+	const url = new URL(request.url);
+	let body: Record<string, unknown> = {};
+	try {
+		const parsed: unknown = await request.json();
+		if (typeof parsed === "object" && parsed !== null) {
+			body = parsed as Record<string, unknown>;
+		}
+	} catch {
+		// Some notifications carry everything in the query string.
+	}
+	const text = (value: unknown) =>
+		typeof value === "string" || typeof value === "number"
+			? String(value)
+			: null;
+	const data = body.data as { id?: unknown } | undefined;
+	return {
+		topic:
+			text(body.type) ??
+			url.searchParams.get("type") ??
+			url.searchParams.get("topic"),
+		action: text(body.action),
+		dataId: url.searchParams.get("data.id") ?? text(data?.id),
+		sellerId: text(body.user_id),
+	};
 }

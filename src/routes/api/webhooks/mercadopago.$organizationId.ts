@@ -1,8 +1,12 @@
+// LEGACY: remove after migration. Notifications of academies that still use
+// credentials pasted by hand, verified with that academy's own secret. New
+// connections use /api/webhooks/mercadopago (ADR-0023).
 import { createFileRoute } from "@tanstack/react-router";
 import {
-	handleMercadoPagoWebhook,
-	mercadoPagoAvailable,
-} from "../../../areas/payments/payments.ts";
+	describeError,
+	readNotification,
+} from "../../../areas/payments/mercadopago.ts";
+import { handleMercadoPagoWebhook } from "../../../areas/payments/payments.ts";
 import { fulfillPayment } from "../../../server/fulfillment.server.ts";
 
 // Called by Mercado Pago (not by a browser), so it does not depend on the host.
@@ -12,28 +16,10 @@ export const Route = createFileRoute(
 	server: {
 		handlers: {
 			POST: async ({ request, params }) => {
-				if (!mercadoPagoAvailable())
+				if (!process.env.SECRETS_ENCRYPTION_KEY)
 					return new Response("Payments are not configured", { status: 503 });
 
-				const url = new URL(request.url);
-				let body: { type?: unknown; data?: { id?: unknown } } = {};
-				try {
-					body = await request.json();
-				} catch {
-					// Some notifications carry everything in the query string.
-				}
-				const bodyId = body.data?.id;
-				// The signature is computed over the data.id of the query string.
-				const dataId =
-					url.searchParams.get("data.id") ??
-					(typeof bodyId === "string" || typeof bodyId === "number"
-						? String(bodyId)
-						: null);
-				const topic =
-					(typeof body.type === "string" ? body.type : null) ??
-					url.searchParams.get("type") ??
-					url.searchParams.get("topic");
-
+				const { topic, dataId } = await readNotification(request);
 				try {
 					const result = await handleMercadoPagoWebhook(fulfillPayment, {
 						organizationId: params.organizationId,
@@ -56,7 +42,10 @@ export const Route = createFileRoute(
 						JSON.stringify({
 							level: "error",
 							msg: "Mercado Pago webhook failed",
-							error: String(error),
+							organizationId: params.organizationId,
+							topic,
+							dataId,
+							error: describeError(error),
 						}),
 					);
 					return new Response("error", { status: 500 });

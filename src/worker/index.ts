@@ -2,6 +2,7 @@
 // events.outbox in the same transaction as the change they describe.
 // Start it with `pnpm worker`.
 import { createServer } from "node:http";
+import { renewExpiringConnections } from "../areas/payments/mercadopago-connection.ts";
 import { pool } from "../server/db.server.ts";
 
 const POLL_MS = 2000;
@@ -92,6 +93,21 @@ async function deliverBatch(): Promise<number> {
 
 let stopping = false;
 
+// Mercado Pago tokens last 180 days and the refresh token rotates: renew the
+// ones about to expire. Needs the platform application and the encryption key.
+const RENEW_EVERY_MS = 60 * 60 * 1000;
+
+async function renewMercadoPagoTokens() {
+	if (!process.env.MP_CLIENT_ID || !process.env.SECRETS_ENCRYPTION_KEY) return;
+	try {
+		await renewExpiringConnections();
+	} catch (error) {
+		log("error", "mercado pago renewal failed", {
+			error: error instanceof Error ? error.name : "unknown",
+		});
+	}
+}
+
 async function loop() {
 	while (!stopping) {
 		let taken = 0;
@@ -120,10 +136,14 @@ const server = createServer((request, response) => {
 	response.end(JSON.stringify({ ok: healthy }));
 });
 
+void renewMercadoPagoTokens();
+const renewTimer = setInterval(renewMercadoPagoTokens, RENEW_EVERY_MS);
+
 server.listen(port, () => log("info", "worker started", { port }));
 
 function stop() {
 	stopping = true;
+	clearInterval(renewTimer);
 	server.close();
 	pool.end().finally(() => process.exit(0));
 }

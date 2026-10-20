@@ -2,15 +2,23 @@ import { createServerFn } from "@tanstack/react-start";
 import * as catalog from "../areas/catalog/catalog.ts";
 import { can } from "../areas/identity/permissions.ts";
 import { addConnector } from "../areas/payments/hyperswitch.ts";
+import {
+	describeError,
+	MercadoPagoError,
+} from "../areas/payments/mercadopago.ts";
+import {
+	type ConnectionStatus,
+	disconnect,
+	findConnection,
+	startConnection,
+} from "../areas/payments/mercadopago-connection.ts";
 import { type Provider, priceOf } from "../areas/payments/payment.ts";
 import {
 	activatePayments,
-	connectMercadoPago,
 	findMerchant,
 	findPaymentByAnyId,
 	findPaymentById,
 	mercadoPagoAvailable,
-	mercadoPagoWebhookUrl,
 	paymentsConfig,
 	refreshPayment,
 	refundPayment,
@@ -42,8 +50,14 @@ export type PaymentsPanel = {
 	provider: Provider | null;
 	active: boolean;
 	testConnectors: boolean;
-	/** Where the creator points Mercado Pago's notifications. */
-	mercadoPagoWebhookUrl: string;
+	/**
+	 * How the academy is linked to Mercado Pago: "oauth" (marketplace), "legacy"
+	 * (credentials pasted by hand, to be migrated) or null. Status only for oauth.
+	 */
+	mercadoPago: {
+		source: "oauth" | "legacy" | null;
+		status: ConnectionStatus | null;
+	};
 	payments: PanelPayment[];
 	refunds: PanelRefund[];
 };
@@ -52,13 +66,18 @@ export const getPaymentsPanel = createServerFn({ method: "GET" }).handler(
 	async (): Promise<PaymentsPanel> => {
 		const { tenant } = await requireStaffContext();
 		const merchant = await findMerchant(tenant.id);
+		const connection = await findConnection(tenant.id);
 		return {
 			available: paymentsConfig() !== null,
 			mercadoPagoAvailable: mercadoPagoAvailable(),
-			provider: merchant?.provider ?? null,
-			active: merchant !== null,
+			provider: connection ? "mercadopago" : (merchant?.provider ?? null),
+			active: connection !== null || merchant !== null,
 			testConnectors: process.env.NODE_ENV !== "production",
-			mercadoPagoWebhookUrl: mercadoPagoWebhookUrl(tenant.id),
+			mercadoPago: connection
+				? { source: "oauth", status: connection.status }
+				: merchant?.provider === "mercadopago"
+					? { source: "legacy", status: null }
+					: { source: null, status: null },
 			...(await listPanelPayments(tenant.id)),
 		};
 	},
@@ -71,6 +90,13 @@ export const activateAcademyPayments = createServerFn({
 	const payments = paymentsConfig();
 	if (!payments) return { ok: false, message: NOT_CONFIGURED };
 
+	const connection = await findConnection(tenant.id);
+	if (connection && connection.status !== "disconnected") {
+		return {
+			ok: false,
+			message: "Desconectá Mercado Pago antes de activar otro proveedor.",
+		};
+	}
 	await activatePayments(payments, {
 		organizationId: tenant.id,
 		name: tenant.name,
@@ -113,29 +139,44 @@ export const connectPaymentProvider = createServerFn({ method: "POST" })
 		}
 	});
 
-export const connectMercadoPagoAccount = createServerFn({ method: "POST" })
-	.validator((data: unknown) => {
-		const input = record(data);
-		return {
-			accessToken: text(input, "accessToken", 500, 20),
-			webhookSecret: text(input, "webhookSecret", 500, 8),
-		};
-	})
-	.handler(async ({ data }): Promise<Result> => {
-		const { tenant } = await requireStaffContext();
+/** Owner or admin starts linking the academy's Mercado Pago account (OAuth + PKCE). */
+export const startMercadoPagoConnection = createServerFn({
+	method: "POST",
+}).handler(
+	async (): Promise<
+		{ ok: true; url: string } | { ok: false; message: string }
+	> => {
+		const { tenant, user, origin } = await requireStaffContext();
 		if (!mercadoPagoAvailable()) return { ok: false, message: NOT_CONFIGURED };
 		try {
-			await connectMercadoPago({ organizationId: tenant.id, ...data });
-			return { ok: true };
+			const url = await startConnection({
+				organizationId: tenant.id,
+				userId: user.id,
+				returnOrigin: origin,
+			});
+			return { ok: true, url };
 		} catch (error) {
-			console.error("Connecting Mercado Pago failed", error);
+			console.error(
+				"Starting the Mercado Pago connection failed",
+				describeError(error),
+			);
 			return {
 				ok: false,
 				message:
-					"Mercado Pago rechazó ese access token. Revisalo e intentá de nuevo.",
+					"No pudimos iniciar la conexión con Mercado Pago. Intentá de nuevo.",
 			};
 		}
-	});
+	},
+);
+
+/** Owner or admin forgets the stored Mercado Pago tokens. */
+export const disconnectMercadoPago = createServerFn({
+	method: "POST",
+}).handler(async (): Promise<Result> => {
+	const { tenant } = await requireStaffContext();
+	await disconnect(tenant.id);
+	return { ok: true };
+});
 
 /** Owner or admin refunds a payment, in full or in part (amount in major units). */
 export const refundAcademyPayment = createServerFn({ method: "POST" })
@@ -282,7 +323,10 @@ export const startCourseCheckout = createServerFn({ method: "POST" })
 				returnUrl,
 			});
 		} catch (error) {
-			console.error("Starting the checkout failed", error);
+			console.error(
+				"Starting the checkout failed",
+				error instanceof MercadoPagoError ? describeError(error) : error,
+			);
 			return {
 				ok: false,
 				message: "No pudimos iniciar el pago. Probá de nuevo más tarde.",
@@ -291,7 +335,10 @@ export const startCourseCheckout = createServerFn({ method: "POST" })
 		if (!result.ok) {
 			return {
 				ok: false,
-				message: "Esta academia todavía no puede cobrar. Probá más tarde.",
+				message:
+					result.reason === "payments-unavailable"
+						? "Este curso no puede cobrarse en este momento. Probá más tarde."
+						: "Esta academia todavía no puede cobrar. Probá más tarde.",
 			};
 		}
 		if (result.provider === "mercadopago") {

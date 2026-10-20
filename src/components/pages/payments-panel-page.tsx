@@ -8,10 +8,8 @@ type Props = {
 	pending: boolean;
 	onActivate: () => void;
 	onConnect: (values: { connectorName: string; apiKey: string }) => void;
-	onConnectMercadoPago: (values: {
-		accessToken: string;
-		webhookSecret: string;
-	}) => void;
+	onConnectMercadoPago: () => void;
+	onDisconnectMercadoPago: () => void;
 	/** `amount` in major units, or null for a full refund. */
 	onRefund: (paymentId: string, amount: number | null) => void;
 };
@@ -29,6 +27,7 @@ export function PaymentsPanelPage({
 	onActivate,
 	onConnect,
 	onConnectMercadoPago,
+	onDisconnectMercadoPago,
 	onRefund,
 }: Props) {
 	return (
@@ -39,59 +38,68 @@ export function PaymentsPanelPage({
 			<h1>Cobros</h1>
 
 			<section>
-				<h2>Mercado Pago (directo)</h2>
-				{panel.provider === "mercadopago" && (
-					<p data-status="active">
-						Cobrás con Mercado Pago. El dinero va directo a tu cuenta.
+				<h2>Mercado Pago</h2>
+				{panel.mercadoPago.source === "legacy" && (
+					<p data-status="legacy">
+						Estás usando credenciales cargadas a mano; conectá tu cuenta con
+						Mercado Pago para migrar. Mientras tanto seguís cobrando como hasta
+						ahora.
 					</p>
 				)}
 				{!panel.mercadoPagoAvailable ? (
 					<p>Mercado Pago todavía no está disponible en esta instalación.</p>
 				) : (
-					<form
-						onSubmit={(event) => {
-							event.preventDefault();
-							const data = new FormData(event.currentTarget);
-							onConnectMercadoPago({
-								accessToken: String(data.get("accessToken") ?? ""),
-								webhookSecret: String(data.get("webhookSecret") ?? ""),
-							});
-							event.currentTarget.reset();
-						}}
-					>
-						<p>
-							En tu cuenta de Mercado Pago, creá una aplicación, copiá el access
-							token y configurá las notificaciones (evento Pagos y Contracargos)
-							con esta URL: <code>{panel.mercadoPagoWebhookUrl}</code>. Pegá acá
-							también la clave secreta de esas notificaciones. Las credenciales
-							se guardan cifradas y no se vuelven a mostrar.
-						</p>
-						<label>
-							Access token
-							<input
-								name="accessToken"
-								type="password"
-								required
-								minLength={20}
-								autoComplete="off"
-							/>
-						</label>
-						<label>
-							Clave secreta de las notificaciones
-							<input
-								name="webhookSecret"
-								type="password"
-								required
-								minLength={8}
-								autoComplete="off"
-							/>
-						</label>
-						<button type="submit" disabled={pending}>
-							{panel.provider === "mercadopago"
-								? "Actualizar credenciales"
-								: "Usar Mercado Pago"}
-						</button>
-					</form>
+					<>
+						{panel.mercadoPago.status === "connected" && (
+							<p data-status="active">
+								Mercado Pago conectado. El dinero va directo a tu cuenta.
+							</p>
+						)}
+						{panel.mercadoPago.status === "error" && (
+							<p data-status="warning">
+								No pudimos renovar el acceso a tu cuenta de Mercado Pago. Lo
+								vamos a reintentar automáticamente; si el aviso sigue, reconectá
+								tu cuenta.
+							</p>
+						)}
+						{panel.mercadoPago.status === "disconnected" && (
+							<p data-status="disconnected" role="alert">
+								<strong>
+									Mercado Pago está desconectado, reconectá tu cuenta.
+								</strong>{" "}
+								Hasta entonces tus cursos de pago no se pueden cobrar.
+							</p>
+						)}
+						{panel.mercadoPago.status !== "connected" && (
+							<button
+								type="button"
+								onClick={onConnectMercadoPago}
+								disabled={pending}
+							>
+								{panel.mercadoPago.status === null
+									? "Conectar Mercado Pago"
+									: "Reconectar Mercado Pago"}
+							</button>
+						)}
+						{panel.mercadoPago.status !== null &&
+							panel.mercadoPago.status !== "disconnected" && (
+								<>
+									<button
+										type="button"
+										onClick={onDisconnectMercadoPago}
+										disabled={pending}
+									>
+										Desconectar
+									</button>
+									<p>
+										Al desconectar borramos el acceso guardado. Para quitar
+										también el permiso a la aplicación, revocala desde tu cuenta
+										de Mercado Pago (Tu perfil, Seguridad, Aplicaciones
+										conectadas).
+									</p>
+								</>
+							)}
+					</>
 				)}
 			</section>
 
