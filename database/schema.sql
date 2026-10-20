@@ -94,11 +94,13 @@ create table if not exists catalog.lesson (
 );
 create index if not exists lesson_module_idx on catalog.lesson (module_id, position);
 
+create type catalog.source_type as enum ('manual', 'payment', 'free');
+
 create table if not exists catalog.enrollment (
 	id uuid primary key default gen_random_uuid(),
 	course_id uuid not null references catalog.course (id) on delete cascade,
 	user_id text not null references auth."user" (id) on delete cascade,
-	source text not null default 'manual' check (source in ('manual', 'payment', 'free')),
+	source catalog.source_type not null default 'manual',
 	payment_id text unique,
 	completed_at timestamptz,
 	created_at timestamptz not null default now(),
@@ -139,3 +141,35 @@ create table if not exists payments.payment (
 	updated_at timestamptz not null default now()
 );
 create index if not exists payment_user_course_idx on payments.payment (user_id, course_id);
+
+-- Our tables: community (public reviews and lesson comments) ---------------------------
+create schema if not exists community;
+
+create table if not exists community.review (
+	id uuid primary key default gen_random_uuid(),
+	organization_id text not null references auth.organization (id) on delete cascade,
+	course_id uuid not null,
+	user_id text not null references auth."user" (id) on delete cascade,
+	rating smallint not null check (rating between 1 and 5),
+	body text not null default '' check (length(body) <= 2000),
+	hidden boolean not null default false,
+	created_at timestamptz not null default now(),
+	updated_at timestamptz not null default now(),
+	unique (course_id, user_id)
+);
+create index if not exists review_course_idx on community.review (course_id, hidden, created_at desc);
+create index if not exists review_organization_idx on community.review (organization_id, hidden, created_at desc);
+
+create table if not exists community.comment (
+	id uuid primary key default gen_random_uuid(),
+	organization_id text not null references auth.organization (id) on delete cascade,
+	course_id uuid not null,
+	lesson_id uuid not null,
+	user_id text not null references auth."user" (id) on delete cascade,
+	parent_id uuid references community.comment (id) on delete cascade,
+	body text not null check (length(body) between 1 and 4000),
+	hidden boolean not null default false,
+	created_at timestamptz not null default now()
+);
+create index if not exists comment_lesson_idx on community.comment (lesson_id, created_at);
+create index if not exists comment_course_idx on community.comment (course_id, created_at);

@@ -1,23 +1,28 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { can } from "../areas/identity/permissions.ts";
 import { AppHomePage } from "../components/pages/app-home-page.tsx";
 import { LandingPage } from "../components/pages/landing-page.tsx";
 import { TenantHomePage } from "../components/pages/tenant-home-page.tsx";
-import { can } from "../modules/identity/domain/can.ts";
 import { getAppHome } from "../server/academy.functions.ts";
-import { getTenantCatalog } from "../server/catalog.functions.ts";
+import { getTenantHome } from "../server/community.functions.ts";
+
+const emptyTenantHome = { courses: [], featured: [] };
 
 export const Route = createFileRoute("/")({
 	loader: async ({ context }) => {
 		if (context.host.kind === "tenant") {
 			return {
-				courses: await getTenantCatalog(),
+				tenantHome: await getTenantHome(),
 				home: { academies: [], studying: [] },
 			};
 		}
 		if (context.host.kind === "platform-app" && context.user) {
-			return { courses: [], home: await getAppHome() };
+			return { tenantHome: emptyTenantHome, home: await getAppHome() };
 		}
-		return { courses: [], home: { academies: [], studying: [] } };
+		return {
+			tenantHome: emptyTenantHome,
+			home: { academies: [], studying: [] },
+		};
 	},
 	head: ({ match }) => {
 		const { host } = match.context;
@@ -34,14 +39,15 @@ export const Route = createFileRoute("/")({
 
 function Home() {
 	const { host, user, roles, origin, appOrigin } = Route.useRouteContext();
-	const { courses, home } = Route.useLoaderData();
+	const { tenantHome, home } = Route.useLoaderData();
 
 	if (host.kind === "tenant") {
 		const loginUrl = `${appOrigin}/login?return=${encodeURIComponent(`${origin}/`)}`;
 		return (
 			<TenantHomePage
 				tenant={host.tenant}
-				courses={courses}
+				courses={tenantHome.courses}
+				featured={tenantHome.featured}
 				user={user}
 				roles={roles}
 				isStaff={can(roles, { course: ["update"] })}

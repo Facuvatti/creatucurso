@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import type { LessonPageData } from "../../server/catalog.functions.ts";
 
 type Ok = Extract<LessonPageData, { kind: "ok" }>;
@@ -7,9 +8,10 @@ type Props = {
 	data: Ok;
 	pending: boolean;
 	onComplete: () => void;
+	children?: ReactNode;
 };
 
-export function LessonPage({ data, pending, onComplete }: Props) {
+export function LessonPage({ data, pending, onComplete, children }: Props) {
 	const { course, lesson } = data;
 
 	return (
@@ -87,6 +89,7 @@ export function LessonPage({ data, pending, onComplete }: Props) {
 					</Link>
 				)}
 			</nav>
+			{children}
 		</main>
 	);
 }

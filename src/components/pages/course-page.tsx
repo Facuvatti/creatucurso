@@ -1,8 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import {
-	allLessons,
-	type CourseOutline,
-} from "../../modules/catalog/domain/types.ts";
+import type { ReactNode } from "react";
+import { allLessons, type CourseOutline } from "../../areas/catalog/types.ts";
 import type { CourseAccess } from "../../server/catalog.functions.ts";
 import { formatMoney } from "../../shared/money.ts";
 
@@ -14,6 +12,7 @@ type Props = {
 	pending: boolean;
 	message?: string | undefined;
 	onEnrollFree: () => void;
+	children?: ReactNode;
 };
 
 function BulletList({ title, items }: { title: string; items: string[] }) {
@@ -38,6 +37,7 @@ export function CoursePage({
 	pending,
 	message,
 	onEnrollFree,
+	children,
 }: Props) {
 	const first = allLessons(course)[0];
 	const done = new Set(completedLessonIds);
@@ -126,6 +126,7 @@ export function CoursePage({
 				)}
 				{message && <output>{message}</output>}
 			</section>
+			{children}
 		</main>
 	);
 }

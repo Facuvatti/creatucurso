@@ -1,10 +1,15 @@
 import { Link } from "@tanstack/react-router";
-import type { CourseSummary } from "../../modules/catalog/domain/types.ts";
-import type { Tenant } from "../../modules/tenancy/domain/tenant.ts";
+import type { Tenant } from "../../areas/tenancy/tenants.ts";
+import type {
+	CourseWithRating,
+	FeaturedWithCourse,
+} from "../../server/community.functions.ts";
+import { Stars } from "../community/stars.tsx";
 
 type Props = {
 	tenant: Tenant;
-	courses: CourseSummary[];
+	courses: CourseWithRating[];
+	featured: FeaturedWithCourse[];
 	user: { name: string } | null;
 	roles: string[];
 	isStaff: boolean;
@@ -14,6 +19,7 @@ type Props = {
 export function TenantHomePage({
 	tenant,
 	courses,
+	featured,
 	user,
 	roles,
 	isStaff,
@@ -53,12 +59,40 @@ export function TenantHomePage({
 								>
 									{course.name}
 								</Link>
+								{course.rating.average !== null && (
+									<p data-rating>
+										<Stars value={course.rating.average} />{" "}
+										{course.rating.average} ({course.rating.count})
+									</p>
+								)}
 								{course.shortDescription && <p>{course.shortDescription}</p>}
 							</li>
 						))}
 					</ul>
 				)}
 			</section>
+			{featured.length > 0 && (
+				<section data-section="featured-reviews">
+					<h2>Lo que dicen los alumnos</h2>
+					<ul>
+						{featured.map((review) => (
+							<li key={review.id}>
+								<Stars value={review.rating} /> {review.body}
+								<br />
+								<small>
+									{review.authorName} sobre{" "}
+									<Link
+										to="/cursos/$courseSlug"
+										params={{ courseSlug: review.courseSlug }}
+									>
+										{review.courseName}
+									</Link>
+								</small>
+							</li>
+						))}
+					</ul>
+				</section>
+			)}
 		</main>
 	);
 }
