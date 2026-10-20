@@ -379,3 +379,84 @@ create table if not exists certificates.certificate (
 );
 create index if not exists certificate_course_idx on certificates.certificate (course_id, issued_at desc);
 create index if not exists certificate_user_idx on certificates.certificate (user_id);
+
+-- Our tables: automations (email messages sent on enrollment / course completion; ADR-0026) ---
+create schema if not exists automations;
+
+-- course_id null = every course of the academy. `body` and `subject` hold {{variables}}.
+create table if not exists automations.automation (
+	id uuid primary key default gen_random_uuid(),
+	organization_id text not null references auth.organization (id) on delete cascade,
+	course_id uuid references catalog.course (id) on delete cascade,
+	trigger text not null check (trigger in ('enrollment.created', 'course.completed')),
+	name text not null,
+	subject text not null,
+	body text not null,
+	-- course.completed only: attach the student's certificate PDF when it exists.
+	attach_certificate boolean not null default false,
+	enabled boolean not null default true,
+	created_at timestamptz not null default now(),
+	updated_at timestamptz not null default now()
+);
+create index if not exists automation_org_idx on automations.automation (organization_id, trigger);
+
+-- Files live under MEDIA_ROOT (path is relative) and are never served publicly.
+create table if not exists automations.automation_attachment (
+	id uuid primary key default gen_random_uuid(),
+	automation_id uuid not null references automations.automation (id) on delete cascade,
+	filename text not null,
+	content_type text not null,
+	bytes integer not null,
+	path text not null
+);
+create index if not exists automation_attachment_idx on automations.automation_attachment (automation_id);
+
+-- One row per (outbox event, automation): the unique key makes a replayed event send once.
+-- last_error holds only a short code, never a provider response body.
+create table if not exists automations.message_delivery (
+	id uuid primary key default gen_random_uuid(),
+	organization_id text not null references auth.organization (id) on delete cascade,
+	automation_id uuid not null references automations.automation (id) on delete cascade,
+	event_id text not null,
+	course_id uuid not null,
+	enrollment_id uuid,
+	user_id text not null,
+	email text not null,
+	status text not null default 'pending' check (status in ('pending', 'sent', 'failed', 'skipped')),
+	attempts integer not null default 0,
+	next_attempt_at timestamptz not null default now(),
+	last_error text,
+	-- Provider message id and the last provider event (delivered / bounce / complaint).
+	provider_message_id text,
+	provider_event text,
+	sent_at timestamptz,
+	created_at timestamptz not null default now(),
+	unique (event_id, automation_id)
+);
+create index if not exists delivery_due_idx on automations.message_delivery (next_attempt_at) where status = 'pending';
+create index if not exists delivery_org_idx on automations.message_delivery (organization_id, created_at desc);
+create index if not exists delivery_recipient_idx on automations.message_delivery (organization_id, email, sent_at);
+
+-- Unsubscribes are per academy (each academy is its own sender). Email is lower-cased.
+create table if not exists automations.email_unsubscribe (
+	organization_id text not null references auth.organization (id) on delete cascade,
+	email text not null,
+	created_at timestamptz not null default now(),
+	primary key (organization_id, email)
+);
+
+-- Sending state per academy (docs/mails.md): paused automatically on high bounce / complaint rates.
+create table if not exists automations.sending (
+	organization_id text primary key references auth.organization (id) on delete cascade,
+	status text not null default 'active' check (status in ('active', 'paused')),
+	daily_limit integer not null default 2000,
+	paused_at timestamptz,
+	paused_reason text
+);
+
+-- Global suppression list: hard bounces and complaints (any academy).
+create table if not exists automations.suppression (
+	email text primary key,
+	reason text not null check (reason in ('bounce', 'complaint')),
+	created_at timestamptz not null default now()
+);
