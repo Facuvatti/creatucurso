@@ -1,6 +1,6 @@
 // Sending of automation emails (ADR-0026): one delivery row per (outbox event,
 // automation), sent with sendEmail, retried with backoff, limited per academy
-// and per recipient, and skipped for unsubscribed or suppressed addresses.
+// and per recipient, and skipped for unsubscribed addresses.
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
@@ -10,7 +10,6 @@ import { log } from "../../server/log.server.ts";
 import { tenantOrigin } from "../../server/origins.server.ts";
 import { readCertificatePdf } from "../certificates/certificates.ts";
 import { mediaRoot } from "./automations.ts";
-import { emailTags, ensureTenantSending } from "./sending.ts";
 import {
 	escapeHtmlText,
 	renderHtmlBody,
@@ -21,11 +20,10 @@ import {
 
 // Limits per academy and per recipient. Over a cap the delivery stays pending.
 const MAX_PER_HOUR = 200;
-const DEFAULT_MAX_PER_DAY = 2000;
+const MAX_PER_DAY = 2000;
 const MAX_PER_RECIPIENT_PER_DAY = 5;
 const MAX_ATTEMPTS = 5;
 const DEFER_SECONDS = 600;
-const PAUSED_DEFER_SECONDS = 3600;
 const LEASE_SECONDS = 300;
 const BATCH = 50;
 
@@ -124,32 +122,17 @@ type Capacity =
 
 /** Whether the academy may send one more automated email now. */
 async function academyCapacity(organizationId: string): Promise<Capacity> {
-	const { rows } = await pool.query<{
-		status: string | null;
-		daily_limit: number | null;
-		hour: string;
-		day: string;
-	}>(
-		`select s.status, s.daily_limit,
-		        (select count(*) from automations.message_delivery d
-		          where d.organization_id = $1 and d.status = 'sent' and d.sent_at > now() - interval '1 hour') as hour,
-		        (select count(*) from automations.message_delivery d
-		          where d.organization_id = $1 and d.status = 'sent' and d.sent_at > now() - interval '1 day') as day
-		 from (select 1) x left join automations.sending s on s.organization_id = $1`,
+	const { rows } = await pool.query<{ hour: string; day: string }>(
+		`select count(*) filter (where sent_at > now() - interval '1 hour') as hour,
+		        count(*) as day
+		 from automations.message_delivery
+		 where organization_id = $1 and status = 'sent' and sent_at > now() - interval '1 day'`,
 		[organizationId],
 	);
-	const r = rows[0];
-	if (r?.status === "paused") {
-		return {
-			ok: false,
-			reason: "paused",
-			retryInSeconds: PAUSED_DEFER_SECONDS,
-		};
-	}
-	if (Number(r?.hour) >= MAX_PER_HOUR) {
+	if (Number(rows[0]?.hour) >= MAX_PER_HOUR) {
 		return { ok: false, reason: "hour-cap", retryInSeconds: DEFER_SECONDS };
 	}
-	if (Number(r?.day) >= (r?.daily_limit ?? DEFAULT_MAX_PER_DAY)) {
+	if (Number(rows[0]?.day) >= MAX_PER_DAY) {
 		return { ok: false, reason: "day-cap", retryInSeconds: DEFER_SECONDS };
 	}
 	return { ok: true };
@@ -210,14 +193,12 @@ async function sendOne(d: Delivery): Promise<void> {
 		course: string;
 		enrollment_active: boolean | null;
 		unsubscribed: boolean;
-		suppressed: boolean;
 		recipient_sent: string;
 	}>(
 		`select a.enabled, a.subject, a.body, a.attach_certificate,
 		        o.name as academy, o.slug, u.name as student, c.name as course,
 		        (select e.status = 'active' from catalog.enrollment e where e.id = $2) as enrollment_active,
 		        exists (select 1 from automations.email_unsubscribe x where x.organization_id = $3 and x.email = $4) as unsubscribed,
-		        exists (select 1 from automations.suppression s where s.email = $4) as suppressed,
 		        (select count(*) from automations.message_delivery m
 		          where m.organization_id = $3 and m.email = $4 and m.status = 'sent'
 		            and m.sent_at > now() - interval '1 day') as recipient_sent
@@ -240,7 +221,6 @@ async function sendOne(d: Delivery): Promise<void> {
 	if (r.enrollment_active === false)
 		return finish(d.id, "skipped", "not-active");
 	if (r.unsubscribed) return finish(d.id, "skipped", "unsubscribed");
-	if (r.suppressed) return finish(d.id, "skipped", "suppressed");
 	if (Number(r.recipient_sent) >= MAX_PER_RECIPIENT_PER_DAY) {
 		return finish(d.id, "skipped", "recipient-cap");
 	}
@@ -279,15 +259,10 @@ async function sendOne(d: Delivery): Promise<void> {
 			r,
 			`${origin}/baja/${unsubscribeToken(d.organization_id, d.email)}`,
 		);
-		// Tenant configuration set (created on first use) and tags for the SES events.
-		const configurationSet =
-			(await ensureTenantSending(d.organization_id)) ?? undefined;
 		const messageId = await sendEmail({
 			to: d.email,
 			...message,
 			attachments,
-			configurationSet,
-			tags: emailTags(d.organization_id, d.course_id),
 		});
 		await finish(d.id, "sent", null, messageId);
 	} catch (error) {
@@ -390,7 +365,7 @@ export async function sendTestEmail(input: {
 	if (!capacity.ok) {
 		return {
 			ok: false,
-			message: "El envío de mensajes está pausado o en el límite.",
+			message: "El envío de mensajes está en el límite. Probá más tarde.",
 		};
 	}
 	const { rows } = await pool.query<{ slug: string }>(
@@ -419,9 +394,6 @@ export async function sendTestEmail(input: {
 			...message,
 			subject: `[Prueba] ${message.subject}`,
 			attachments,
-			configurationSet:
-				(await ensureTenantSending(input.organizationId)) ?? undefined,
-			tags: emailTags(input.organizationId, "test"),
 		});
 		return { ok: true };
 	} catch (error) {

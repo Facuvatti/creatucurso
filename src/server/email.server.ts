@@ -1,8 +1,5 @@
-// The only way the app sends email (ADR-0027). `sendEmail` picks the sender:
-// Amazon SES when AWS credentials and a sender address are configured, otherwise
-// the console (development). The EmailSender interface exists so the provider can
-// change without touching callers (docs/mails.md section 2).
-import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
+// The only way the app sends email: `sendEmail`. For now it prints to the console
+// (development); the real sender is added next (ADR-0028).
 
 export type Attachment = { filename: string; content: Buffer };
 
@@ -13,39 +10,7 @@ export type OutgoingEmail = {
 	html: string;
 	headers?: Record<string, string>;
 	attachments?: Attachment[];
-	/** Tenant sending: SES configuration set and event tags. Omit for platform emails. */
-	configurationSet?: string;
-	tags?: Record<string, string>;
 };
-
-export interface EmailSender {
-	/** Sends one email and returns the provider message id (null when there is none). */
-	send(message: OutgoingEmail): Promise<string | null>;
-}
-
-// ------------------------------------------------------------------- SES
-
-function fromAddress(): string | undefined {
-	return process.env.SES_FROM_EMAIL || process.env.EMAIL_FROM || undefined;
-}
-
-/** Whether emails go through SES. The AWS SDK reads the credentials and region itself. */
-export function sesConfigured(): boolean {
-	return Boolean(
-		process.env.AWS_REGION &&
-			process.env.AWS_ACCESS_KEY_ID &&
-			process.env.AWS_SECRET_ACCESS_KEY &&
-			fromAddress(),
-	);
-}
-
-let client: SESv2Client | undefined;
-
-/** One shared SES client. A mock endpoint for manual tests: AWS_ENDPOINT_URL_SESV2 (read by the SDK). */
-export function sesClient(): SESv2Client {
-	client ??= new SESv2Client({});
-	return client;
-}
 
 const ASCII_PRINTABLE = /^[\x20-\x7e]*$/;
 
@@ -138,63 +103,23 @@ export function buildRawMessage(from: string, message: OutgoingEmail): string {
 	return `${out}--${mixed}--\r\n`;
 }
 
-const sesSender: EmailSender = {
-	async send(message) {
-		const from = fromAddress();
-		if (!from) throw new Error("SES_FROM_EMAIL or EMAIL_FROM is required.");
-		// Custom headers (List-Unsubscribe) and attachments need the raw MIME path.
-		const raw = Boolean(message.headers || message.attachments?.length);
-		const configurationSet =
-			message.configurationSet ||
-			process.env.SES_PLATFORM_CONFIGURATION_SET ||
-			undefined;
-		const response = await sesClient().send(
-			new SendEmailCommand({
-				FromEmailAddress: addressHeader(from),
-				Destination: { ToAddresses: [message.to] },
-				Content: raw
-					? { Raw: { Data: Buffer.from(buildRawMessage(from, message)) } }
-					: {
-							Simple: {
-								Subject: { Data: message.subject, Charset: "UTF-8" },
-								Body: {
-									Text: { Data: message.text, Charset: "UTF-8" },
-									Html: { Data: message.html, Charset: "UTF-8" },
-								},
-							},
-						},
-				ConfigurationSetName: configurationSet,
-				EmailTags: message.tags
-					? Object.entries(message.tags).map(([Name, Value]) => ({
-							Name,
-							Value,
-						}))
-					: undefined,
-			}),
-		);
-		return response.MessageId ?? null;
-	},
-};
-
 // --------------------------------------------------------------- console
 
 /** Development: prints subject and text (links included); never credentials. */
-const consoleSender: EmailSender = {
-	async send(message) {
+async function consoleSend(message: OutgoingEmail): Promise<string | null> {
+	console.log(
+		`[email] To: ${message.to}\n[email] Subject: ${message.subject}\n${message.text}`,
+	);
+	for (const a of message.attachments ?? []) {
 		console.log(
-			`[email] To: ${message.to}\n[email] Subject: ${message.subject}\n${message.text}`,
+			`[email] Attachment: ${a.filename} (${a.content.length} bytes)`,
 		);
-		for (const a of message.attachments ?? []) {
-			console.log(
-				`[email] Attachment: ${a.filename} (${a.content.length} bytes)`,
-			);
-		}
-		return null;
-	},
-};
+	}
+	return null;
+}
 
 export function sendEmail(message: OutgoingEmail): Promise<string | null> {
-	return (sesConfigured() ? sesSender : consoleSender).send(message);
+	return consoleSend(message);
 }
 
 /** For values written by users (names) before they go into an HTML email. */

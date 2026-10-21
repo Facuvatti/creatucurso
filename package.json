@@ -22,7 +22,6 @@
     "db:reset": "node --env-file=.env scripts/reset-dev-db.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-sesv2": "^3.1154.0",
     "@sentry/node": "^11.8.0",
     "@tanstack/react-router": "1.170.45",
     "@tanstack/react-start": "1.169.3",

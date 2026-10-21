@@ -1,6 +1,6 @@
 # ADR-0027: Amazon SES sending, one configuration set per academy
 
-**Status:** Accepted
+**Status:** Superseded by ADR-0028 (Gmail API per tenant)
 **Date:** 2026-10-20
 **Supersedes:** ADR-0016 (Resend)
 

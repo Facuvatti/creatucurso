@@ -32,7 +32,6 @@ import { Route as ApiMediaSessionRouteImport } from './routes/api/media/session'
 import { Route as ApiMediaTusHookRouteImport } from './routes/api/media/tus-hook'
 import { Route as ApiMercadopagoCallbackRouteImport } from './routes/api/mercadopago/callback'
 import { Route as ApiWebhooksMercadopagoRouteImport } from './routes/api/webhooks/mercadopago'
-import { Route as ApiWebhooksSesRouteImport } from './routes/api/webhooks/ses'
 import { Route as CertificadosCredentialIdIndexRouteImport } from './routes/certificados.$credentialId.index'
 import { Route as CertificadosCredentialIdPdfRouteImport } from './routes/certificados.$credentialId.pdf'
 import { Route as CursosCourseSlugIndexRouteImport } from './routes/cursos.$courseSlug.index'
@@ -163,11 +162,6 @@ const ApiWebhooksMercadopagoRoute = ApiWebhooksMercadopagoRouteImport.update({
   path: '/api/webhooks/mercadopago',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiWebhooksSesRoute = ApiWebhooksSesRouteImport.update({
-  id: '/api/webhooks/ses',
-  path: '/api/webhooks/ses',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const CertificadosCredentialIdIndexRoute =
   CertificadosCredentialIdIndexRouteImport.update({
     id: '/certificados/$credentialId/',
@@ -272,7 +266,6 @@ export interface FileRoutesByFullPath {
   '/api/media/tus-hook': typeof ApiMediaTusHookRoute
   '/api/mercadopago/callback': typeof ApiMercadopagoCallbackRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRouteWithChildren
-  '/api/webhooks/ses': typeof ApiWebhooksSesRoute
   '/certificados/$credentialId/pdf': typeof CertificadosCredentialIdPdfRoute
   '/cursos/$courseSlug/compra': typeof CursosCourseSlugCompraRoute
   '/cursos/$courseSlug/comprar': typeof CursosCourseSlugComprarRoute
@@ -312,7 +305,6 @@ export interface FileRoutesByTo {
   '/api/media/tus-hook': typeof ApiMediaTusHookRoute
   '/api/mercadopago/callback': typeof ApiMercadopagoCallbackRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRouteWithChildren
-  '/api/webhooks/ses': typeof ApiWebhooksSesRoute
   '/certificados/$credentialId/pdf': typeof CertificadosCredentialIdPdfRoute
   '/cursos/$courseSlug/compra': typeof CursosCourseSlugCompraRoute
   '/cursos/$courseSlug/comprar': typeof CursosCourseSlugComprarRoute
@@ -353,7 +345,6 @@ export interface FileRoutesById {
   '/api/media/tus-hook': typeof ApiMediaTusHookRoute
   '/api/mercadopago/callback': typeof ApiMercadopagoCallbackRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRouteWithChildren
-  '/api/webhooks/ses': typeof ApiWebhooksSesRoute
   '/certificados/$credentialId/pdf': typeof CertificadosCredentialIdPdfRoute
   '/cursos/$courseSlug/compra': typeof CursosCourseSlugCompraRoute
   '/cursos/$courseSlug/comprar': typeof CursosCourseSlugComprarRoute
@@ -395,7 +386,6 @@ export interface FileRouteTypes {
     | '/api/media/tus-hook'
     | '/api/mercadopago/callback'
     | '/api/webhooks/mercadopago'
-    | '/api/webhooks/ses'
     | '/certificados/$credentialId/pdf'
     | '/cursos/$courseSlug/compra'
     | '/cursos/$courseSlug/comprar'
@@ -435,7 +425,6 @@ export interface FileRouteTypes {
     | '/api/media/tus-hook'
     | '/api/mercadopago/callback'
     | '/api/webhooks/mercadopago'
-    | '/api/webhooks/ses'
     | '/certificados/$credentialId/pdf'
     | '/cursos/$courseSlug/compra'
     | '/cursos/$courseSlug/comprar'
@@ -475,7 +464,6 @@ export interface FileRouteTypes {
     | '/api/media/tus-hook'
     | '/api/mercadopago/callback'
     | '/api/webhooks/mercadopago'
-    | '/api/webhooks/ses'
     | '/certificados/$credentialId/pdf'
     | '/cursos/$courseSlug/compra'
     | '/cursos/$courseSlug/comprar'
@@ -516,7 +504,6 @@ export interface RootRouteChildren {
   ApiMediaTusHookRoute: typeof ApiMediaTusHookRoute
   ApiMercadopagoCallbackRoute: typeof ApiMercadopagoCallbackRoute
   ApiWebhooksMercadopagoRoute: typeof ApiWebhooksMercadopagoRouteWithChildren
-  ApiWebhooksSesRoute: typeof ApiWebhooksSesRoute
   CertificadosCredentialIdPdfRoute: typeof CertificadosCredentialIdPdfRoute
   CursosCourseSlugCompraRoute: typeof CursosCourseSlugCompraRoute
   CursosCourseSlugComprarRoute: typeof CursosCourseSlugComprarRoute
@@ -695,13 +682,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWebhooksMercadopagoRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/webhooks/ses': {
-      id: '/api/webhooks/ses'
-      path: '/api/webhooks/ses'
-      fullPath: '/api/webhooks/ses'
-      preLoaderRoute: typeof ApiWebhooksSesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/certificados/$credentialId/': {
       id: '/certificados/$credentialId/'
       path: '/certificados/$credentialId'
@@ -842,7 +822,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMediaTusHookRoute: ApiMediaTusHookRoute,
   ApiMercadopagoCallbackRoute: ApiMercadopagoCallbackRoute,
   ApiWebhooksMercadopagoRoute: ApiWebhooksMercadopagoRouteWithChildren,
-  ApiWebhooksSesRoute: ApiWebhooksSesRoute,
   CertificadosCredentialIdPdfRoute: CertificadosCredentialIdPdfRoute,
   CursosCourseSlugCompraRoute: CursosCourseSlugCompraRoute,
   CursosCourseSlugComprarRoute: CursosCourseSlugComprarRoute,

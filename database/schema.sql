@@ -426,9 +426,8 @@ create table if not exists automations.message_delivery (
 	attempts integer not null default 0,
 	next_attempt_at timestamptz not null default now(),
 	last_error text,
-	-- Provider message id and the last provider event (delivered / bounce / complaint).
+	-- Message id returned by the provider (the Gmail API).
 	provider_message_id text,
-	provider_event text,
 	sent_at timestamptz,
 	created_at timestamptz not null default now(),
 	unique (event_id, automation_id)
@@ -445,21 +444,7 @@ create table if not exists automations.email_unsubscribe (
 	primary key (organization_id, email)
 );
 
--- Sending state per academy (docs/mails.md): paused automatically on high bounce / complaint rates.
-create table if not exists automations.sending (
-	organization_id text primary key references auth.organization (id) on delete cascade,
-	status text not null default 'active' check (status in ('active', 'paused')),
-	daily_limit integer not null default 2000,
-	paused_at timestamptz,
-	paused_reason text,
-	-- SES configuration set of the academy (null until provisioned).
-	configuration_set_name text
-);
-alter table automations.sending add column if not exists configuration_set_name text;
-
--- Global suppression list: hard bounces and complaints (any academy).
-create table if not exists automations.suppression (
-	email text primary key,
-	reason text not null check (reason in ('bounce', 'complaint')),
-	created_at timestamptz not null default now()
-);
+-- Removed with Amazon SES (ADR-0028): per-academy sending state, bounce / complaint suppression and event column.
+drop table if exists automations.sending;
+drop table if exists automations.suppression;
+alter table automations.message_delivery drop column if exists provider_event;

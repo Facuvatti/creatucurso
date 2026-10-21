@@ -1,6 +1,6 @@
 # ADR-0016: Transactional email through Resend
 
-**Status:** Superseded by ADR-0027 (Amazon SES)
+**Status:** Superseded by ADR-0027 (Amazon SES), itself superseded by ADR-0028 (Gmail API)
 **Date:** 2026-10-20
 
 ## Context
