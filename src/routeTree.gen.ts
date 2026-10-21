@@ -17,6 +17,7 @@ import { Route as HealthRouteImport } from './routes/health'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as RecuperarRouteImport } from './routes/recuperar'
 import { Route as RestablecerRouteImport } from './routes/restablecer'
+import { Route as AdminCorreoRouteImport } from './routes/admin.correo'
 import { Route as AuthHandoffRouteImport } from './routes/auth/handoff'
 import { Route as AuthLogoutRouteImport } from './routes/auth/logout'
 import { Route as BajaTokenRouteImport } from './routes/baja.$token'
@@ -27,6 +28,7 @@ import { Route as PanelModeracionRouteImport } from './routes/panel.moderacion'
 import { Route as PanelPagosRouteImport } from './routes/panel.pagos'
 import { Route as PanelTutoriaRouteImport } from './routes/panel.tutoria'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiGmailCallbackRouteImport } from './routes/api/gmail/callback'
 import { Route as ApiMediaHeartbeatRouteImport } from './routes/api/media/heartbeat'
 import { Route as ApiMediaSessionRouteImport } from './routes/api/media/session'
 import { Route as ApiMediaTusHookRouteImport } from './routes/api/media/tus-hook'
@@ -87,6 +89,11 @@ const RestablecerRoute = RestablecerRouteImport.update({
   path: '/restablecer',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminCorreoRoute = AdminCorreoRouteImport.update({
+  id: '/admin/correo',
+  path: '/admin/correo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthHandoffRoute = AuthHandoffRouteImport.update({
   id: '/auth/handoff',
   path: '/auth/handoff',
@@ -135,6 +142,11 @@ const PanelTutoriaRoute = PanelTutoriaRouteImport.update({
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGmailCallbackRoute = ApiGmailCallbackRouteImport.update({
+  id: '/api/gmail/callback',
+  path: '/api/gmail/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMediaHeartbeatRoute = ApiMediaHeartbeatRouteImport.update({
@@ -251,6 +263,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/recuperar': typeof RecuperarRoute
   '/restablecer': typeof RestablecerRoute
+  '/admin/correo': typeof AdminCorreoRoute
   '/auth/handoff': typeof AuthHandoffRoute
   '/auth/logout': typeof AuthLogoutRoute
   '/baja/$token': typeof BajaTokenRoute
@@ -261,6 +274,7 @@ export interface FileRoutesByFullPath {
   '/panel/tutoria': typeof PanelTutoriaRoute
   '/panel/': typeof PanelIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/gmail/callback': typeof ApiGmailCallbackRoute
   '/api/media/heartbeat': typeof ApiMediaHeartbeatRoute
   '/api/media/session': typeof ApiMediaSessionRoute
   '/api/media/tus-hook': typeof ApiMediaTusHookRoute
@@ -290,6 +304,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/recuperar': typeof RecuperarRoute
   '/restablecer': typeof RestablecerRoute
+  '/admin/correo': typeof AdminCorreoRoute
   '/auth/handoff': typeof AuthHandoffRoute
   '/auth/logout': typeof AuthLogoutRoute
   '/baja/$token': typeof BajaTokenRoute
@@ -300,6 +315,7 @@ export interface FileRoutesByTo {
   '/panel/tutoria': typeof PanelTutoriaRoute
   '/panel': typeof PanelIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/gmail/callback': typeof ApiGmailCallbackRoute
   '/api/media/heartbeat': typeof ApiMediaHeartbeatRoute
   '/api/media/session': typeof ApiMediaSessionRoute
   '/api/media/tus-hook': typeof ApiMediaTusHookRoute
@@ -330,6 +346,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/recuperar': typeof RecuperarRoute
   '/restablecer': typeof RestablecerRoute
+  '/admin/correo': typeof AdminCorreoRoute
   '/auth/handoff': typeof AuthHandoffRoute
   '/auth/logout': typeof AuthLogoutRoute
   '/baja/$token': typeof BajaTokenRoute
@@ -340,6 +357,7 @@ export interface FileRoutesById {
   '/panel/tutoria': typeof PanelTutoriaRoute
   '/panel/': typeof PanelIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/gmail/callback': typeof ApiGmailCallbackRoute
   '/api/media/heartbeat': typeof ApiMediaHeartbeatRoute
   '/api/media/session': typeof ApiMediaSessionRoute
   '/api/media/tus-hook': typeof ApiMediaTusHookRoute
@@ -371,6 +389,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/recuperar'
     | '/restablecer'
+    | '/admin/correo'
     | '/auth/handoff'
     | '/auth/logout'
     | '/baja/$token'
@@ -381,6 +400,7 @@ export interface FileRouteTypes {
     | '/panel/tutoria'
     | '/panel/'
     | '/api/auth/$'
+    | '/api/gmail/callback'
     | '/api/media/heartbeat'
     | '/api/media/session'
     | '/api/media/tus-hook'
@@ -410,6 +430,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/recuperar'
     | '/restablecer'
+    | '/admin/correo'
     | '/auth/handoff'
     | '/auth/logout'
     | '/baja/$token'
@@ -420,6 +441,7 @@ export interface FileRouteTypes {
     | '/panel/tutoria'
     | '/panel'
     | '/api/auth/$'
+    | '/api/gmail/callback'
     | '/api/media/heartbeat'
     | '/api/media/session'
     | '/api/media/tus-hook'
@@ -449,6 +471,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/recuperar'
     | '/restablecer'
+    | '/admin/correo'
     | '/auth/handoff'
     | '/auth/logout'
     | '/baja/$token'
@@ -459,6 +482,7 @@ export interface FileRouteTypes {
     | '/panel/tutoria'
     | '/panel/'
     | '/api/auth/$'
+    | '/api/gmail/callback'
     | '/api/media/heartbeat'
     | '/api/media/session'
     | '/api/media/tus-hook'
@@ -489,6 +513,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   RecuperarRoute: typeof RecuperarRoute
   RestablecerRoute: typeof RestablecerRoute
+  AdminCorreoRoute: typeof AdminCorreoRoute
   AuthHandoffRoute: typeof AuthHandoffRoute
   AuthLogoutRoute: typeof AuthLogoutRoute
   BajaTokenRoute: typeof BajaTokenRoute
@@ -499,6 +524,7 @@ export interface RootRouteChildren {
   PanelTutoriaRoute: typeof PanelTutoriaRoute
   PanelIndexRoute: typeof PanelIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiGmailCallbackRoute: typeof ApiGmailCallbackRoute
   ApiMediaHeartbeatRoute: typeof ApiMediaHeartbeatRoute
   ApiMediaSessionRoute: typeof ApiMediaSessionRoute
   ApiMediaTusHookRoute: typeof ApiMediaTusHookRoute
@@ -577,6 +603,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RestablecerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/correo': {
+      id: '/admin/correo'
+      path: '/admin/correo'
+      fullPath: '/admin/correo'
+      preLoaderRoute: typeof AdminCorreoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/handoff': {
       id: '/auth/handoff'
       path: '/auth/handoff'
@@ -645,6 +678,13 @@ declare module '@tanstack/react-router' {
       path: '/api/auth/$'
       fullPath: '/api/auth/$'
       preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/gmail/callback': {
+      id: '/api/gmail/callback'
+      path: '/api/gmail/callback'
+      fullPath: '/api/gmail/callback'
+      preLoaderRoute: typeof ApiGmailCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/media/heartbeat': {
@@ -807,6 +847,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   RecuperarRoute: RecuperarRoute,
   RestablecerRoute: RestablecerRoute,
+  AdminCorreoRoute: AdminCorreoRoute,
   AuthHandoffRoute: AuthHandoffRoute,
   AuthLogoutRoute: AuthLogoutRoute,
   BajaTokenRoute: BajaTokenRoute,
@@ -817,6 +858,7 @@ const rootRouteChildren: RootRouteChildren = {
   PanelTutoriaRoute: PanelTutoriaRoute,
   PanelIndexRoute: PanelIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiGmailCallbackRoute: ApiGmailCallbackRoute,
   ApiMediaHeartbeatRoute: ApiMediaHeartbeatRoute,
   ApiMediaSessionRoute: ApiMediaSessionRoute,
   ApiMediaTusHookRoute: ApiMediaTusHookRoute,

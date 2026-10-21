@@ -2,6 +2,11 @@ import { createServerFn } from "@tanstack/react-start";
 import * as automations from "../areas/automations/automations.ts";
 import { sendTestEmail } from "../areas/automations/delivery.ts";
 import {
+	type GmailStatus,
+	gmailAvailable,
+	gmailStatus,
+} from "../areas/automations/gmail.ts";
+import {
 	SAMPLE_VARIABLES,
 	TRIGGERS,
 	type Trigger,
@@ -16,20 +21,27 @@ export type AutomationsPanel = {
 	automations: automations.Automation[];
 	courses: { id: string; name: string }[];
 	deliveries: automations.DeliveryRow[];
+	gmail: GmailStatus & { available: boolean; canManage: boolean };
 };
 
 export const getAutomationsPanel = createServerFn({ method: "GET" }).handler(
 	async (): Promise<AutomationsPanel> => {
-		const { tenant } = await requireStaffContext();
-		const [list, courses, deliveries] = await Promise.all([
+		const { tenant, roles } = await requireStaffContext();
+		const [list, courses, deliveries, gmail] = await Promise.all([
 			automations.listAutomations(tenant.id),
 			catalog.listCourses(tenant.id, { publishedOnly: false }),
 			automations.listDeliveries(tenant.id),
+			gmailStatus(tenant.id),
 		]);
 		return {
 			automations: list,
 			courses: courses.map((c) => ({ id: c.id, name: c.name })),
 			deliveries,
+			gmail: {
+				...gmail,
+				available: gmailAvailable(),
+				canManage: roles.includes("owner") || roles.includes("admin"),
+			},
 		};
 	},
 );

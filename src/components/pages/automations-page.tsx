@@ -18,6 +18,10 @@ import {
 	sendTestAutomation,
 	setAutomationEnabled,
 } from "../../server/automations.functions.ts";
+import {
+	disconnectGmail,
+	startGmailConnection,
+} from "../../server/gmail.functions.ts";
 
 const STATUS_LABEL = {
 	pending: "pendiente",
@@ -60,13 +64,15 @@ function toDraft(a: Automation): Draft {
 
 export function AutomationsPage({
 	panel,
+	flash,
 	onChanged,
 }: {
 	panel: AutomationsPanel;
+	flash?: string;
 	onChanged: () => void;
 }) {
 	const [draft, setDraft] = useState<Draft | null>(null);
-	const [message, setMessage] = useState<string>();
+	const [message, setMessage] = useState<string | undefined>(flash);
 	const [busy, setBusy] = useState(false);
 	const [preview, setPreview] = useState(false);
 	const current = panel.automations.find((a) => a.id === draft?.id);
@@ -120,6 +126,19 @@ export function AutomationsPage({
 		}
 	}
 
+	async function connectGmail() {
+		setBusy(true);
+		const result = await startGmailConnection();
+		if (result.ok) {
+			// Leaves for Google, which sends the owner back to the callback.
+			window.location.assign(result.url);
+			return;
+		}
+		setMessage(result.message);
+		setBusy(false);
+	}
+
+	const gmail = panel.gmail;
 	return (
 		<main data-page="automations">
 			<p>
@@ -131,6 +150,57 @@ export function AutomationsPage({
 				termina un curso.
 			</p>
 			{message && <output>{message}</output>}
+
+			{gmail.status !== "connected" && (
+				<section data-status="disconnected" role="alert">
+					<p>
+						<strong>Conectá tu Gmail para que se envíen los mails.</strong>{" "}
+						{gmail.status === "disconnected"
+							? "Tu Gmail se desconectó (revocaste el permiso o venció). "
+							: ""}
+						Los mails salen desde tu propia cuenta de Gmail, con el nombre de tu
+						academia. Hasta que la conectes quedan en espera.
+					</p>
+					{gmail.canManage ? (
+						<button
+							type="button"
+							disabled={busy || !gmail.available}
+							onClick={connectGmail}
+						>
+							{gmail.status === null
+								? "Conectar mi Gmail"
+								: "Reconectar mi Gmail"}
+						</button>
+					) : (
+						<p>Pedile al dueño o a un administrador que la conecte.</p>
+					)}
+					{!gmail.available && (
+						<p>Esta opción todavía no está disponible en esta instalación.</p>
+					)}
+				</section>
+			)}
+			{gmail.status === "connected" && (
+				<p>
+					Los mails salen desde <strong>{gmail.email}</strong>.{" "}
+					{gmail.canManage && (
+						<button
+							type="button"
+							disabled={busy}
+							onClick={() => {
+								if (
+									!window.confirm(
+										"¿Desconectar tu Gmail? No se enviarán mails hasta reconectar.",
+									)
+								)
+									return;
+								void run(() => disconnectGmail(), "Gmail desconectado.");
+							}}
+						>
+							Desconectar
+						</button>
+					)}
+				</p>
+			)}
 
 			<section>
 				<h2>Mis automatizaciones</h2>
@@ -291,7 +361,9 @@ export function AutomationsPage({
 						</button>{" "}
 						<button
 							type="button"
-							disabled={busy}
+							disabled={
+								busy || gmail.status === null || gmail.status === "disconnected"
+							}
 							onClick={() =>
 								run(
 									() =>
