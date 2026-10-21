@@ -1,5 +1,8 @@
-// The only way the app sends email: `sendEmail`. For now it prints to the console
-// (development); the real sender is added next (ADR-0028).
+// The only way the app sends email (ADR-0028). Academy emails go out from the
+// academy's own Gmail (`sendTenantEmail`); platform emails (verification, password
+// reset) from the platform Gmail (`sendPlatformEmail`), falling back to the console.
+import { PLATFORM_OWNER, sendViaGmail } from "../areas/automations/gmail.ts";
+import { reportError } from "./log.server.ts";
 
 export type Attachment = { filename: string; content: Buffer };
 
@@ -103,23 +106,72 @@ export function buildRawMessage(from: string, message: OutgoingEmail): string {
 	return `${out}--${mixed}--\r\n`;
 }
 
-// --------------------------------------------------------------- console
+// ----------------------------------------------------------------- senders
 
-/** Development: prints subject and text (links included); never credentials. */
-async function consoleSend(message: OutgoingEmail): Promise<string | null> {
+/** Display name safe for a header: one line, no quotes or angle brackets. */
+function displayName(name: string): string {
+	return (
+		name
+			.replace(/[\r\n]+/g, " ")
+			.replace(/["<>]/g, "")
+			.trim() || "Creatucurso"
+	);
+}
+
+/**
+ * Sends from the academy's connected Gmail, with Reply-To the same address.
+ * Returns the Gmail message id. Throws GmailNotConnected, GmailRetry or GmailError.
+ */
+export function sendTenantEmail(
+	message: OutgoingEmail,
+	tenant: { id: string; name: string },
+): Promise<string> {
+	return sendViaGmail(tenant.id, (sender) =>
+		Buffer.from(
+			buildRawMessage(`${displayName(tenant.name)} <${sender}>`, {
+				...message,
+				headers: { "Reply-To": sender, ...message.headers },
+			}),
+		),
+	);
+}
+
+/** Development fallback: prints subject and text (links included). Production prints the subject only. */
+function consoleSend(message: OutgoingEmail): void {
+	if (process.env.NODE_ENV === "production") {
+		console.log(`[email] Not sent, no platform Gmail: ${message.subject}`);
+		return;
+	}
 	console.log(
 		`[email] To: ${message.to}\n[email] Subject: ${message.subject}\n${message.text}`,
 	);
-	for (const a of message.attachments ?? []) {
-		console.log(
-			`[email] Attachment: ${a.filename} (${a.content.length} bytes)`,
-		);
-	}
-	return null;
 }
 
-export function sendEmail(message: OutgoingEmail): Promise<string | null> {
-	return consoleSend(message);
+let reportedPlatformFailure = false;
+
+/**
+ * Platform emails (verification, password reset, alerts). Uses the platform Gmail
+ * connection; when it is missing or fails the message goes to the console and the
+ * failure is reported once. Never throws, so sign-up and reset never block.
+ */
+export async function sendPlatformEmail(message: OutgoingEmail): Promise<void> {
+	try {
+		await sendViaGmail(PLATFORM_OWNER, (sender) =>
+			Buffer.from(
+				buildRawMessage(`Creatucurso <${sender}>`, {
+					...message,
+					headers: { "Reply-To": sender, ...message.headers },
+				}),
+			),
+		);
+		reportedPlatformFailure = false;
+	} catch (error) {
+		if (!reportedPlatformFailure) {
+			reportedPlatformFailure = true;
+			reportError("Sending a platform email through Gmail failed", error);
+		}
+		consoleSend(message);
+	}
 }
 
 /** For values written by users (names) before they go into an HTML email. */

@@ -448,3 +448,29 @@ create table if not exists automations.email_unsubscribe (
 drop table if exists automations.sending;
 drop table if exists automations.suppression;
 alter table automations.message_delivery drop column if exists provider_event;
+
+-- Gmail sending (ADR-0028). owner_key is an organization id, or the literal 'platform' for the
+-- platform's own mailbox (verification, password reset); no foreign key because of that literal.
+-- Tokens are encrypted with the secret box; both are null once disconnected.
+create table if not exists automations.gmail_connection (
+	owner_key text primary key,
+	email text not null,
+	access_token_encrypted text,
+	refresh_token_encrypted text,
+	expires_at timestamptz,
+	status text not null default 'connected' check (status in ('connected', 'disconnected', 'error')),
+	-- Short reason, never token material or a provider response body.
+	status_reason text,
+	connected_at timestamptz not null default now(),
+	updated_at timestamptz not null default now()
+);
+
+-- Single-use state of an OAuth attempt in flight (the PKCE verifier is encrypted).
+create table if not exists automations.gmail_oauth_state (
+	state_hash text primary key,
+	owner_key text not null,
+	user_id text not null references auth."user" (id) on delete cascade,
+	code_verifier_encrypted text not null,
+	return_origin text not null,
+	expires_at timestamptz not null
+);

@@ -1,15 +1,21 @@
 // Sending of automation emails (ADR-0026): one delivery row per (outbox event,
-// automation), sent with sendEmail, retried with backoff, limited per academy
+// automation), sent from the academy Gmail, retried with backoff, limited per academy
 // and per recipient, and skipped for unsubscribed addresses.
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { pool } from "../../server/db.server.ts";
-import { sendEmail } from "../../server/email.server.ts";
+import { sendTenantEmail } from "../../server/email.server.ts";
 import { log } from "../../server/log.server.ts";
 import { tenantOrigin } from "../../server/origins.server.ts";
 import { readCertificatePdf } from "../certificates/certificates.ts";
 import { mediaRoot } from "./automations.ts";
+import {
+	GmailError,
+	GmailNotConnected,
+	GmailRetry,
+	gmailStatus,
+} from "./gmail.ts";
 import {
 	escapeHtmlText,
 	renderHtmlBody,
@@ -19,8 +25,12 @@ import {
 } from "./template.ts";
 
 // Limits per academy and per recipient. Over a cap the delivery stays pending.
-const MAX_PER_HOUR = 200;
-const MAX_PER_DAY = 2000;
+// A personal Gmail account may send 500 a day and Workspace 2000: the default keeps a margin.
+const MAX_PER_HOUR = 100;
+const MAX_PER_DAY = Number(process.env.GMAIL_DAILY_LIMIT) || 400;
+/** Deliveries wait this long for the Gmail connection (or for Google to recover) before giving up. */
+const PENDING_EXPIRY_DAYS = 3;
+const NOT_CONNECTED_DEFER_SECONDS = 3600;
 const MAX_PER_RECIPIENT_PER_DAY = 5;
 const MAX_ATTEMPTS = 5;
 const DEFER_SECONDS = 600;
@@ -149,13 +159,22 @@ type Delivery = {
 	user_id: string;
 	email: string;
 	attempts: number;
+	created_at: Date;
 };
 
 /** Error code stored in the log: never the provider's response body. */
 function errorCode(error: unknown): string {
-	const status = String(error).match(/\((\d{3})\)/)?.[1];
-	return status ? `provider-${status}` : "send-failed";
+	return error instanceof GmailError ? `gmail-${error.status}` : "send-failed";
 }
+
+/** Connected, or in `error` (a transient failure that is retried): anything but never connected / disconnected. */
+async function hasGmail(organizationId: string): Promise<boolean> {
+	const { status } = await gmailStatus(organizationId);
+	return status === "connected" || status === "error";
+}
+
+const expired = (d: Delivery) =>
+	d.created_at.getTime() < Date.now() - PENDING_EXPIRY_DAYS * 86_400_000;
 
 async function finish(
 	id: string,
@@ -224,6 +243,12 @@ async function sendOne(d: Delivery): Promise<void> {
 	if (Number(r.recipient_sent) >= MAX_PER_RECIPIENT_PER_DAY) {
 		return finish(d.id, "skipped", "recipient-cap");
 	}
+	// No Gmail connected: wait for the connection, and give up after three days.
+	if (!(await hasGmail(d.organization_id))) {
+		return expired(d)
+			? finish(d.id, "skipped", "gmail-not-connected")
+			: defer(d.id, "gmail-not-connected", NOT_CONNECTED_DEFER_SECONDS);
+	}
 	const capacity = await academyCapacity(d.organization_id);
 	if (!capacity.ok)
 		return defer(d.id, capacity.reason, capacity.retryInSeconds);
@@ -259,13 +284,33 @@ async function sendOne(d: Delivery): Promise<void> {
 			r,
 			`${origin}/baja/${unsubscribeToken(d.organization_id, d.email)}`,
 		);
-		const messageId = await sendEmail({
-			to: d.email,
-			...message,
-			attachments,
-		});
+		const messageId = await sendTenantEmail(
+			{ to: d.email, ...message, attachments },
+			{ id: d.organization_id, name: r.academy },
+		);
 		await finish(d.id, "sent", null, messageId);
 	} catch (error) {
+		if (error instanceof GmailNotConnected) {
+			return expired(d)
+				? finish(d.id, "skipped", "gmail-not-connected")
+				: defer(d.id, "gmail-not-connected", NOT_CONNECTED_DEFER_SECONDS);
+		}
+		if (error instanceof GmailRetry) {
+			// Quota, rate limit, network or Google 5xx: wait with backoff (5 min up to ~80 min), never fail or disconnect.
+			if (expired(d)) return finish(d.id, "failed", "gmail-unavailable");
+			return pool
+				.query(
+					`update automations.message_delivery
+					 set attempts = attempts + 1, last_error = 'gmail-retry',
+					     next_attempt_at = now() + make_interval(secs => $2)
+					 where id = $1`,
+					[
+						d.id,
+						Math.max(error.retryInSeconds, 300 * 2 ** Math.min(d.attempts, 4)),
+					],
+				)
+				.then(() => undefined);
+		}
 		const code = errorCode(error);
 		log.error(
 			{ deliveryId: d.id, code, err: error },
@@ -304,7 +349,7 @@ export async function processDeliveries(eventId?: string): Promise<number> {
 		     and ($1::text is null or event_id = $1)
 		   order by created_at limit ${BATCH} for update skip locked)
 		 returning d.id, d.organization_id, d.automation_id, d.course_id,
-		           d.enrollment_id, d.user_id, d.email, d.attempts`,
+		           d.enrollment_id, d.user_id, d.email, d.attempts, d.created_at`,
 		[eventId ?? null, LEASE_SECONDS],
 	);
 	for (const delivery of rows) {
@@ -361,6 +406,9 @@ export async function sendTestEmail(input: {
 	body: string;
 	values: Variables;
 }): Promise<{ ok: true } | { ok: false; message: string }> {
+	if (!(await hasGmail(input.organizationId))) {
+		return { ok: false, message: "Conectá tu Gmail para enviar la prueba." };
+	}
 	const capacity = await academyCapacity(input.organizationId);
 	if (!capacity.ok) {
 		return {
@@ -368,8 +416,8 @@ export async function sendTestEmail(input: {
 			message: "El envío de mensajes está en el límite. Probá más tarde.",
 		};
 	}
-	const { rows } = await pool.query<{ slug: string }>(
-		"select slug from auth.organization where id = $1",
+	const { rows } = await pool.query<{ slug: string; name: string }>(
+		"select slug, name from auth.organization where id = $1",
 		[input.organizationId],
 	);
 	if (!rows[0]) return { ok: false, message: "No encontramos la academia." };
@@ -389,15 +437,24 @@ export async function sendTestEmail(input: {
 		`${tenantOrigin(rows[0].slug)}/baja/${unsubscribeToken(input.organizationId, input.to)}`,
 	);
 	try {
-		await sendEmail({
-			to: input.to,
-			...message,
-			subject: `[Prueba] ${message.subject}`,
-			attachments,
-		});
+		await sendTenantEmail(
+			{
+				to: input.to,
+				...message,
+				subject: `[Prueba] ${message.subject}`,
+				attachments,
+			},
+			{ id: input.organizationId, name: rows[0].name },
+		);
 		return { ok: true };
 	} catch (error) {
-		log.error({ code: errorCode(error) }, "test email failed");
+		log.error(
+			{ code: errorCode(error), kind: (error as Error).name },
+			"test email failed",
+		);
+		if (error instanceof GmailNotConnected) {
+			return { ok: false, message: "Conectá tu Gmail para enviar la prueba." };
+		}
 		return { ok: false, message: "No pudimos enviar la prueba." };
 	}
 }
