@@ -16,3 +16,4 @@ todos.json
 
 # Video originals and HLS output (MEDIA_ROOT default)
 /media-data/
+/logs/

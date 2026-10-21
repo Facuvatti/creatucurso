@@ -19,6 +19,7 @@
     "media:encode": "node --env-file=.env src/media/encoder.ts",
     "db:auth": "node scripts/sync-auth-schema.ts",
     "db:auth:check": "node scripts/sync-auth-schema.ts --check",
+    "stack": "scripts/stack.sh",
     "db:reset": "node --env-file=.env scripts/reset-dev-db.ts"
   },
   "dependencies": {
