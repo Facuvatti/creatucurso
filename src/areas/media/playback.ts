@@ -196,12 +196,27 @@ async function stillEnrolled(
 
 /** The 16 raw bytes of the video's AES-128 key, if the session is still valid. */
 export async function keyFor(claims: PlaybackToken): Promise<Buffer | null> {
-	const { rows } = await pool.query<{ key_encrypted: string | null }>(
-		`select v.key_encrypted from media.video v
-		 join media.playback_session s on s.video_id = v.id
-		 where v.id = $1 and s.id = $2 and v.status = 'ready'`,
-		[claims.v, claims.s],
-	);
+	const query = () =>
+		pool.query<{ key_encrypted: string | null }>(
+			`select v.key_encrypted from media.video v
+			 join media.playback_session s on s.video_id = v.id
+			 where v.id = $1 and s.id = $2 and v.status = 'ready'`,
+			[claims.v, claims.s],
+		);
+	let { rows } = await query();
+	if (!rows[0]) {
+		// hls.js asks for the key again when it switches quality. A paused or idle
+		// playback may have lost its place meanwhile; the signed token is still
+		// valid, so take the place back (this still respects the stream cap).
+		const admitted = await admit({
+			sessionId: claims.s,
+			videoId: claims.v,
+			userId: claims.u,
+			replaceOthers: false,
+		});
+		if (!admitted) return null;
+		({ rows } = await query());
+	}
 	const box = rows[0]?.key_encrypted;
 	const keyBase64 = process.env.SECRETS_ENCRYPTION_KEY;
 	if (!box || !keyBase64) return null;
