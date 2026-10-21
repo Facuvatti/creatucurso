@@ -62,15 +62,34 @@ function PanelCourseRoute() {
 	const [pending, setPending] = useState(false);
 	const [message, setMessage] = useState<string>();
 
-	// Reload while a video is being processed so its status updates by itself.
-	const processing = Object.values(videos).some(
-		(video) => video.status === "uploaded" || video.status === "encoding",
+	// Only the video statuses are polled (not the whole page), while a video is
+	// being processed, or for a minute after the page opens/changes in case an
+	// upload just finished and tusd's post-finish hook has not been recorded yet.
+	const [liveVideos, setLiveVideos] = useState(videos);
+	const [seenVideos, setSeenVideos] = useState(videos);
+	if (videos !== seenVideos) {
+		setSeenVideos(videos);
+		setLiveVideos(videos);
+	}
+	const [graceTicks, setGraceTicks] = useState(12);
+	const states = Object.values(liveVideos).map((video) => video.status);
+	const processing = states.some(
+		(status) => status === "uploaded" || status === "encoding",
 	);
+	const maybeFinishing = states.includes("uploading") && graceTicks > 0;
+	const courseId = course.id;
 	useEffect(() => {
-		if (!processing) return;
-		const timer = setInterval(() => router.invalidate(), 5000);
+		if (!processing && !maybeFinishing) return;
+		const timer = setInterval(async () => {
+			setGraceTicks((ticks) => Math.max(0, ticks - 1));
+			try {
+				setLiveVideos(await getCourseVideos({ data: { courseId } }));
+			} catch {
+				// Offline for a moment: try again on the next tick.
+			}
+		}, 5000);
 		return () => clearInterval(timer);
-	}, [processing, router]);
+	}, [processing, maybeFinishing, courseId]);
 
 	async function run(action: () => Promise<ActionResult>, success?: string) {
 		setPending(true);
@@ -84,7 +103,7 @@ function PanelCourseRoute() {
 		<PanelCoursePage
 			course={course}
 			tutors={tutors}
-			videos={videos}
+			videos={liveVideos}
 			certificates={certificates}
 			onCertificatesChanged={() => router.invalidate()}
 			onVideoChanged={() => router.invalidate()}

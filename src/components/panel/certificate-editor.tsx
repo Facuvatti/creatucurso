@@ -66,7 +66,9 @@ export function CertificateEditor({
 	// Loaded with fetch (not as a CSS image) so the browser sends the session
 	// cookie the same way in every environment and the Vite dev server accepts it.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: `version` forces a reload after an upload
+	const hasFrame = Boolean(template);
 	useEffect(() => {
+		if (!hasFrame) return;
 		let objectUrl: string | undefined;
 		let cancelled = false;
 		fetch(`/api/certificates/frame/${courseId}?v=${version}`)
@@ -81,7 +83,7 @@ export function CertificateEditor({
 			cancelled = true;
 			if (objectUrl) URL.revokeObjectURL(objectUrl);
 		};
-	}, [courseId, version]);
+	}, [courseId, version, hasFrame]);
 
 	// The server data changed (new frame): start from its fields again.
 	const serverFields = template?.fields;
