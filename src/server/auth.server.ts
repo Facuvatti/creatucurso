@@ -29,9 +29,8 @@ export const auth = betterAuth({
 		type: "postgres",
 		schemaName: "auth",
 	},
-	// Email verification is sent on sign-up but does not block login
-	// (requireEmailVerification stays off), so the flow works before an email
-	// provider is configured. Turn it on once email sending is live.
+	// People must confirm their email before they can sign in. The platform
+	// mailbox (/admin/correo) has to be connected for the emails to be sent.
 	emailVerification: {
 		sendOnSignUp: true,
 		autoSignInAfterVerification: true,
@@ -49,6 +48,7 @@ export const auth = betterAuth({
 	},
 	emailAndPassword: {
 		enabled: true,
+		requireEmailVerification: true,
 		sendResetPassword: async ({ user, url }) => {
 			void sendPlatformEmail({
 				to: user.email,

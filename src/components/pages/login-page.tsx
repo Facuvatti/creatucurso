@@ -3,6 +3,7 @@ export type LoginValues = { name: string; email: string; password: string };
 type Props = {
 	mode: "signin" | "signup";
 	error?: string | undefined;
+	notice?: string | undefined;
 	pending: boolean;
 	onToggleMode: () => void;
 	onSubmit: (values: LoginValues) => void;
@@ -11,6 +12,7 @@ type Props = {
 export function LoginPage({
 	mode,
 	error,
+	notice,
 	pending,
 	onToggleMode,
 	onSubmit,
@@ -52,6 +54,7 @@ export function LoginPage({
 					/>
 				</label>
 				{error && <p role="alert">{error}</p>}
+				{notice && <output>{notice}</output>}
 				<button type="submit" disabled={pending}>
 					{signingUp ? "Crear cuenta" : "Ingresar"}
 				</button>

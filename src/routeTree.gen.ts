@@ -15,8 +15,10 @@ import { Route as CrearAcademiaRouteImport } from './routes/crear-academia'
 import { Route as HandoffRouteImport } from './routes/handoff'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PrivacidadRouteImport } from './routes/privacidad'
 import { Route as RecuperarRouteImport } from './routes/recuperar'
 import { Route as RestablecerRouteImport } from './routes/restablecer'
+import { Route as TerminosRouteImport } from './routes/terminos'
 import { Route as AdminCorreoRouteImport } from './routes/admin.correo'
 import { Route as AuthHandoffRouteImport } from './routes/auth/handoff'
 import { Route as AuthLogoutRouteImport } from './routes/auth/logout'
@@ -79,6 +81,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacidadRoute = PrivacidadRouteImport.update({
+  id: '/privacidad',
+  path: '/privacidad',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RecuperarRoute = RecuperarRouteImport.update({
   id: '/recuperar',
   path: '/recuperar',
@@ -87,6 +94,11 @@ const RecuperarRoute = RecuperarRouteImport.update({
 const RestablecerRoute = RestablecerRouteImport.update({
   id: '/restablecer',
   path: '/restablecer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TerminosRoute = TerminosRouteImport.update({
+  id: '/terminos',
+  path: '/terminos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminCorreoRoute = AdminCorreoRouteImport.update({
@@ -261,8 +273,10 @@ export interface FileRoutesByFullPath {
   '/handoff': typeof HandoffRoute
   '/health': typeof HealthRoute
   '/login': typeof LoginRoute
+  '/privacidad': typeof PrivacidadRoute
   '/recuperar': typeof RecuperarRoute
   '/restablecer': typeof RestablecerRoute
+  '/terminos': typeof TerminosRoute
   '/admin/correo': typeof AdminCorreoRoute
   '/auth/handoff': typeof AuthHandoffRoute
   '/auth/logout': typeof AuthLogoutRoute
@@ -302,8 +316,10 @@ export interface FileRoutesByTo {
   '/handoff': typeof HandoffRoute
   '/health': typeof HealthRoute
   '/login': typeof LoginRoute
+  '/privacidad': typeof PrivacidadRoute
   '/recuperar': typeof RecuperarRoute
   '/restablecer': typeof RestablecerRoute
+  '/terminos': typeof TerminosRoute
   '/admin/correo': typeof AdminCorreoRoute
   '/auth/handoff': typeof AuthHandoffRoute
   '/auth/logout': typeof AuthLogoutRoute
@@ -344,8 +360,10 @@ export interface FileRoutesById {
   '/handoff': typeof HandoffRoute
   '/health': typeof HealthRoute
   '/login': typeof LoginRoute
+  '/privacidad': typeof PrivacidadRoute
   '/recuperar': typeof RecuperarRoute
   '/restablecer': typeof RestablecerRoute
+  '/terminos': typeof TerminosRoute
   '/admin/correo': typeof AdminCorreoRoute
   '/auth/handoff': typeof AuthHandoffRoute
   '/auth/logout': typeof AuthLogoutRoute
@@ -387,8 +405,10 @@ export interface FileRouteTypes {
     | '/handoff'
     | '/health'
     | '/login'
+    | '/privacidad'
     | '/recuperar'
     | '/restablecer'
+    | '/terminos'
     | '/admin/correo'
     | '/auth/handoff'
     | '/auth/logout'
@@ -428,8 +448,10 @@ export interface FileRouteTypes {
     | '/handoff'
     | '/health'
     | '/login'
+    | '/privacidad'
     | '/recuperar'
     | '/restablecer'
+    | '/terminos'
     | '/admin/correo'
     | '/auth/handoff'
     | '/auth/logout'
@@ -469,8 +491,10 @@ export interface FileRouteTypes {
     | '/handoff'
     | '/health'
     | '/login'
+    | '/privacidad'
     | '/recuperar'
     | '/restablecer'
+    | '/terminos'
     | '/admin/correo'
     | '/auth/handoff'
     | '/auth/logout'
@@ -511,8 +535,10 @@ export interface RootRouteChildren {
   HandoffRoute: typeof HandoffRoute
   HealthRoute: typeof HealthRoute
   LoginRoute: typeof LoginRoute
+  PrivacidadRoute: typeof PrivacidadRoute
   RecuperarRoute: typeof RecuperarRoute
   RestablecerRoute: typeof RestablecerRoute
+  TerminosRoute: typeof TerminosRoute
   AdminCorreoRoute: typeof AdminCorreoRoute
   AuthHandoffRoute: typeof AuthHandoffRoute
   AuthLogoutRoute: typeof AuthLogoutRoute
@@ -589,6 +615,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacidad': {
+      id: '/privacidad'
+      path: '/privacidad'
+      fullPath: '/privacidad'
+      preLoaderRoute: typeof PrivacidadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/recuperar': {
       id: '/recuperar'
       path: '/recuperar'
@@ -601,6 +634,13 @@ declare module '@tanstack/react-router' {
       path: '/restablecer'
       fullPath: '/restablecer'
       preLoaderRoute: typeof RestablecerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terminos': {
+      id: '/terminos'
+      path: '/terminos'
+      fullPath: '/terminos'
+      preLoaderRoute: typeof TerminosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/correo': {
@@ -845,8 +885,10 @@ const rootRouteChildren: RootRouteChildren = {
   HandoffRoute: HandoffRoute,
   HealthRoute: HealthRoute,
   LoginRoute: LoginRoute,
+  PrivacidadRoute: PrivacidadRoute,
   RecuperarRoute: RecuperarRoute,
   RestablecerRoute: RestablecerRoute,
+  TerminosRoute: TerminosRoute,
   AdminCorreoRoute: AdminCorreoRoute,
   AuthHandoffRoute: AuthHandoffRoute,
   AuthLogoutRoute: AuthLogoutRoute,
