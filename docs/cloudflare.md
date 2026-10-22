@@ -77,6 +77,9 @@ else is automatic (ADR-0024). One-time platform setup:
    Restart the web app and the worker (`pnpm worker` checks pending domains
    every minute). Without token and zone the panel says custom domains are not enabled.
 
+One-click setup at DNS providers that support Domain Connect (no manual
+CNAME): see `docs/domain-connect-setup.md` (ADR-0030).
+
 Notes: apex domains (`maria.com`) cannot use a CNAME, creators must use a
 subdomain. The app reads the customer hostname from `Host`; `X-Forwarded-Host`
 is ignored.
