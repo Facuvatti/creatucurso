@@ -1,0 +1,21 @@
+{
+	"providerId": "creatucurso.com.ar",
+	"providerName": "Creatucurso",
+	"serviceId": "customdomain",
+	"serviceName": "Dominio propio para tu academia",
+	"version": 1,
+	"logoUrl": "https://creatucurso.com.ar/logo.svg",
+	"description": "Points a subdomain of the customer (for example cursos.example.com) to the Creatucurso platform with one CNAME, so the online academy is served on that subdomain. The template is always applied with a host.",
+	"syncBlock": false,
+	"syncPubKeyDomain": "creatucurso.com.ar",
+	"syncRedirectDomain": "app.creatucurso.com.ar",
+	"hostRequired": true,
+	"records": [
+		{
+			"type": "CNAME",
+			"host": "@",
+			"pointsTo": "dominios.creatucurso.com.ar",
+			"ttl": 3600
+		}
+	]
+}
