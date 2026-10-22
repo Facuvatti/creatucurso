@@ -2,8 +2,11 @@ import {
 	createRootRoute,
 	HeadContent,
 	notFound,
+	Outlet,
 	Scripts,
 } from "@tanstack/react-router";
+import { can } from "../areas/identity/permissions.ts";
+import { BillingNotice } from "../components/pages/billing-panel-page.tsx";
 import { NotFoundPage } from "../components/pages/not-found-page.tsx";
 import { getRequestContext } from "../server/request-context.functions.ts";
 import appCss from "../styles.css?url";
@@ -24,7 +27,25 @@ export const Route = createRootRoute({
 	}),
 	notFoundComponent: NotFoundPage,
 	shellComponent: RootDocument,
+	component: RootLayout,
 });
+
+/** Every page of an academy: the past-due / suspended notice (ADR-0029), then the page. */
+function RootLayout() {
+	const { billing, roles } = Route.useRouteContext();
+	return (
+		<>
+			{billing && (
+				<BillingNotice
+					billing={billing}
+					staff={can(roles, { course: ["update"] })}
+					owner={can(roles, { billing: ["manage"] })}
+				/>
+			)}
+			<Outlet />
+		</>
+	);
+}
 
 function RootDocument({ children }: { children: React.ReactNode }) {
 	return (
