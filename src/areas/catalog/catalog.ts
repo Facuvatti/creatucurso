@@ -573,17 +573,73 @@ export async function completedLessonIds(
 }
 
 /**
- * The single completion rule. Today it only needs every lesson done; extra
- * requirements (required exams) are added here later.
+ * The single completion rule: every lesson done and a passing attempt on each
+ * required published exam (ADR-0033).
  */
 export function courseRequirementsMet(progress: {
 	totalLessons: number;
 	completedLessons: number;
+	pendingRequiredExams: number;
 }): boolean {
 	return (
 		progress.totalLessons > 0 &&
-		progress.completedLessons === progress.totalLessons
+		progress.completedLessons === progress.totalLessons &&
+		progress.pendingRequiredExams === 0
 	);
+}
+
+/**
+ * Checks the completion rule for one student inside the caller's transaction and,
+ * the first time it holds, completes the enrollment and emits `course.completed`.
+ * Called after a lesson is completed and after a required exam is passed.
+ */
+export async function completeCourseIfDone(
+	client: PoolClient,
+	courseId: string,
+	userId: string,
+): Promise<CompletionResult> {
+	const counts = await client.query<{
+		total: string;
+		done: string;
+		pending_exams: string;
+	}>(
+		`select count(*) as total,
+		        count(p.lesson_id) as done,
+		        (select count(*) from exams.exam e
+		          where e.course_id = $1 and e.required and e.published
+		            and not exists (select 1 from exams.attempt a
+		                             where a.exam_id = e.id and a.user_id = $2 and a.passed)) as pending_exams
+		 from catalog.lesson l
+		 left join catalog.lesson_progress p on p.lesson_id = l.id and p.user_id = $2
+		 where l.course_id = $1`,
+		[courseId, userId],
+	);
+	const courseCompleted = courseRequirementsMet({
+		totalLessons: Number(counts.rows[0]?.total ?? 0),
+		completedLessons: Number(counts.rows[0]?.done ?? 0),
+		pendingRequiredExams: Number(counts.rows[0]?.pending_exams ?? 0),
+	});
+
+	let justCompleted = false;
+	if (courseCompleted) {
+		const marked = await client.query<{ id: string }>(
+			`update catalog.enrollment set completed_at = now()
+			 where course_id = $1 and user_id = $2 and completed_at is null and status = 'active'
+			 returning id`,
+			[courseId, userId],
+		);
+		const enrollment = marked.rows[0];
+		justCompleted = !!enrollment;
+		if (enrollment) {
+			await emitEvent(
+				client,
+				"course.completed",
+				{ enrollmentId: enrollment.id, courseId, userId },
+				`course.completed:${enrollment.id}`,
+			);
+		}
+	}
+	return { courseCompleted, justCompleted };
 }
 
 export async function completeLesson(
@@ -598,39 +654,7 @@ export async function completeLesson(
 			 on conflict do nothing`,
 			[courseId, lessonId, userId],
 		);
-		const counts = await client.query<{ total: string; done: string }>(
-			`select count(*) as total,
-			        count(p.lesson_id) as done
-			 from catalog.lesson l
-			 left join catalog.lesson_progress p on p.lesson_id = l.id and p.user_id = $2
-			 where l.course_id = $1`,
-			[courseId, userId],
-		);
-		const courseCompleted = courseRequirementsMet({
-			totalLessons: Number(counts.rows[0]?.total ?? 0),
-			completedLessons: Number(counts.rows[0]?.done ?? 0),
-		});
-
-		let justCompleted = false;
-		if (courseCompleted) {
-			const marked = await client.query<{ id: string }>(
-				`update catalog.enrollment set completed_at = now()
-				 where course_id = $1 and user_id = $2 and completed_at is null and status = 'active'
-				 returning id`,
-				[courseId, userId],
-			);
-			const enrollment = marked.rows[0];
-			justCompleted = !!enrollment;
-			if (enrollment) {
-				await emitEvent(
-					client,
-					"course.completed",
-					{ enrollmentId: enrollment.id, courseId, userId },
-					`course.completed:${enrollment.id}`,
-				);
-			}
-		}
-		return { courseCompleted, justCompleted };
+		return completeCourseIfDone(client, courseId, userId);
 	});
 }
 

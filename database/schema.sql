@@ -118,6 +118,77 @@ create table if not exists catalog.lesson_progress (
 	primary key (lesson_id, user_id)
 );
 
+-- Our tables: exams (form exams graded instantly; ADR-0033) -----------------------------
+-- The answer key (option.correct, accepted_answer) is read only by the server. Student
+-- queries never select it before the attempt is submitted.
+create schema if not exists exams;
+
+create table if not exists exams.exam (
+	id uuid primary key default gen_random_uuid(),
+	organization_id text not null references auth.organization (id) on delete cascade,
+	course_id uuid not null references catalog.course (id) on delete cascade,
+	module_id uuid references catalog.module (id) on delete set null,
+	title text not null,
+	passing_score integer not null default 60 check (passing_score between 0 and 100),
+	max_attempts integer check (max_attempts > 0),
+	time_limit_seconds integer check (time_limit_seconds > 0),
+	shuffle_questions boolean not null default false,
+	shuffle_options boolean not null default false,
+	show_answers_after boolean not null default false,
+	required boolean not null default false,
+	published boolean not null default false,
+	created_at timestamptz not null default now()
+);
+create index if not exists exam_course_idx on exams.exam (course_id);
+
+create table if not exists exams.question (
+	id uuid primary key default gen_random_uuid(),
+	exam_id uuid not null references exams.exam (id) on delete cascade,
+	position integer not null check (position > 0),
+	kind text not null check (kind in ('single', 'multiple', 'truefalse', 'short_text', 'numeric')),
+	prompt text not null,
+	points integer not null default 1 check (points > 0)
+);
+create index if not exists question_exam_idx on exams.question (exam_id, position);
+
+-- Choices of single / multiple / truefalse questions.
+create table if not exists exams.option (
+	id uuid primary key default gen_random_uuid(),
+	question_id uuid not null references exams.question (id) on delete cascade,
+	position integer not null check (position > 0),
+	text text not null,
+	correct boolean not null default false
+);
+create index if not exists option_question_idx on exams.option (question_id, position);
+
+-- Answer key of short_text (value) and numeric (value + tolerance) questions.
+create table if not exists exams.accepted_answer (
+	id uuid primary key default gen_random_uuid(),
+	question_id uuid not null references exams.question (id) on delete cascade,
+	value text not null,
+	numeric_tolerance numeric check (numeric_tolerance >= 0)
+);
+create index if not exists accepted_answer_question_idx on exams.accepted_answer (question_id);
+
+-- layout: the shuffled order of this attempt ({"questions": [ids], "options": {questionId: [ids]}}),
+-- stored so a reload shows the same order. answers: {questionId: [optionIds] | "text"}.
+-- expired: submitted after the time limit; it scores 0 and cannot pass.
+create table if not exists exams.attempt (
+	id uuid primary key default gen_random_uuid(),
+	exam_id uuid not null references exams.exam (id) on delete cascade,
+	user_id text not null references auth."user" (id) on delete cascade,
+	started_at timestamptz not null default now(),
+	submitted_at timestamptz,
+	score integer check (score between 0 and 100),
+	passed boolean,
+	expired boolean not null default false,
+	layout jsonb not null default '{}'::jsonb,
+	answers jsonb not null default '{}'::jsonb
+);
+create index if not exists attempt_exam_user_idx on exams.attempt (exam_id, user_id);
+-- At most one open attempt per student and exam (also guards a double click on "Empezar").
+create unique index if not exists attempt_one_open_idx on exams.attempt (exam_id, user_id) where submitted_at is null;
+
 -- Our tables: payments (per-academy gateway account and each payment) -----------------
 create schema if not exists payments;
 
