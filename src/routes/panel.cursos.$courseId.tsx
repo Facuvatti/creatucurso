@@ -20,6 +20,7 @@ import {
 	getCourseTutors,
 	removeTutor,
 } from "../server/community.functions.ts";
+import { getPanelExams } from "../server/exams.functions.ts";
 import { getCourseVideos } from "../server/media.functions.ts";
 import { setCoursePrice } from "../server/payments.functions.ts";
 
@@ -48,7 +49,8 @@ export const Route = createFileRoute("/panel/cursos/$courseId")({
 		const certificates = await getCertificatePanel({
 			data: { courseId: params.courseId },
 		});
-		return { course, tutors, videos, certificates };
+		const exams = await getPanelExams({ data: { courseId: params.courseId } });
+		return { course, tutors, videos, certificates, exams };
 	},
 	head: ({ loaderData }) => ({
 		meta: [{ title: `${loaderData?.course.name ?? "Curso"} | Panel` }],
@@ -57,7 +59,7 @@ export const Route = createFileRoute("/panel/cursos/$courseId")({
 });
 
 function PanelCourseRoute() {
-	const { course, tutors, videos, certificates } = Route.useLoaderData();
+	const { course, tutors, videos, certificates, exams } = Route.useLoaderData();
 	const router = useRouter();
 	const [pending, setPending] = useState(false);
 	const [message, setMessage] = useState<string>();
@@ -105,6 +107,8 @@ function PanelCourseRoute() {
 			tutors={tutors}
 			videos={liveVideos}
 			certificates={certificates}
+			exams={exams}
+			onExamsChanged={() => router.invalidate()}
 			onCertificatesChanged={() => router.invalidate()}
 			onVideoChanged={() => router.invalidate()}
 			message={message}

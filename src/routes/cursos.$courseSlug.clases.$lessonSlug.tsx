@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-router";
 import { useState } from "react";
 import { CommentsSection } from "../components/community/comments-section.tsx";
+import { ExamList } from "../components/pages/exam-page.tsx";
 import { LessonPage } from "../components/pages/lesson-page.tsx";
 import { completeLesson, getLessonPage } from "../server/catalog.functions.ts";
 import {
@@ -15,6 +16,7 @@ import {
 	setCommentFlag,
 	setCommentVisibility,
 } from "../server/community.functions.ts";
+import { getCourseExams } from "../server/exams.functions.ts";
 
 export const Route = createFileRoute("/cursos/$courseSlug/clases/$lessonSlug")({
 	beforeLoad: ({ context }) => {
@@ -25,7 +27,11 @@ export const Route = createFileRoute("/cursos/$courseSlug/clases/$lessonSlug")({
 		if (result.kind === "notFound") throw notFound();
 		const comments =
 			result.kind === "ok" ? await getLessonComments({ data: params }) : null;
-		return { page: result, comments };
+		const exams =
+			result.kind === "ok"
+				? await getCourseExams({ data: { courseSlug: params.courseSlug } })
+				: [];
+		return { page: result, comments, exams };
 	},
 	head: ({ loaderData }) => ({
 		meta: [
@@ -41,7 +47,7 @@ export const Route = createFileRoute("/cursos/$courseSlug/clases/$lessonSlug")({
 });
 
 function LessonRoute() {
-	const { page: data, comments } = Route.useLoaderData();
+	const { page: data, comments, exams } = Route.useLoaderData();
 	const params = Route.useParams();
 	const { origin, appOrigin, user } = Route.useRouteContext();
 	const router = useRouter();
@@ -87,6 +93,7 @@ function LessonRoute() {
 				setPending(false);
 			}}
 		>
+			<ExamList courseSlug={params.courseSlug} exams={exams} />
 			{comments && (
 				<CommentsSection
 					data={comments}

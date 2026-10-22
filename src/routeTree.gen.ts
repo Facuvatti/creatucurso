@@ -52,6 +52,7 @@ import { Route as ApiMediaKeyVideoIdRouteImport } from './routes/api/media/key.$
 import { Route as ApiWebhooksHyperswitchOrganizationIdRouteImport } from './routes/api/webhooks/hyperswitch.$organizationId'
 import { Route as ApiWebhooksMercadopagoOrganizationIdRouteImport } from './routes/api/webhooks/mercadopago.$organizationId'
 import { Route as CursosCourseSlugClasesLessonSlugRouteImport } from './routes/cursos.$courseSlug.clases.$lessonSlug'
+import { Route as CursosCourseSlugExamenesExamIdRouteImport } from './routes/cursos.$courseSlug.examenes.$examId'
 import { Route as ApiMediaPlaylistVideoIdNameRouteImport } from './routes/api/media/playlist.$videoId.$name'
 
 const IndexRoute = IndexRouteImport.update({
@@ -279,6 +280,12 @@ const CursosCourseSlugClasesLessonSlugRoute =
     path: '/cursos/$courseSlug/clases/$lessonSlug',
     getParentRoute: () => rootRouteImport,
   } as any)
+const CursosCourseSlugExamenesExamIdRoute =
+  CursosCourseSlugExamenesExamIdRouteImport.update({
+    id: '/cursos/$courseSlug/examenes/$examId',
+    path: '/cursos/$courseSlug/examenes/$examId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiMediaPlaylistVideoIdNameRoute =
   ApiMediaPlaylistVideoIdNameRouteImport.update({
     id: '/api/media/playlist/$videoId/$name',
@@ -330,6 +337,7 @@ export interface FileRoutesByFullPath {
   '/api/webhooks/hyperswitch/$organizationId': typeof ApiWebhooksHyperswitchOrganizationIdRoute
   '/api/webhooks/mercadopago/$organizationId': typeof ApiWebhooksMercadopagoOrganizationIdRoute
   '/cursos/$courseSlug/clases/$lessonSlug': typeof CursosCourseSlugClasesLessonSlugRoute
+  '/cursos/$courseSlug/examenes/$examId': typeof CursosCourseSlugExamenesExamIdRoute
   '/api/media/playlist/$videoId/$name': typeof ApiMediaPlaylistVideoIdNameRoute
 }
 export interface FileRoutesByTo {
@@ -376,6 +384,7 @@ export interface FileRoutesByTo {
   '/api/webhooks/hyperswitch/$organizationId': typeof ApiWebhooksHyperswitchOrganizationIdRoute
   '/api/webhooks/mercadopago/$organizationId': typeof ApiWebhooksMercadopagoOrganizationIdRoute
   '/cursos/$courseSlug/clases/$lessonSlug': typeof CursosCourseSlugClasesLessonSlugRoute
+  '/cursos/$courseSlug/examenes/$examId': typeof CursosCourseSlugExamenesExamIdRoute
   '/api/media/playlist/$videoId/$name': typeof ApiMediaPlaylistVideoIdNameRoute
 }
 export interface FileRoutesById {
@@ -423,6 +432,7 @@ export interface FileRoutesById {
   '/api/webhooks/hyperswitch/$organizationId': typeof ApiWebhooksHyperswitchOrganizationIdRoute
   '/api/webhooks/mercadopago/$organizationId': typeof ApiWebhooksMercadopagoOrganizationIdRoute
   '/cursos/$courseSlug/clases/$lessonSlug': typeof CursosCourseSlugClasesLessonSlugRoute
+  '/cursos/$courseSlug/examenes/$examId': typeof CursosCourseSlugExamenesExamIdRoute
   '/api/media/playlist/$videoId/$name': typeof ApiMediaPlaylistVideoIdNameRoute
 }
 export interface FileRouteTypes {
@@ -471,6 +481,7 @@ export interface FileRouteTypes {
     | '/api/webhooks/hyperswitch/$organizationId'
     | '/api/webhooks/mercadopago/$organizationId'
     | '/cursos/$courseSlug/clases/$lessonSlug'
+    | '/cursos/$courseSlug/examenes/$examId'
     | '/api/media/playlist/$videoId/$name'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -517,6 +528,7 @@ export interface FileRouteTypes {
     | '/api/webhooks/hyperswitch/$organizationId'
     | '/api/webhooks/mercadopago/$organizationId'
     | '/cursos/$courseSlug/clases/$lessonSlug'
+    | '/cursos/$courseSlug/examenes/$examId'
     | '/api/media/playlist/$videoId/$name'
   id:
     | '__root__'
@@ -563,6 +575,7 @@ export interface FileRouteTypes {
     | '/api/webhooks/hyperswitch/$organizationId'
     | '/api/webhooks/mercadopago/$organizationId'
     | '/cursos/$courseSlug/clases/$lessonSlug'
+    | '/cursos/$courseSlug/examenes/$examId'
     | '/api/media/playlist/$videoId/$name'
   fileRoutesById: FileRoutesById
 }
@@ -609,6 +622,7 @@ export interface RootRouteChildren {
   ApiMediaKeyVideoIdRoute: typeof ApiMediaKeyVideoIdRoute
   ApiWebhooksHyperswitchOrganizationIdRoute: typeof ApiWebhooksHyperswitchOrganizationIdRoute
   CursosCourseSlugClasesLessonSlugRoute: typeof CursosCourseSlugClasesLessonSlugRoute
+  CursosCourseSlugExamenesExamIdRoute: typeof CursosCourseSlugExamenesExamIdRoute
   ApiMediaPlaylistVideoIdNameRoute: typeof ApiMediaPlaylistVideoIdNameRoute
 }
 
@@ -915,6 +929,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CursosCourseSlugClasesLessonSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cursos/$courseSlug/examenes/$examId': {
+      id: '/cursos/$courseSlug/examenes/$examId'
+      path: '/cursos/$courseSlug/examenes/$examId'
+      fullPath: '/cursos/$courseSlug/examenes/$examId'
+      preLoaderRoute: typeof CursosCourseSlugExamenesExamIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/media/playlist/$videoId/$name': {
       id: '/api/media/playlist/$videoId/$name'
       path: '/api/media/playlist/$videoId/$name'
@@ -985,6 +1006,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiWebhooksHyperswitchOrganizationIdRoute:
     ApiWebhooksHyperswitchOrganizationIdRoute,
   CursosCourseSlugClasesLessonSlugRoute: CursosCourseSlugClasesLessonSlugRoute,
+  CursosCourseSlugExamenesExamIdRoute: CursosCourseSlugExamenesExamIdRoute,
   ApiMediaPlaylistVideoIdNameRoute: ApiMediaPlaylistVideoIdNameRoute,
 }
 export const routeTree = rootRouteImport

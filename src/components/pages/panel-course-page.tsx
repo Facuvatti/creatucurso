@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { CourseOutline } from "../../areas/catalog/types.ts";
+import type { StaffExam } from "../../areas/exams/types.ts";
 import type { VideoInfo } from "../../areas/media/types.ts";
 import type { CertificatePanel } from "../../server/certificates.functions.ts";
 import type { Tutor } from "../../server/community.functions.ts";
@@ -12,12 +13,15 @@ import {
 	PublishControl,
 	StructureEditor,
 } from "../panel/course-editor.tsx";
+import { ExamEditor } from "../panel/exam-editor.tsx";
 
 type Props = {
 	course: CourseOutline;
 	tutors: Tutor[];
 	videos: Record<string, VideoInfo>;
 	certificates: CertificatePanel;
+	exams: StaffExam[];
+	onExamsChanged: () => void;
 	onCertificatesChanged: () => void;
 	onVideoChanged: () => void;
 	message?: string | undefined;
@@ -43,6 +47,8 @@ export function PanelCoursePage({
 	tutors,
 	videos,
 	certificates,
+	exams,
+	onExamsChanged,
 	onCertificatesChanged,
 	onVideoChanged,
 	message,
@@ -171,6 +177,13 @@ export function PanelCoursePage({
 					</button>
 				</form>
 			</section>
+
+			<ExamEditor
+				courseId={course.id}
+				modules={course.modules.map((m) => ({ id: m.id, title: m.title }))}
+				exams={exams}
+				onChanged={onExamsChanged}
+			/>
 
 			<CertificateEditor
 				courseId={course.id}
