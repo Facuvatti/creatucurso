@@ -26,6 +26,7 @@ import { Route as BajaTokenRouteImport } from './routes/baja.$token'
 import { Route as PanelIndexRouteImport } from './routes/panel.index'
 import { Route as PanelAutomatizacionesRouteImport } from './routes/panel.automatizaciones'
 import { Route as PanelDominioRouteImport } from './routes/panel.dominio'
+import { Route as PanelFacturacionRouteImport } from './routes/panel.facturacion'
 import { Route as PanelModeracionRouteImport } from './routes/panel.moderacion'
 import { Route as PanelPagosRouteImport } from './routes/panel.pagos'
 import { Route as PanelTutoriaRouteImport } from './routes/panel.tutoria'
@@ -36,6 +37,7 @@ import { Route as ApiMediaSessionRouteImport } from './routes/api/media/session'
 import { Route as ApiMediaTusHookRouteImport } from './routes/api/media/tus-hook'
 import { Route as ApiMercadopagoCallbackRouteImport } from './routes/api/mercadopago/callback'
 import { Route as ApiWebhooksMercadopagoRouteImport } from './routes/api/webhooks/mercadopago'
+import { Route as ApiWebhooksMercadopagoBillingRouteImport } from './routes/api/webhooks/mercadopago-billing'
 import { Route as CertificadosCredentialIdIndexRouteImport } from './routes/certificados.$credentialId.index'
 import { Route as CertificadosCredentialIdPdfRouteImport } from './routes/certificados.$credentialId.pdf'
 import { Route as CursosCourseSlugIndexRouteImport } from './routes/cursos.$courseSlug.index'
@@ -137,6 +139,11 @@ const PanelDominioRoute = PanelDominioRouteImport.update({
   path: '/panel/dominio',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PanelFacturacionRoute = PanelFacturacionRouteImport.update({
+  id: '/panel/facturacion',
+  path: '/panel/facturacion',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PanelModeracionRoute = PanelModeracionRouteImport.update({
   id: '/panel/moderacion',
   path: '/panel/moderacion',
@@ -187,6 +194,12 @@ const ApiWebhooksMercadopagoRoute = ApiWebhooksMercadopagoRouteImport.update({
   path: '/api/webhooks/mercadopago',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWebhooksMercadopagoBillingRoute =
+  ApiWebhooksMercadopagoBillingRouteImport.update({
+    id: '/api/webhooks/mercadopago-billing',
+    path: '/api/webhooks/mercadopago-billing',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const CertificadosCredentialIdIndexRoute =
   CertificadosCredentialIdIndexRouteImport.update({
     id: '/certificados/$credentialId/',
@@ -290,6 +303,7 @@ export interface FileRoutesByFullPath {
   '/baja/$token': typeof BajaTokenRoute
   '/panel/automatizaciones': typeof PanelAutomatizacionesRoute
   '/panel/dominio': typeof PanelDominioRoute
+  '/panel/facturacion': typeof PanelFacturacionRoute
   '/panel/moderacion': typeof PanelModeracionRoute
   '/panel/pagos': typeof PanelPagosRoute
   '/panel/tutoria': typeof PanelTutoriaRoute
@@ -301,6 +315,7 @@ export interface FileRoutesByFullPath {
   '/api/media/tus-hook': typeof ApiMediaTusHookRoute
   '/api/mercadopago/callback': typeof ApiMercadopagoCallbackRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRouteWithChildren
+  '/api/webhooks/mercadopago-billing': typeof ApiWebhooksMercadopagoBillingRoute
   '/certificados/$credentialId/pdf': typeof CertificadosCredentialIdPdfRoute
   '/cursos/$courseSlug/compra': typeof CursosCourseSlugCompraRoute
   '/cursos/$courseSlug/comprar': typeof CursosCourseSlugComprarRoute
@@ -334,6 +349,7 @@ export interface FileRoutesByTo {
   '/baja/$token': typeof BajaTokenRoute
   '/panel/automatizaciones': typeof PanelAutomatizacionesRoute
   '/panel/dominio': typeof PanelDominioRoute
+  '/panel/facturacion': typeof PanelFacturacionRoute
   '/panel/moderacion': typeof PanelModeracionRoute
   '/panel/pagos': typeof PanelPagosRoute
   '/panel/tutoria': typeof PanelTutoriaRoute
@@ -345,6 +361,7 @@ export interface FileRoutesByTo {
   '/api/media/tus-hook': typeof ApiMediaTusHookRoute
   '/api/mercadopago/callback': typeof ApiMercadopagoCallbackRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRouteWithChildren
+  '/api/webhooks/mercadopago-billing': typeof ApiWebhooksMercadopagoBillingRoute
   '/certificados/$credentialId/pdf': typeof CertificadosCredentialIdPdfRoute
   '/cursos/$courseSlug/compra': typeof CursosCourseSlugCompraRoute
   '/cursos/$courseSlug/comprar': typeof CursosCourseSlugComprarRoute
@@ -379,6 +396,7 @@ export interface FileRoutesById {
   '/baja/$token': typeof BajaTokenRoute
   '/panel/automatizaciones': typeof PanelAutomatizacionesRoute
   '/panel/dominio': typeof PanelDominioRoute
+  '/panel/facturacion': typeof PanelFacturacionRoute
   '/panel/moderacion': typeof PanelModeracionRoute
   '/panel/pagos': typeof PanelPagosRoute
   '/panel/tutoria': typeof PanelTutoriaRoute
@@ -390,6 +408,7 @@ export interface FileRoutesById {
   '/api/media/tus-hook': typeof ApiMediaTusHookRoute
   '/api/mercadopago/callback': typeof ApiMercadopagoCallbackRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRouteWithChildren
+  '/api/webhooks/mercadopago-billing': typeof ApiWebhooksMercadopagoBillingRoute
   '/certificados/$credentialId/pdf': typeof CertificadosCredentialIdPdfRoute
   '/cursos/$courseSlug/compra': typeof CursosCourseSlugCompraRoute
   '/cursos/$courseSlug/comprar': typeof CursosCourseSlugComprarRoute
@@ -425,6 +444,7 @@ export interface FileRouteTypes {
     | '/baja/$token'
     | '/panel/automatizaciones'
     | '/panel/dominio'
+    | '/panel/facturacion'
     | '/panel/moderacion'
     | '/panel/pagos'
     | '/panel/tutoria'
@@ -436,6 +456,7 @@ export interface FileRouteTypes {
     | '/api/media/tus-hook'
     | '/api/mercadopago/callback'
     | '/api/webhooks/mercadopago'
+    | '/api/webhooks/mercadopago-billing'
     | '/certificados/$credentialId/pdf'
     | '/cursos/$courseSlug/compra'
     | '/cursos/$courseSlug/comprar'
@@ -469,6 +490,7 @@ export interface FileRouteTypes {
     | '/baja/$token'
     | '/panel/automatizaciones'
     | '/panel/dominio'
+    | '/panel/facturacion'
     | '/panel/moderacion'
     | '/panel/pagos'
     | '/panel/tutoria'
@@ -480,6 +502,7 @@ export interface FileRouteTypes {
     | '/api/media/tus-hook'
     | '/api/mercadopago/callback'
     | '/api/webhooks/mercadopago'
+    | '/api/webhooks/mercadopago-billing'
     | '/certificados/$credentialId/pdf'
     | '/cursos/$courseSlug/compra'
     | '/cursos/$courseSlug/comprar'
@@ -513,6 +536,7 @@ export interface FileRouteTypes {
     | '/baja/$token'
     | '/panel/automatizaciones'
     | '/panel/dominio'
+    | '/panel/facturacion'
     | '/panel/moderacion'
     | '/panel/pagos'
     | '/panel/tutoria'
@@ -524,6 +548,7 @@ export interface FileRouteTypes {
     | '/api/media/tus-hook'
     | '/api/mercadopago/callback'
     | '/api/webhooks/mercadopago'
+    | '/api/webhooks/mercadopago-billing'
     | '/certificados/$credentialId/pdf'
     | '/cursos/$courseSlug/compra'
     | '/cursos/$courseSlug/comprar'
@@ -558,6 +583,7 @@ export interface RootRouteChildren {
   BajaTokenRoute: typeof BajaTokenRoute
   PanelAutomatizacionesRoute: typeof PanelAutomatizacionesRoute
   PanelDominioRoute: typeof PanelDominioRoute
+  PanelFacturacionRoute: typeof PanelFacturacionRoute
   PanelModeracionRoute: typeof PanelModeracionRoute
   PanelPagosRoute: typeof PanelPagosRoute
   PanelTutoriaRoute: typeof PanelTutoriaRoute
@@ -569,6 +595,7 @@ export interface RootRouteChildren {
   ApiMediaTusHookRoute: typeof ApiMediaTusHookRoute
   ApiMercadopagoCallbackRoute: typeof ApiMercadopagoCallbackRoute
   ApiWebhooksMercadopagoRoute: typeof ApiWebhooksMercadopagoRouteWithChildren
+  ApiWebhooksMercadopagoBillingRoute: typeof ApiWebhooksMercadopagoBillingRoute
   CertificadosCredentialIdPdfRoute: typeof CertificadosCredentialIdPdfRoute
   CursosCourseSlugCompraRoute: typeof CursosCourseSlugCompraRoute
   CursosCourseSlugComprarRoute: typeof CursosCourseSlugComprarRoute
@@ -706,6 +733,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PanelDominioRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/panel/facturacion': {
+      id: '/panel/facturacion'
+      path: '/panel/facturacion'
+      fullPath: '/panel/facturacion'
+      preLoaderRoute: typeof PanelFacturacionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/panel/moderacion': {
       id: '/panel/moderacion'
       path: '/panel/moderacion'
@@ -774,6 +808,13 @@ declare module '@tanstack/react-router' {
       path: '/api/webhooks/mercadopago'
       fullPath: '/api/webhooks/mercadopago'
       preLoaderRoute: typeof ApiWebhooksMercadopagoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/webhooks/mercadopago-billing': {
+      id: '/api/webhooks/mercadopago-billing'
+      path: '/api/webhooks/mercadopago-billing'
+      fullPath: '/api/webhooks/mercadopago-billing'
+      preLoaderRoute: typeof ApiWebhooksMercadopagoBillingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/certificados/$credentialId/': {
@@ -916,6 +957,7 @@ const rootRouteChildren: RootRouteChildren = {
   BajaTokenRoute: BajaTokenRoute,
   PanelAutomatizacionesRoute: PanelAutomatizacionesRoute,
   PanelDominioRoute: PanelDominioRoute,
+  PanelFacturacionRoute: PanelFacturacionRoute,
   PanelModeracionRoute: PanelModeracionRoute,
   PanelPagosRoute: PanelPagosRoute,
   PanelTutoriaRoute: PanelTutoriaRoute,
@@ -927,6 +969,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMediaTusHookRoute: ApiMediaTusHookRoute,
   ApiMercadopagoCallbackRoute: ApiMercadopagoCallbackRoute,
   ApiWebhooksMercadopagoRoute: ApiWebhooksMercadopagoRouteWithChildren,
+  ApiWebhooksMercadopagoBillingRoute: ApiWebhooksMercadopagoBillingRoute,
   CertificadosCredentialIdPdfRoute: CertificadosCredentialIdPdfRoute,
   CursosCourseSlugCompraRoute: CursosCourseSlugCompraRoute,
   CursosCourseSlugComprarRoute: CursosCourseSlugComprarRoute,
