@@ -8,13 +8,29 @@ import { useState } from "react";
 import { PanelDomainPage } from "../components/pages/panel-domain-page.tsx";
 import {
 	checkDomain,
+	connectDomain,
 	type DomainResult,
 	deleteDomain,
 	getDomainPanel,
 	saveDomain,
 } from "../server/domain.functions.ts";
 
+/** Messages after the DNS provider sends the owner back (Domain Connect). */
+const FLASH: Record<string, string> = {
+	ok: "Tu proveedor aplicó el registro. Ya estamos preparando el certificado.",
+	pendiente:
+		"Tu proveedor recibió el cambio. Puede tardar unos minutos en verse; lo seguimos verificando solos.",
+	cancelado:
+		"Cancelaste la conexión en tu proveedor. Podés intentarlo de nuevo.",
+	error:
+		"Tu proveedor no pudo aplicar el registro. Intentá de nuevo o crealo a mano.",
+};
+
 export const Route = createFileRoute("/panel/dominio")({
+	validateSearch: (search: Record<string, unknown>): { conexion?: string } =>
+		typeof search.conexion === "string" && search.conexion in FLASH
+			? { conexion: search.conexion }
+			: {},
 	beforeLoad: ({ context }) => {
 		if (context.host.kind !== "tenant") throw notFound();
 		if (!context.user) {
@@ -33,8 +49,22 @@ export const Route = createFileRoute("/panel/dominio")({
 function DomainRoute() {
 	const state = Route.useLoaderData();
 	const router = useRouter();
+	const { conexion } = Route.useSearch();
 	const [pending, setPending] = useState(false);
-	const [message, setMessage] = useState<string>();
+	const [message, setMessage] = useState<string | undefined>(
+		conexion ? FLASH[conexion] : undefined,
+	);
+
+	async function connect() {
+		setPending(true);
+		const result = await connectDomain();
+		if (result.ok) {
+			window.location.assign(result.url);
+			return;
+		}
+		setMessage(result.message);
+		setPending(false);
+	}
 
 	async function run(action: () => Promise<DomainResult>, success: string) {
 		setPending(true);
@@ -53,6 +83,7 @@ function DomainRoute() {
 				run(() => saveDomain({ data: { domain } }), "Dominio guardado.")
 			}
 			onVerify={() => run(() => checkDomain(), "Estado actualizado.")}
+			onConnect={connect}
 			onRemove={() => run(() => deleteDomain(), "Dominio quitado.")}
 		/>
 	);

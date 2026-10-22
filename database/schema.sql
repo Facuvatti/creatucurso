@@ -293,6 +293,17 @@ create table if not exists tenancy.domain_check (
 	created_at timestamptz not null default now()
 );
 
+-- Single-use state of a Domain Connect attempt in flight (ADR-0030): the owner was
+-- sent to their DNS provider to apply our CNAME template and comes back with it.
+create table if not exists tenancy.domain_connect_state (
+	state_hash text primary key,
+	organization_id text not null references auth.organization (id) on delete cascade,
+	user_id text not null references auth."user" (id) on delete cascade,
+	domain text not null,
+	return_origin text not null,
+	expires_at timestamptz not null
+);
+
 -- Our tables: media (Basic-tier video: upload, encoding, playback; ADR-0020) -------------
 create schema if not exists media;
 

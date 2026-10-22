@@ -1,12 +1,13 @@
 import { Link } from "@tanstack/react-router";
-import type { DomainState } from "../../server/domain.functions.ts";
+import type { DomainPanel } from "../../server/domain.functions.ts";
 
 type Props = {
-	state: DomainState;
+	state: DomainPanel;
 	message?: string | undefined;
 	pending: boolean;
 	onSave: (domain: string) => void;
 	onVerify: () => void;
+	onConnect: () => void;
 	onRemove: () => void;
 };
 
@@ -23,6 +24,7 @@ export function PanelDomainPage({
 	pending,
 	onSave,
 	onVerify,
+	onConnect,
 	onRemove,
 }: Props) {
 	return (
@@ -48,10 +50,29 @@ export function PanelDomainPage({
 						<p>Tu dominio ya funciona.</p>
 					) : (
 						<>
-							<p>
-								En el sitio donde compraste el dominio, creá este registro DNS.
-								Es el único paso; el resto es automático.
-							</p>
+							{state.connectProvider ? (
+								<>
+									<p>
+										Tu dominio está en {state.connectProvider}. Podés conectarlo
+										sin tocar el DNS: solo tenés que autorizar el cambio.
+									</p>
+									<p>
+										<button
+											type="button"
+											disabled={pending}
+											onClick={onConnect}
+										>
+											Conectar automáticamente con {state.connectProvider}
+										</button>
+									</p>
+									<p>Si preferís hacerlo a mano, creá este registro DNS:</p>
+								</>
+							) : (
+								<p>
+									En el sitio donde compraste el dominio, creá este registro
+									DNS. Es el único paso; el resto es automático.
+								</p>
+							)}
 							<dl>
 								<dt>Tipo</dt>
 								<dd>

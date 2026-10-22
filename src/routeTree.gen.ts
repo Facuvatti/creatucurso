@@ -45,6 +45,7 @@ import { Route as PanelCursosCourseIdRouteImport } from './routes/panel.cursos.$
 import { Route as ApiAutomationsAttachmentsAutomationIdRouteImport } from './routes/api/automations/attachments.$automationId'
 import { Route as ApiCertificatesFrameCourseIdRouteImport } from './routes/api/certificates/frame.$courseId'
 import { Route as ApiCertificatesPreviewCourseIdRouteImport } from './routes/api/certificates/preview.$courseId'
+import { Route as ApiDomainConnectReturnStateRouteImport } from './routes/api/domain-connect/return.$state'
 import { Route as ApiMediaKeyVideoIdRouteImport } from './routes/api/media/key.$videoId'
 import { Route as ApiWebhooksHyperswitchOrganizationIdRouteImport } from './routes/api/webhooks/hyperswitch.$organizationId'
 import { Route as ApiWebhooksMercadopagoOrganizationIdRouteImport } from './routes/api/webhooks/mercadopago.$organizationId'
@@ -236,6 +237,12 @@ const ApiCertificatesPreviewCourseIdRoute =
     path: '/api/certificates/preview/$courseId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiDomainConnectReturnStateRoute =
+  ApiDomainConnectReturnStateRouteImport.update({
+    id: '/api/domain-connect/return/$state',
+    path: '/api/domain-connect/return/$state',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiMediaKeyVideoIdRoute = ApiMediaKeyVideoIdRouteImport.update({
   id: '/api/media/key/$videoId',
   path: '/api/media/key/$videoId',
@@ -303,6 +310,7 @@ export interface FileRoutesByFullPath {
   '/api/automations/attachments/$automationId': typeof ApiAutomationsAttachmentsAutomationIdRoute
   '/api/certificates/frame/$courseId': typeof ApiCertificatesFrameCourseIdRoute
   '/api/certificates/preview/$courseId': typeof ApiCertificatesPreviewCourseIdRoute
+  '/api/domain-connect/return/$state': typeof ApiDomainConnectReturnStateRoute
   '/api/media/key/$videoId': typeof ApiMediaKeyVideoIdRoute
   '/api/webhooks/hyperswitch/$organizationId': typeof ApiWebhooksHyperswitchOrganizationIdRoute
   '/api/webhooks/mercadopago/$organizationId': typeof ApiWebhooksMercadopagoOrganizationIdRoute
@@ -346,6 +354,7 @@ export interface FileRoutesByTo {
   '/api/automations/attachments/$automationId': typeof ApiAutomationsAttachmentsAutomationIdRoute
   '/api/certificates/frame/$courseId': typeof ApiCertificatesFrameCourseIdRoute
   '/api/certificates/preview/$courseId': typeof ApiCertificatesPreviewCourseIdRoute
+  '/api/domain-connect/return/$state': typeof ApiDomainConnectReturnStateRoute
   '/api/media/key/$videoId': typeof ApiMediaKeyVideoIdRoute
   '/api/webhooks/hyperswitch/$organizationId': typeof ApiWebhooksHyperswitchOrganizationIdRoute
   '/api/webhooks/mercadopago/$organizationId': typeof ApiWebhooksMercadopagoOrganizationIdRoute
@@ -390,6 +399,7 @@ export interface FileRoutesById {
   '/api/automations/attachments/$automationId': typeof ApiAutomationsAttachmentsAutomationIdRoute
   '/api/certificates/frame/$courseId': typeof ApiCertificatesFrameCourseIdRoute
   '/api/certificates/preview/$courseId': typeof ApiCertificatesPreviewCourseIdRoute
+  '/api/domain-connect/return/$state': typeof ApiDomainConnectReturnStateRoute
   '/api/media/key/$videoId': typeof ApiMediaKeyVideoIdRoute
   '/api/webhooks/hyperswitch/$organizationId': typeof ApiWebhooksHyperswitchOrganizationIdRoute
   '/api/webhooks/mercadopago/$organizationId': typeof ApiWebhooksMercadopagoOrganizationIdRoute
@@ -435,6 +445,7 @@ export interface FileRouteTypes {
     | '/api/automations/attachments/$automationId'
     | '/api/certificates/frame/$courseId'
     | '/api/certificates/preview/$courseId'
+    | '/api/domain-connect/return/$state'
     | '/api/media/key/$videoId'
     | '/api/webhooks/hyperswitch/$organizationId'
     | '/api/webhooks/mercadopago/$organizationId'
@@ -478,6 +489,7 @@ export interface FileRouteTypes {
     | '/api/automations/attachments/$automationId'
     | '/api/certificates/frame/$courseId'
     | '/api/certificates/preview/$courseId'
+    | '/api/domain-connect/return/$state'
     | '/api/media/key/$videoId'
     | '/api/webhooks/hyperswitch/$organizationId'
     | '/api/webhooks/mercadopago/$organizationId'
@@ -521,6 +533,7 @@ export interface FileRouteTypes {
     | '/api/automations/attachments/$automationId'
     | '/api/certificates/frame/$courseId'
     | '/api/certificates/preview/$courseId'
+    | '/api/domain-connect/return/$state'
     | '/api/media/key/$videoId'
     | '/api/webhooks/hyperswitch/$organizationId'
     | '/api/webhooks/mercadopago/$organizationId'
@@ -565,6 +578,7 @@ export interface RootRouteChildren {
   ApiAutomationsAttachmentsAutomationIdRoute: typeof ApiAutomationsAttachmentsAutomationIdRoute
   ApiCertificatesFrameCourseIdRoute: typeof ApiCertificatesFrameCourseIdRoute
   ApiCertificatesPreviewCourseIdRoute: typeof ApiCertificatesPreviewCourseIdRoute
+  ApiDomainConnectReturnStateRoute: typeof ApiDomainConnectReturnStateRoute
   ApiMediaKeyVideoIdRoute: typeof ApiMediaKeyVideoIdRoute
   ApiWebhooksHyperswitchOrganizationIdRoute: typeof ApiWebhooksHyperswitchOrganizationIdRoute
   CursosCourseSlugClasesLessonSlugRoute: typeof CursosCourseSlugClasesLessonSlugRoute
@@ -825,6 +839,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCertificatesPreviewCourseIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/domain-connect/return/$state': {
+      id: '/api/domain-connect/return/$state'
+      path: '/api/domain-connect/return/$state'
+      fullPath: '/api/domain-connect/return/$state'
+      preLoaderRoute: typeof ApiDomainConnectReturnStateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/media/key/$videoId': {
       id: '/api/media/key/$videoId'
       path: '/api/media/key/$videoId'
@@ -916,6 +937,7 @@ const rootRouteChildren: RootRouteChildren = {
     ApiAutomationsAttachmentsAutomationIdRoute,
   ApiCertificatesFrameCourseIdRoute: ApiCertificatesFrameCourseIdRoute,
   ApiCertificatesPreviewCourseIdRoute: ApiCertificatesPreviewCourseIdRoute,
+  ApiDomainConnectReturnStateRoute: ApiDomainConnectReturnStateRoute,
   ApiMediaKeyVideoIdRoute: ApiMediaKeyVideoIdRoute,
   ApiWebhooksHyperswitchOrganizationIdRoute:
     ApiWebhooksHyperswitchOrganizationIdRoute,
