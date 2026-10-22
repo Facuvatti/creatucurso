@@ -1,4 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
+import {
+	ACADEMY_FULL_MESSAGE,
+	enrollmentBlock,
+} from "../areas/billing/billing.ts";
 import * as catalog from "../areas/catalog/catalog.ts";
 import { can } from "../areas/identity/permissions.ts";
 import { addConnector } from "../areas/payments/hyperswitch.ts";
@@ -306,6 +310,10 @@ export const startCourseCheckout = createServerFn({ method: "POST" })
 					"Tu acceso a este curso está bloqueado. Contactá a la academia.",
 			};
 		}
+		// Before any payment exists: trial student limit and suspension (ADR-0029).
+		if (await enrollmentBlock(tenant.id, user.id)) {
+			return { ok: false, message: ACADEMY_FULL_MESSAGE };
+		}
 
 		const payments = paymentsConfig();
 		const returnUrl = `${context.origin}/cursos/${course.slug}/compra`;
@@ -371,6 +379,9 @@ export const enrollInFreeCourse = createServerFn({ method: "POST" })
 		if (!course) return { ok: false, message: "No encontramos el curso." };
 		if (priceOf(course))
 			return { ok: false, message: "Este curso es de pago." };
+		if (await enrollmentBlock(tenant.id, user.id)) {
+			return { ok: false, message: ACADEMY_FULL_MESSAGE };
+		}
 
 		if (roles.length === 0) {
 			await auth.api.addMember({

@@ -1,4 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
+import {
+	creatorBlockMessage,
+	enrollmentBlock,
+} from "../areas/billing/billing.ts";
 import * as catalog from "../areas/catalog/catalog.ts";
 import { courseToImport } from "../areas/catalog/course-export.ts";
 import type { UploadSlot } from "../areas/catalog/course-from-import.ts";
@@ -337,6 +341,10 @@ export const enrollStudentByEmail = createServerFn({ method: "POST" })
 					"No hay ninguna cuenta con ese email. Pedile que se registre primero.",
 			};
 		}
+
+		// Trial student limit and suspension (ADR-0029).
+		const block = await enrollmentBlock(tenant.id, userId);
+		if (block) return { ok: false, message: creatorBlockMessage(block) };
 
 		const roles = await findRoles(tenant.id, userId);
 		if (roles.length === 0) {
