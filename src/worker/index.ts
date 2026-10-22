@@ -6,6 +6,14 @@ import {
 	processDeliveries,
 	runAutomations,
 } from "../areas/automations/delivery.ts";
+import {
+	closeMonth,
+	markUnchargedInvoices,
+	queueBillingNotices,
+	recordRecentUsage,
+	sendBillingNotice,
+} from "../areas/billing/billing.ts";
+import { syncPendingSubscriptions } from "../areas/billing/subscription.ts";
 import { issueCertificate } from "../areas/certificates/certificates.ts";
 import { renewExpiringConnections } from "../areas/payments/mercadopago-connection.ts";
 import { refreshPendingDomains } from "../areas/tenancy/domains.ts";
@@ -55,6 +63,14 @@ async function handle(event: OutboxEvent): Promise<void> {
 			await runAutomations(event);
 			return;
 		}
+		case "billing.past_due":
+		case "billing.suspended":
+			log("info", "event delivered", { id: event.id, type: event.type });
+			await sendBillingNotice(
+				event.type === "billing.suspended" ? "suspended" : "past_due",
+				String(event.payload.organizationId),
+			);
+			return;
 		default:
 			log("info", "event without handler", { id: event.id, type: event.type });
 	}
@@ -149,6 +165,26 @@ async function retryDeliveries() {
 	}
 }
 
+// Academy billing (ADR-0029), hourly; every step is idempotent: the daily usage
+// of the last complete days, the close of the previous month (does nothing once
+// written, so it lands on the 1st), the subscription amounts, invoices nobody
+// charged and the owner's past-due / suspension emails.
+const BILLING_EVERY_MS = 60 * 60 * 1000;
+
+async function runBilling() {
+	try {
+		await recordRecentUsage();
+		await closeMonth();
+		if (process.env.MP_PLATFORM_ACCESS_TOKEN) await syncPendingSubscriptions();
+		await markUnchargedInvoices();
+		await queueBillingNotices();
+	} catch (error) {
+		log("error", "billing run failed", {
+			error: error instanceof Error ? error.message : "unknown",
+		});
+	}
+}
+
 async function loop() {
 	while (!stopping) {
 		let taken = 0;
@@ -185,6 +221,9 @@ const domainsTimer = setInterval(checkDomains, DOMAINS_EVERY_MS);
 
 const deliveriesTimer = setInterval(retryDeliveries, DELIVERIES_EVERY_MS);
 
+void runBilling();
+const billingTimer = setInterval(runBilling, BILLING_EVERY_MS);
+
 server.listen(port, () => log("info", "worker started", { port }));
 
 function stop() {
@@ -192,6 +231,7 @@ function stop() {
 	clearInterval(renewTimer);
 	clearInterval(domainsTimer);
 	clearInterval(deliveriesTimer);
+	clearInterval(billingTimer);
 	server.close();
 	pool.end().finally(() => process.exit(0));
 }
