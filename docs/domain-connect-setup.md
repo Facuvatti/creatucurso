@@ -62,8 +62,10 @@ panel only shows the manual instructions.
 2. Check the template in the Online Editor
    (https://domainconnect.paulonet.eu/dc/free/templateedit): "Check template",
    then "Test apply template" with a domain and a host (for example
-   `domain=example.com`, `host=cursos`; the result must be
-   `cursos.example.com CNAME dominios.creatucurso.com.ar`). Copy the Markdown link.
+   `domain=example.com`, `host=cursos`, `groupId=subdomain`; the result must be
+   `cursos.example.com CNAME dominios.creatucurso.com.ar`; and `host` empty,
+   `groupId=apex`, `ipv4=203.0.113.10` must give `example.com A 203.0.113.10`, ADR-0031).
+   Copy the Markdown link.
 3. Run the official linter (Go 1.22+):
 
    ```sh
