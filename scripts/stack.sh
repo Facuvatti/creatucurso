@@ -2,7 +2,8 @@
 # Starts, stops or checks everything the app needs in development.
 #   scripts/stack.sh          same as "restart"
 #   scripts/stack.sh restart  stop everything, then start it again
-#   scripts/stack.sh stop
+#   scripts/stack.sh stop     stops the Node processes only (Docker keeps running)
+#   scripts/stack.sh down     stops everything, including the Docker containers
 #   scripts/stack.sh status
 #
 # Started: database (Docker), media servers tusd + nginx (Docker), the web app,
@@ -72,6 +73,18 @@ wait_for() {
   return 1
 }
 
+down_all() {
+  stop_all
+  echo "Stopping Docker containers (data is kept)..."
+  load_env
+  docker compose -f infra/media/compose.yaml down
+  docker compose -f compose.dev.yaml down
+  # Hyperswitch lives in its own checkout next to this repository.
+  if [ -f ../hyperswitch/docker-compose.yml ]; then
+    (cd ../hyperswitch && docker compose down)
+  fi
+}
+
 status() {
   echo "Status:"
   curl -s -m 3 -o /dev/null "http://localhost:$APP_PORT/" && echo "  app: up" || echo "  app: down"
@@ -82,6 +95,7 @@ status() {
 
 case "${1:-restart}" in
   stop) stop_all ;;
+  down) down_all ;;
   status) status ;;
   restart | start)
     stop_all
@@ -92,7 +106,7 @@ case "${1:-restart}" in
     wait_for encoder "http://localhost:$ENCODER_PORT/health"
     ;;
   *)
-    echo "usage: $0 [restart|stop|status]" >&2
+    echo "usage: $0 [restart|stop|down|status]" >&2
     exit 2
     ;;
 esac
