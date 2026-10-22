@@ -1,4 +1,8 @@
 import { getRequest } from "@tanstack/react-start/server";
+import {
+	academyBillingState,
+	type BillingStatus,
+} from "../areas/billing/billing.ts";
 import { findRoles } from "../areas/identity/members.ts";
 import { can } from "../areas/identity/permissions.ts";
 import { resolveTenant } from "../areas/tenancy/tenants.ts";
@@ -17,6 +21,7 @@ export async function readRequestContext() {
 			roles: [] as string[],
 			origin: "",
 			appOrigin: "",
+			billing: null as AcademyBilling | null,
 		};
 	}
 
@@ -32,6 +37,15 @@ export async function readRequestContext() {
 		host.kind === "tenant" && user
 			? await findRoles(host.tenant.id, user.id)
 			: [];
+	// The tenant layout shows the past-due / suspended notices (ADR-0029).
+	let billing: AcademyBilling | null = null;
+	if (host.kind === "tenant") {
+		const state = await academyBillingState(host.tenant.id);
+		billing = {
+			status: state.status,
+			suspendAt: state.suspendAt?.toISOString() ?? null,
+		};
+	}
 
 	return {
 		host,
@@ -39,8 +53,14 @@ export async function readRequestContext() {
 		roles,
 		origin: `${process.env.PUBLIC_URL_SCHEME ?? "https"}://${hostHeader}`,
 		appOrigin: appOrigin(),
+		billing,
 	};
 }
+
+export type AcademyBilling = {
+	status: BillingStatus;
+	suspendAt: string | null;
+};
 
 export type RequestContext = Awaited<ReturnType<typeof readRequestContext>>;
 

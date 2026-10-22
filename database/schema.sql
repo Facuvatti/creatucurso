@@ -355,6 +355,74 @@ create table if not exists media.playback_usage (
 );
 create index if not exists playback_usage_organization_idx on media.playback_usage (organization_id, day);
 
+-- Our tables: billing (usage, trial, invoices and subscription of the academies; ADR-0029) --
+create schema if not exists billing;
+
+-- One row per academy and day, written by the worker (upsert, so a re-run changes nothing).
+-- Raw units plus the unit prices used, so a later price change does not rewrite history.
+-- provider_cost is what the day cost the platform, in ARS (major units). Premium (DRM) usage is added in R7.
+create table if not exists billing.tenant_usage (
+	organization_id text not null references auth.organization (id) on delete cascade,
+	day date not null,
+	storage_bytes bigint not null default 0,
+	stream_bytes bigint not null default 0,
+	plays integer not null default 0,
+	seconds_watched bigint not null default 0,
+	provider_cost numeric(14, 4) not null default 0,
+	unit_prices jsonb not null,
+	primary key (organization_id, day)
+);
+
+-- The academy's plan (docs/planes_suscripcion.md): commission, hybrid or flat. No row = commission.
+-- A change takes effect on effective_from (the next month; the current one during the trial).
+create table if not exists billing.academy_plan (
+	organization_id text not null references auth.organization (id) on delete cascade,
+	effective_from date not null,
+	plan text not null check (plan in ('commission', 'hybrid', 'flat')),
+	created_at timestamptz not null default now(),
+	primary key (organization_id, effective_from)
+);
+
+-- One invoice per academy and month (amount in minor units). Zero-amount invoices are born paid.
+-- failed_at: first failed charge; the past-due clock (grace period) starts there.
+create table if not exists billing.invoice (
+	id uuid primary key default gen_random_uuid(),
+	organization_id text not null references auth.organization (id) on delete cascade,
+	period text not null check (period ~ '^[0-9]{4}-[0-9]{2}$'),
+	amount bigint not null check (amount >= 0),
+	currency text not null default 'ARS',
+	status text not null default 'open' check (status in ('draft', 'open', 'paid', 'failed', 'void')),
+	details jsonb not null default '{}',
+	created_at timestamptz not null default now(),
+	failed_at timestamptz,
+	paid_at timestamptz,
+	unique (organization_id, period)
+);
+
+-- The academy's Mercado Pago subscription to the platform (preapproval of the PLATFORM account).
+-- lapsed_at: when it stopped being usable (cancelled); the past-due clock starts there.
+create table if not exists billing.subscription (
+	organization_id text primary key references auth.organization (id) on delete cascade,
+	mp_preapproval_id text not null unique,
+	status text not null check (status in ('pending', 'authorized', 'paused', 'cancelled')),
+	payer_email text not null,
+	lapsed_at timestamptz,
+	-- Amount (minor units) the next charge takes, as last set at Mercado Pago; 0 while paused.
+	charge_amount bigint,
+	created_at timestamptz not null default now(),
+	updated_at timestamptz not null default now()
+);
+
+-- Each recurring charge Mercado Pago reported. applied_at makes a replayed notification pay invoices once.
+create table if not exists billing.subscription_charge (
+	mp_authorized_payment_id text primary key,
+	organization_id text not null references auth.organization (id) on delete cascade,
+	status text not null,
+	amount bigint not null,
+	applied_at timestamptz,
+	updated_at timestamptz not null default now()
+);
+
 -- Our tables: certificates (frame per course and issued certificates; ADR-0025) -----------
 create schema if not exists certificates;
 

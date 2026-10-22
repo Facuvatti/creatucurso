@@ -44,7 +44,7 @@ function errorCode(text: string): string | null {
 }
 
 async function request<T>(
-	method: "GET" | "POST",
+	method: "GET" | "POST" | "PUT",
 	path: string,
 	options: { body?: unknown; headers?: Record<string, string> },
 ): Promise<T> {
@@ -67,7 +67,7 @@ async function request<T>(
 }
 
 function call<T>(
-	method: "GET" | "POST",
+	method: "GET" | "POST" | "PUT",
 	path: string,
 	accessToken: string,
 	options: { body?: unknown; headers?: Record<string, string> } = {},
@@ -283,6 +283,134 @@ export async function refundPayment(
 		},
 	);
 	return { id: String(refund.id), amount: Math.round(refund.amount * 100) };
+}
+
+// ------------------------------------------- platform subscriptions (ADR-0029)
+// The academies pay the platform with a Mercado Pago subscription (preapproval
+// without a plan) created with the PLATFORM's own access token, never with an
+// academy's connected token.
+
+function platformToken(): string {
+	const token = process.env.MP_PLATFORM_ACCESS_TOKEN;
+	if (!token) throw new Error("MP_PLATFORM_ACCESS_TOKEN is not configured.");
+	return token;
+}
+
+export type Preapproval = {
+	id: string;
+	/** pending, authorized, paused or cancelled */
+	status: string;
+	init_point?: string;
+	external_reference?: string | null;
+	auto_recurring?: { transaction_amount?: number; currency_id?: string };
+	next_payment_date?: string | null;
+};
+
+/**
+ * A monthly subscription the payer authorizes at `initPoint`. Without
+ * `startDate` Mercado Pago charges the first installment right after the payer
+ * authorizes it. `amount` is in minor units.
+ */
+export async function createPreapproval(input: {
+	organizationId: string;
+	reason: string;
+	payerEmail: string;
+	amount: number;
+	currency: string;
+	backUrl: string;
+	startDate: Date | null;
+}): Promise<{ id: string; status: string; initPoint: string }> {
+	const created = await call<Preapproval>(
+		"POST",
+		"/preapproval",
+		platformToken(),
+		{
+			body: {
+				reason: input.reason,
+				external_reference: input.organizationId,
+				payer_email: input.payerEmail,
+				auto_recurring: {
+					frequency: 1,
+					frequency_type: "months",
+					transaction_amount: input.amount / 100,
+					currency_id: input.currency,
+					...(input.startDate
+						? { start_date: input.startDate.toISOString() }
+						: {}),
+				},
+				back_url: input.backUrl,
+				status: "pending",
+			},
+			headers: { "x-idempotency-key": randomUUID() },
+		},
+	);
+	if (!created.init_point) {
+		throw new MercadoPagoError(502, "missing_init_point", "POST /preapproval");
+	}
+	return {
+		id: String(created.id),
+		status: created.status,
+		initPoint: created.init_point,
+	};
+}
+
+export function getPreapproval(id: string) {
+	return call<Preapproval>(
+		"GET",
+		`/preapproval/${encodeURIComponent(id)}`,
+		platformToken(),
+	);
+}
+
+/** Changes the amount of the next charges (minor units) and/or pauses or resumes the subscription. */
+export function updatePreapproval(
+	id: string,
+	change: {
+		amount?: { value: number; currency: string };
+		status?: "authorized" | "paused" | "cancelled";
+	},
+) {
+	return call<Preapproval>(
+		"PUT",
+		`/preapproval/${encodeURIComponent(id)}`,
+		platformToken(),
+		{
+			body: {
+				...(change.amount
+					? {
+							auto_recurring: {
+								transaction_amount: change.amount.value / 100,
+								currency_id: change.amount.currency,
+							},
+						}
+					: {}),
+				...(change.status ? { status: change.status } : {}),
+			},
+		},
+	);
+}
+
+/** One recurring charge of a subscription (an "authorized payment" / invoice in Mercado Pago's words). */
+export type AuthorizedPayment = {
+	id: number | string;
+	preapproval_id: string;
+	/** scheduled, processed, recycling (rejected, will be retried) or cancelled */
+	status: string;
+	transaction_amount: number;
+	currency_id?: string;
+	payment?: {
+		id?: number | string;
+		status?: string;
+		status_detail?: string;
+	} | null;
+};
+
+export function getAuthorizedPayment(id: string) {
+	return call<AuthorizedPayment>(
+		"GET",
+		`/authorized_payments/${encodeURIComponent(id)}`,
+		platformToken(),
+	);
 }
 
 /**
