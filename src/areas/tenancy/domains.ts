@@ -1,4 +1,5 @@
-import { resolveCname } from "node:dns/promises";
+import { resolve4, resolve6, resolveCname } from "node:dns/promises";
+import { isIPv4, isIPv6 } from "node:net";
 import { pool } from "../../server/db.server.ts";
 import { classifyHost } from "./classify-host.ts";
 import {
@@ -18,16 +19,73 @@ export type DomainStatus =
 	| "active"
 	| "error";
 
+/** subdomain: cursos.maria.com (CNAME). apex: maria.com (A record), ADR-0031. */
+export type DomainKind = "subdomain" | "apex";
+
 export type DomainState = {
 	/** False when the platform has no Cloudflare credentials. */
 	enabled: boolean;
 	domain: string | null;
+	kind: DomainKind | null;
 	status: DomainStatus | null;
 	reason: string | null;
-	/** The one DNS record the creator must create: CNAME <name> -> <target>. */
+	/** Subdomain: the record is CNAME <name> -> <target>. */
 	cnameName: string | null;
 	cnameTarget: string;
+	/** Apex: the A (and optional AAAA) records. Empty = apex domains are off. */
+	apexIpv4: string[];
+	apexIpv6: string[];
 };
+
+/** Second-level public suffixes, so maria.com.ar counts as a root domain. */
+const SECOND_LEVEL_SUFFIXES = new Set([
+	"com.ar",
+	"net.ar",
+	"org.ar",
+	"gob.ar",
+	"edu.ar",
+	"com.br",
+	"net.br",
+	"org.br",
+	"com.mx",
+	"com.co",
+	"com.uy",
+	"com.cl",
+	"com.pe",
+	"com.ve",
+	"com.bo",
+	"com.py",
+	"com.ec",
+	"co.uk",
+	"org.uk",
+	"co.nz",
+	"com.au",
+]);
+
+/** Apex when there is no subdomain label above the registrable name. */
+export function domainKind(domain: string): DomainKind {
+	const labels = domain.split(".");
+	if (labels.length <= 2) return "apex";
+	return labels.length === 3 &&
+		SECOND_LEVEL_SUFFIXES.has(labels.slice(1).join("."))
+		? "apex"
+		: "subdomain";
+}
+
+function ipList(value: string | undefined): string[] {
+	return (value ?? "")
+		.split(",")
+		.map((ip) => ip.trim().toLowerCase())
+		.filter(Boolean);
+}
+
+/** IPs Cloudflare assigned for apex proxying (Enterprise add-on; owner fills them). */
+export function apexIps(): { v4: string[]; v6: string[] } {
+	return {
+		v4: ipList(process.env.CUSTOM_DOMAIN_APEX_IPV4).filter((ip) => isIPv4(ip)),
+		v6: ipList(process.env.CUSTOM_DOMAIN_APEX_IPV6).filter((ip) => isIPv6(ip)),
+	};
+}
 
 /** Fallback origin: the name every creator's CNAME must point to. */
 export function customDomainTarget(): string {
@@ -53,8 +111,8 @@ export function validateCustomDomain(domain: string): string | null {
 	) {
 		return "Ingresá un dominio válido, por ejemplo cursos.tudominio.com.";
 	}
-	if (domain.split(".").length < 3) {
-		return "Un dominio principal (tudominio.com) no admite CNAME. Usá un subdominio, por ejemplo cursos.tudominio.com o www.tudominio.com.";
+	if (domainKind(domain) === "apex" && apexIps().v4.length === 0) {
+		return "Todavía no se pueden conectar dominios principales (tudominio.com). Usá un subdominio, por ejemplo cursos.tudominio.com o www.tudominio.com.";
 	}
 	return null;
 }
@@ -65,37 +123,45 @@ export async function getDomainState(
 	const { rows } = await pool.query<{
 		domain: string | null;
 		verified: boolean;
+		kind: DomainKind | null;
 		status: DomainStatus | null;
 		reason: string | null;
 	}>(
 		`select o."customDomain" as domain,
 		        o."customDomainVerifiedAt" is not null as verified,
-		        c.status, c.status_reason as reason
+		        c.kind, c.status, c.status_reason as reason
 		 from auth.organization o
 		 left join tenancy.domain_check c on c.organization_id = o.id
 		 where o.id = $1`,
 		[organizationId],
 	);
 	const row = rows[0];
+	const ips = apexIps();
 	const base = {
 		enabled: cloudflareEnabled(),
 		cnameTarget: customDomainTarget(),
+		apexIpv4: ips.v4,
+		apexIpv6: ips.v6,
 	};
 	if (!row?.domain) {
 		return {
 			...base,
 			domain: null,
+			kind: null,
 			status: null,
 			reason: null,
 			cnameName: null,
 		};
 	}
+	const kind = row.kind ?? domainKind(row.domain);
 	return {
 		...base,
 		domain: row.domain,
+		kind,
 		status: row.status ?? (row.verified ? "active" : "pending_dns"),
 		reason: row.reason,
-		cnameName: row.domain.split(".")[0] ?? row.domain,
+		cnameName:
+			kind === "subdomain" ? (row.domain.split(".")[0] ?? row.domain) : null,
 	};
 }
 
@@ -117,12 +183,12 @@ export async function requestDomain(
 			[organizationId, domain],
 		);
 		await client.query(
-			`insert into tenancy.domain_check (organization_id)
-			 values ($1)
+			`insert into tenancy.domain_check (organization_id, kind)
+			 values ($1, $2)
 			 on conflict (organization_id) do update
-			 set cloudflare_hostname_id = null, status = 'pending_dns',
+			 set cloudflare_hostname_id = null, status = 'pending_dns', kind = $2,
 			     status_reason = null, last_checked_at = null, created_at = now()`,
-			[organizationId],
+			[organizationId, domainKind(domain)],
 		);
 		await client.query("commit");
 		forgetTenantCache();
@@ -160,11 +226,37 @@ async function pointsToTarget(domain: string): Promise<boolean> {
 	return false;
 }
 
+/**
+ * True when the apex has A records and every one is in our configured set
+ * (a stray record elsewhere would send part of the traffic away). Any AAAA must
+ * also be ours.
+ */
+async function apexPointsToUs(domain: string): Promise<boolean> {
+	const ips = apexIps();
+	if (ips.v4.length === 0) return false;
+	let found: string[];
+	try {
+		found = await resolve4(domain);
+	} catch {
+		return false;
+	}
+	if (found.length === 0 || !found.every((ip) => ips.v4.includes(ip))) {
+		return false;
+	}
+	let found6: string[] = [];
+	try {
+		found6 = await resolve6(domain);
+	} catch {
+		// No AAAA is fine.
+	}
+	return found6.every((ip) => ips.v6.includes(ip.toLowerCase()));
+}
+
 /** Spanish reason for a Cloudflare validation error. */
 function reasonFor(errors: string[]): string {
 	const first = errors[0] ?? "";
 	if (/cname/i.test(first)) {
-		return "Cloudflare no ve el CNAME apuntando a la plataforma. Revisá el registro.";
+		return "Cloudflare no ve el registro DNS apuntando a la plataforma. Revisá el registro.";
 	}
 	return `Cloudflare no pudo validar el dominio${first ? ` (${first.slice(0, 120)})` : ""}.`;
 }
@@ -206,10 +298,11 @@ export async function refreshDomain(organizationId: string): Promise<void> {
 	if (!cloudflareEnabled()) return;
 	const { rows } = await pool.query<{
 		domain: string;
+		kind: DomainKind;
 		hostname_id: string | null;
 		status: DomainStatus;
 	}>(
-		`select o."customDomain" as domain, c.cloudflare_hostname_id as hostname_id, c.status
+		`select o."customDomain" as domain, c.kind, c.cloudflare_hostname_id as hostname_id, c.status
 		 from tenancy.domain_check c
 		 join auth.organization o on o.id = c.organization_id
 		 where c.organization_id = $1 and o."customDomain" is not null`,
@@ -221,11 +314,17 @@ export async function refreshDomain(organizationId: string): Promise<void> {
 	try {
 		let hostnameId = row.hostname_id;
 		if (!hostnameId) {
-			if (!(await pointsToTarget(row.domain))) {
+			const ready =
+				row.kind === "apex"
+					? await apexPointsToUs(row.domain)
+					: await pointsToTarget(row.domain);
+			if (!ready) {
 				await save(
 					organizationId,
 					"pending_dns",
-					"Todavía no vemos el registro CNAME. Los cambios de DNS pueden tardar unos minutos. Si tu dominio es el principal (tudominio.com), usá un subdominio como cursos.tudominio.com.",
+					row.kind === "apex"
+						? "Todavía no vemos los registros A apuntando a la plataforma. Los cambios de DNS pueden tardar unos minutos. Revisá que no queden otros registros A o AAAA en el dominio."
+						: "Todavía no vemos el registro CNAME. Los cambios de DNS pueden tardar unos minutos.",
 				);
 				return;
 			}
