@@ -157,6 +157,11 @@ export function PaymentsPanelPage({
 			{panel.payments.length > 0 && (
 				<section>
 					<h2>Pagos</h2>
+					<p>
+						La comisión de la plataforma se descuenta automáticamente de cada
+						venta según tu plan. El resto va directo a tu cuenta de Mercado
+						Pago.
+					</p>
 					<table>
 						<thead>
 							<tr>
@@ -164,6 +169,7 @@ export function PaymentsPanelPage({
 								<th>Curso</th>
 								<th>Alumno</th>
 								<th>Monto</th>
+								<th>Comisión</th>
 								<th>Reembolsado</th>
 								<th>Reembolsar</th>
 							</tr>
@@ -177,6 +183,11 @@ export function PaymentsPanelPage({
 									<td>{payment.courseName}</td>
 									<td>{payment.studentEmail}</td>
 									<td>{formatMoney(payment.amount, payment.currency)}</td>
+									<td>
+										{payment.commissionAmount > 0
+											? formatMoney(payment.commissionAmount, payment.currency)
+											: "—"}
+									</td>
 									<td>
 										{formatMoney(payment.refundedAmount, payment.currency)}
 									</td>

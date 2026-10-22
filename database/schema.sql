@@ -175,6 +175,10 @@ create table if not exists payments.payment (
 	amount integer not null check (amount > 0),
 	currency text not null,
 	refunded_amount integer not null default 0 check (refunded_amount >= 0),
+	-- Platform commission charged at sale time via Mercado Pago marketplace_fee (ADR-0029).
+	-- The amount charged on the original sale; Mercado Pago reverses it proportionally on a
+	-- refund, so this stays the historical as-charged figure. 0 for flat plan and legacy sales.
+	commission_amount integer not null default 0 check (commission_amount >= 0),
 	status text not null default 'pending' check (status in ('pending', 'succeeded', 'failed', 'refunded')),
 	created_at timestamptz not null default now(),
 	updated_at timestamptz not null default now()

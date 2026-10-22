@@ -159,10 +159,12 @@ export async function choosePlan(organizationId: string, plan: Plan) {
 }
 
 /**
- * What an academy owes for the days [from, stop) of one month: the plan's fee
- * for its published courses (prorated to the billed days) plus the commission
- * of each sale paid in those days, net of refunds. Sales in another currency
- * than ARS are counted in the details but not charged (no conversion yet).
+ * What an academy owes for the days [from, stop) of one month: ONLY the plan's
+ * fee for its published courses (prorated to the billed days). The platform
+ * commission is collected at sale time through Mercado Pago's marketplace_fee
+ * (ADR-0029, "Commission at sale"), so it is no longer billed here; it is still
+ * computed into `details` for reference. Sales in another currency than ARS are
+ * counted in the details but not charged (no conversion yet).
  */
 export async function chargesFor(input: {
 	organizationId: string;
@@ -201,13 +203,15 @@ export async function chargesFor(input: {
 		commission += commissionOf(input.plan, sale.net);
 	}
 	return {
-		amount: fee + commission,
+		// Fee-only: the commission is already collected at each sale (marketplace_fee).
+		amount: fee,
 		details: {
 			plan: input.plan,
 			publishedCourses,
 			fee,
 			salesCount,
 			salesTotal,
+			// Commission collected at sale time this period (informative, not billed here).
 			commission,
 			otherCurrencySales,
 		},
@@ -562,7 +566,8 @@ export async function listInvoices(
 
 /**
  * The current month so far, priced like its invoice will be: the full monthly
- * fee of the plan plus the commission of this month's sales (minor units).
+ * fee of the plan (minor units). `details.commission` carries the commission
+ * already collected at each sale this month, for reference only.
  */
 export async function monthlyEstimate(organizationId: string) {
 	const { rows } = await pool.query<{

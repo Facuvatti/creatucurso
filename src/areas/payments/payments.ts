@@ -5,6 +5,7 @@ import {
 	decryptSecret,
 	encryptSecret,
 } from "../../shared/crypto/secret-box.ts";
+import { commissionOf, planOn } from "../billing/billing.ts";
 import {
 	createGatewayPayment,
 	createMerchant,
@@ -100,15 +101,19 @@ function legacyMercadoPagoWebhookUrl(organizationId: string): string {
 	return `${mercadoPagoWebhookUrl()}/${organizationId}`;
 }
 
-/** Marketplace fee for a charge in minor units; 0 (field omitted) unless configured. */
-function marketplaceFee(amount: number): number {
-	const percent = Number(process.env.MP_MARKETPLACE_FEE_PERCENT || 0);
-	if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
-		throw new Error(
-			"MP_MARKETPLACE_FEE_PERCENT must be a number from 0 to 100.",
-		);
-	}
-	return Math.round((amount * percent) / 100);
+/**
+ * The platform commission for one sale, in minor units, collected at sale time
+ * as Mercado Pago's `marketplace_fee` (ADR-0029). It is the selling academy's
+ * current plan commission on the sale amount (the min-per-sale rule, capped at
+ * the amount). 0 for the flat plan (field then omitted from the preference).
+ */
+async function saleCommission(
+	organizationId: string,
+	amount: number,
+): Promise<number> {
+	const today = new Date().toISOString().slice(0, 10);
+	const plan = await planOn(organizationId, today);
+	return commissionOf(plan, amount);
 }
 
 /**
@@ -279,6 +284,12 @@ export async function startCheckout(
 	const account = await findMercadoPagoAccount(input.organizationId);
 	if (account) {
 		const paymentId = randomUUID();
+		// Commission collected at sale time via marketplace_fee (ADR-0029). The fee
+		// goes to the platform's marketplace application when MP splits the payment.
+		// LEGACY: no automatic split; commission for legacy academies is out of scope.
+		const commission = account.legacy
+			? 0
+			: await saleCommission(input.organizationId, input.course.amount);
 		let preference: Awaited<ReturnType<typeof createPreference>>;
 		try {
 			preference = await account.run((accessToken) =>
@@ -292,7 +303,7 @@ export async function startCheckout(
 						? legacyMercadoPagoWebhookUrl(input.organizationId)
 						: mercadoPagoWebhookUrl(),
 					payerEmail: input.user.email,
-					fee: account.legacy ? 0 : marketplaceFee(input.course.amount),
+					fee: commission,
 				}),
 			);
 		} catch (error) {
@@ -303,8 +314,8 @@ export async function startCheckout(
 		}
 		await pool.query(
 			`insert into payments.payment
-			 (id, organization_id, course_id, user_id, provider, gateway_payment_id, amount, currency)
-			 values ($1, $2, $3, $4, 'mercadopago', $5, $6, $7)`,
+			 (id, organization_id, course_id, user_id, provider, gateway_payment_id, amount, currency, commission_amount)
+			 values ($1, $2, $3, $4, 'mercadopago', $5, $6, $7, $8)`,
 			[
 				paymentId,
 				input.organizationId,
@@ -313,6 +324,7 @@ export async function startCheckout(
 				preference.preferenceId,
 				input.course.amount,
 				input.course.currency,
+				commission,
 			],
 		);
 		return {
@@ -796,6 +808,11 @@ export async function refundPayment(
 			if (!providerPaymentId) {
 				return { ok: false, message: "Todavía no tenemos el pago confirmado." };
 			}
+			// Mercado Pago reverses the marketplace_fee proportionally on a refund
+			// (split payments: the amount is subtracted from the seller's and the
+			// platform's accounts in proportion), so no fee parameter is needed and
+			// the platform does not keep commission on refunded money (ADR-0029).
+			// payment.commission_amount stays the as-charged historical figure.
 			const refund = await account.run((accessToken) =>
 				refundMercadoPagoPayment(accessToken, providerPaymentId, requested),
 			);

@@ -267,7 +267,13 @@ export function getChargeback(
 	);
 }
 
-/** Full refund when `amount` is omitted, partial otherwise (minor units). */
+/**
+ * Full refund when `amount` is omitted, partial otherwise (minor units).
+ * For split payments the marketplace_fee is reversed automatically and
+ * proportionally by Mercado Pago (the refunded amount is subtracted from the
+ * seller's and the marketplace's accounts in proportion to each share), so no
+ * fee parameter is sent here. See ADR-0029, "Commission at sale".
+ */
 export async function refundPayment(
 	accessToken: string,
 	mercadoPagoPaymentId: string,

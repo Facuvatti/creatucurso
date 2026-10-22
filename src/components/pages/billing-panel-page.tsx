@@ -83,21 +83,23 @@ export function BillingPanelPage({
 					</p>
 				)}
 				<p>
-					Este mes hasta ahora:{" "}
-					{formatMoney(panel.estimate.amount, panel.currency)} (
-					{formatMoney(panel.estimate.fee, panel.currency)} de abono por{" "}
-					{panel.estimate.publishedCourses} cursos publicados y{" "}
+					Abono de este mes:{" "}
+					{formatMoney(panel.estimate.amount, panel.currency)} (abono fijo por{" "}
+					{panel.estimate.publishedCourses} cursos publicados). La comisión por
+					venta de tu plan se descuenta automáticamente de cada venta, aparte
+					del abono mensual: este mes llevás{" "}
 					{formatMoney(panel.estimate.commission, panel.currency)} de comisión
-					por {panel.estimate.salesCount} ventas).
+					en {panel.estimate.salesCount} ventas.
 				</p>
 			</section>
 
 			<section>
 				<h2>Planes</h2>
 				<p>
-					Todos los planes incluyen todas las funciones. Se paga por mes y por
-					curso publicado. La pasarela de pago cobra aparte su propia comisión
-					(cerca del 2%).
+					Todos los planes incluyen todas las funciones. El abono mensual es un
+					monto fijo por curso publicado. La comisión por venta se descuenta
+					automáticamente de cada venta (no se factura en el abono mensual). La
+					pasarela de pago cobra aparte su propia comisión (cerca del 2%).
 				</p>
 				<table>
 					<thead>

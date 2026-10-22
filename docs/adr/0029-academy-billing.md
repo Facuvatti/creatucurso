@@ -157,3 +157,34 @@ it cheap. Used by the enrollment paths, checkout, the panel and the tenant layou
   behaves as assumed between charges.
 - The 10-student trial limit must appear in the T&C (R7), and so must the ~2%
   gateway fee charged apart from the plans.
+
+## Commission at sale (owner decision 2026-10-22)
+
+The platform commission is **collected at sale time**, not billed in the monthly
+invoice. When a course sale creates a Mercado Pago Checkout Pro preference, the
+`marketplace_fee` is set to the selling academy's current plan commission on the
+sale amount (`commissionOf(plan, amount)` in `billing.ts`: the plan rate, the
+minimum per sale, capped at the sale). Mercado Pago sends that amount to the
+platform's marketplace application automatically (the OAuth marketplace split,
+ADR-0023). The amount charged is stored on the sale in
+`payments.payment.commission_amount`. The flat plan (0%) and the legacy /
+Hyperswitch path send no fee (Hyperswitch cannot split here; commission for
+legacy academies is out of scope).
+
+- **Monthly invoice:** `chargesFor`/`closeMonth` now bill ONLY the fixed monthly
+  per-course fee of the plan (plus the flat 3-course bundle at $25.000). The
+  commission is no longer added to the invoice amount; it is kept in the invoice
+  `details` and the panel estimate for reference only. Usage metering is
+  unchanged (still recorded for the owner's numbers).
+- **Refunds:** verified against the official Mercado Pago split-payments docs
+  (2026-10-22, "Integrate marketplace"): *"In case of a refund, the amount due to
+  the final customer will be divided and subtracted from the seller's account and
+  the Marketplace's account, in a proportional way to the parties involved."*
+  So a full or partial refund of a payment that carried a `marketplace_fee`
+  **reverses the fee automatically and proportionally** — no extra parameter on
+  `POST /v1/payments/{id}/refunds`. The platform keeps no commission on refunded
+  money. `commission_amount` is left as the historical as-charged figure (the
+  effective commission after a refund is that amount prorated by the unrefunded
+  share). Note the 1:1-model limitation: a marketplace cannot fully refund if the
+  seller lacks funds; it refunds its own share and the seller's share may need
+  another means.

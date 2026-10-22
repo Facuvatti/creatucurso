@@ -200,6 +200,8 @@ export type PanelPayment = {
 	studentEmail: string;
 	amount: number;
 	refundedAmount: number;
+	/** Platform commission charged at sale time (marketplace_fee), minor units. */
+	commissionAmount: number;
 	currency: string;
 	status: string;
 	createdAt: string;
@@ -226,11 +228,13 @@ export async function listPanelPayments(organizationId: string): Promise<{
 		email: string;
 		amount: number;
 		refunded_amount: number;
+		commission_amount: number;
 		currency: string;
 		status: string;
 		created_at: Date;
 	}>(
-		`select p.id, c.name, u.email, p.amount, p.refunded_amount, p.currency, p.status, p.created_at
+		`select p.id, c.name, u.email, p.amount, p.refunded_amount, p.commission_amount,
+		        p.currency, p.status, p.created_at
 		 from payments.payment p
 		 join catalog.course c on c.id = p.course_id
 		 join auth."user" u on u.id = p.user_id
@@ -263,6 +267,7 @@ export async function listPanelPayments(organizationId: string): Promise<{
 			studentEmail: r.email,
 			amount: r.amount,
 			refundedAmount: r.refunded_amount,
+			commissionAmount: r.commission_amount,
 			currency: r.currency,
 			status: r.status,
 			createdAt: r.created_at.toISOString(),
