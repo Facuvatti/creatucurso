@@ -12,34 +12,70 @@ const through = (url: string) => `/handoff?return=${encodeURIComponent(url)}`;
 export function AppHomePage({ user, academies, studying }: Props) {
 	return (
 		<main data-page="app-home">
-			<h1>Panel de Creatucurso</h1>
+			<h1>Panel de Crea tu curso</h1>
 			{user ? (
 				<>
 					<p>Hola, {user.name}.</p>
 					<section>
 						<h2>Mis academias</h2>
 						{academies.length === 0 ? (
-							<p>Todavía no creaste ninguna academia.</p>
+							<div data-empty>
+								<img
+									src="/img/empty.svg"
+									alt=""
+									width="160"
+									height="120"
+									loading="lazy"
+								/>
+								<p>Todavía no creaste ninguna academia.</p>
+							</div>
 						) : (
-							<ul>
+							<ul data-grid="cards">
 								{academies.map((academy) => (
 									<li key={academy.url}>
-										<a href={through(academy.url)}>{academy.name}</a>
+										<div data-card-body>
+											<h3>{academy.name}</h3>
+											<div data-actions>
+												<a href={through(academy.url)} data-cta="primary">
+													Abrir academia
+												</a>
+											</div>
+										</div>
 									</li>
 								))}
 							</ul>
 						)}
-						<a href="/crear-academia">Crear mi academia</a>
+						<div data-actions>
+							<a href="/crear-academia" data-cta="primary">
+								Crear mi academia
+							</a>
+						</div>
 					</section>
 					<section>
 						<h2>Mis cursos</h2>
 						{studying.length === 0 ? (
-							<p>Todavía no estás inscripto en ningún curso.</p>
+							<div data-empty>
+								<img
+									src="/img/empty.svg"
+									alt=""
+									width="160"
+									height="120"
+									loading="lazy"
+								/>
+								<p>Todavía no estás inscripto en ningún curso.</p>
+							</div>
 						) : (
-							<ul>
+							<ul data-grid="cards">
 								{studying.map((academy) => (
 									<li key={academy.url}>
-										<a href={through(academy.url)}>{academy.name}</a>
+										<div data-card-body>
+											<h3>{academy.name}</h3>
+											<div data-actions>
+												<a href={through(academy.url)} data-cta="primary">
+													Abrir academia
+												</a>
+											</div>
+										</div>
 									</li>
 								))}
 							</ul>
@@ -54,7 +90,11 @@ export function AppHomePage({ user, academies, studying }: Props) {
 					<p>
 						Ingresá para administrar tus cursos o estudiar los que compraste.
 					</p>
-					<a href="/login">Ingresar</a>
+					<div data-actions>
+						<a href="/login" data-cta="primary" data-size="lg">
+							Ingresar
+						</a>
+					</div>
 				</>
 			)}
 		</main>

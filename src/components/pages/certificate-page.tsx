@@ -80,11 +80,14 @@ export function CertificatePage({
 
 			{valid && (
 				<>
-					<p>
-						<a href={`/certificados/${certificate.credentialId}/pdf`}>
+					<div data-actions>
+						<a
+							href={`/certificados/${certificate.credentialId}/pdf`}
+							data-cta="primary"
+						>
 							Descargar el certificado en PDF
 						</a>
-					</p>
+					</div>
 					<section>
 						<h2>Agregalo a LinkedIn</h2>
 						<p>
@@ -107,11 +110,11 @@ export function CertificatePage({
 								value={certificate.credentialId}
 							/>
 						</ul>
-						<p>
+						<div data-actions>
 							<a href={LINKEDIN_URL} target="_blank" rel="noreferrer noopener">
 								Abrir el formulario de LinkedIn
 							</a>
-						</p>
+						</div>
 					</section>
 				</>
 			)}

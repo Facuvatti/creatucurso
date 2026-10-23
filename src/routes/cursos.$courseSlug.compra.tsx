@@ -52,27 +52,43 @@ function PurchaseResult() {
 			{!paymentId || status.kind === "unknown" ? (
 				<>
 					<h1>No encontramos esta compra</h1>
-					<Link to="/cursos/$courseSlug" params={{ courseSlug }}>
-						Volver al curso
-					</Link>
+					<div data-actions>
+						<Link
+							to="/cursos/$courseSlug"
+							params={{ courseSlug }}
+							data-cta="primary"
+						>
+							Volver al curso
+						</Link>
+					</div>
 				</>
 			) : status.kind === "succeeded" ? (
 				<>
 					<h1 data-status="paid">¡Pago confirmado!</h1>
 					<p>Ya tenés acceso al curso.</p>
-					<Link
-						to="/cursos/$courseSlug"
-						params={{ courseSlug: status.courseSlug }}
-					>
-						Ir al curso
-					</Link>
+					<div data-actions>
+						<Link
+							to="/cursos/$courseSlug"
+							params={{ courseSlug: status.courseSlug }}
+							data-cta="primary"
+							data-size="lg"
+						>
+							Ir al curso
+						</Link>
+					</div>
 				</>
 			) : status.kind === "failed" ? (
 				<>
 					<h1 data-status="failed">El pago no se completó</h1>
-					<Link to="/cursos/$courseSlug/comprar" params={{ courseSlug }}>
-						Intentar de nuevo
-					</Link>
+					<div data-actions>
+						<Link
+							to="/cursos/$courseSlug/comprar"
+							params={{ courseSlug }}
+							data-cta="primary"
+						>
+							Intentar de nuevo
+						</Link>
+					</div>
 				</>
 			) : (
 				<>

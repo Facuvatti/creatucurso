@@ -8,6 +8,12 @@ importers:
 
   .:
     dependencies:
+      '@fontsource-variable/bricolage-grotesque':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource-variable/figtree':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@sentry/node':
         specifier: ^11.8.0
         version: 11.8.0(@babel/core@7.29.7)
@@ -410,6 +416,12 @@ packages:
   '@clack/prompts@1.8.1':
     resolution: {integrity: sha512-dlT1m5e/0yUL0kRNcQn7yGLVThkgbB0Ga/1AmfDDC/8ik6AIiSf2QLQO2zPYvefsHP0aFgxO93cVLCCfDp7kzQ==}
     engines: {node: '>= 20.12.0'}
+
+  '@fontsource-variable/bricolage-grotesque@5.3.0':
+    resolution: {integrity: sha512-TLi9Q4hJjS2UvoTMRSS2nHu6c4R56lAw60NR9QYtVRCHn0XtsFpiEhNffZ8Glsoxu6wEEwLKBP8lb94J52PNBA==}
+
+  '@fontsource-variable/figtree@5.3.0':
+    resolution: {integrity: sha512-VRVodD7OiG7apQwE8/2fMjaqpY/a0qRJqL5HtYj8CKIVps+9amaFcdfKmDIf7iqYQx6iPLlArVXAfKeIZmVcNQ==}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -2331,6 +2343,10 @@ snapshots:
       fast-string-width: 3.0.2
       fast-wrap-ansi: 0.2.2
       sisteransi: 1.0.5
+
+  '@fontsource-variable/bricolage-grotesque@5.3.0': {}
+
+  '@fontsource-variable/figtree@5.3.0': {}
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:

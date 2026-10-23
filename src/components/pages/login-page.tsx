@@ -23,6 +23,7 @@ export function LoginPage({
 		<main data-page="login">
 			<h1>{signingUp ? "Crear cuenta" : "Ingresar"}</h1>
 			<form
+				method="post"
 				onSubmit={(event) => {
 					event.preventDefault();
 					const data = new FormData(event.currentTarget);
@@ -59,14 +60,16 @@ export function LoginPage({
 					{signingUp ? "Crear cuenta" : "Ingresar"}
 				</button>
 			</form>
-			{!signingUp && (
-				<p>
-					<a href="/recuperar">Olvidé mi contraseña</a>
-				</p>
-			)}
-			<button type="button" onClick={onToggleMode}>
-				{signingUp ? "Ya tengo cuenta" : "Quiero crear una cuenta"}
-			</button>
+			<div data-actions>
+				{!signingUp && (
+					<a href="/recuperar" data-cta="ghost">
+						Olvidé mi contraseña
+					</a>
+				)}
+				<button type="button" onClick={onToggleMode}>
+					{signingUp ? "Ya tengo cuenta" : "Quiero crear una cuenta"}
+				</button>
+			</div>
 		</main>
 	);
 }

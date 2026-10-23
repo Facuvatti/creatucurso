@@ -88,22 +88,28 @@ export function LessonPage({
 			)}
 
 			<nav>
-				{data.previous && (
-					<Link
-						to="/cursos/$courseSlug/clases/$lessonSlug"
-						params={{ courseSlug: course.slug, lessonSlug: data.previous.slug }}
-					>
-						← {data.previous.title}
-					</Link>
-				)}{" "}
-				{data.next && (
-					<Link
-						to="/cursos/$courseSlug/clases/$lessonSlug"
-						params={{ courseSlug: course.slug, lessonSlug: data.next.slug }}
-					>
-						{data.next.title} →
-					</Link>
-				)}
+				<div data-actions>
+					{data.previous && (
+						<Link
+							to="/cursos/$courseSlug/clases/$lessonSlug"
+							params={{
+								courseSlug: course.slug,
+								lessonSlug: data.previous.slug,
+							}}
+						>
+							← {data.previous.title}
+						</Link>
+					)}
+					{data.next && (
+						<Link
+							to="/cursos/$courseSlug/clases/$lessonSlug"
+							params={{ courseSlug: course.slug, lessonSlug: data.next.slug }}
+							data-cta="primary"
+						>
+							{data.next.title} →
+						</Link>
+					)}
+				</div>
 			</nav>
 			{children}
 		</main>

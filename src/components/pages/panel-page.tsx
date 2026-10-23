@@ -52,17 +52,17 @@ export function PanelPage({
 				<Link to="/">Ver mi sitio</Link>
 			</p>
 			<h1>Panel de la academia</h1>
-			<p>
-				<Link to="/panel/tutoria">Tutoría</Link>{" "}
-				<Link to="/panel/moderacion">Moderación</Link>{" "}
+			<nav>
+				<Link to="/panel/tutoria">Tutoría</Link>
+				<Link to="/panel/moderacion">Moderación</Link>
 				<Link to="/panel/automatizaciones">Automatizaciones</Link>
-			</p>
-			{canManagePayments && (
-				<p>
-					<Link to="/panel/pagos">Cobros</Link>{" "}
-					<Link to="/panel/dominio">Dominio propio</Link>
-				</p>
-			)}
+				{canManagePayments && (
+					<>
+						<Link to="/panel/pagos">Cobros</Link>
+						<Link to="/panel/dominio">Dominio propio</Link>
+					</>
+				)}
+			</nav>
 
 			<section>
 				<h2>Mis cursos</h2>
@@ -188,15 +188,16 @@ export function PanelPage({
 
 				{importOutcome.kind === "done" && (
 					<div data-import="done">
-						<p>
-							Curso creado como borrador.{" "}
+						<p>Curso creado como borrador.</p>
+						<div data-actions>
 							<Link
 								to="/panel/cursos/$courseId"
 								params={{ courseId: importOutcome.courseId }}
+								data-cta="primary"
 							>
 								Abrirlo
 							</Link>
-						</p>
+						</div>
 						{importOutcome.uploadSlots.length > 0 && (
 							<>
 								<p>Archivos que todavía hay que subir:</p>

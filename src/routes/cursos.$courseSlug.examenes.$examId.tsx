@@ -34,9 +34,14 @@ function ExamRoute() {
 		return (
 			<main data-page="exam-locked">
 				<h1>Ingresá para rendir este examen</h1>
-				<a href={`${appOrigin}/login?return=${encodeURIComponent(here)}`}>
-					Ingresar
-				</a>
+				<div data-actions>
+					<a
+						href={`${appOrigin}/login?return=${encodeURIComponent(here)}`}
+						data-cta="primary"
+					>
+						Ingresar
+					</a>
+				</div>
 			</main>
 		);
 	}
@@ -45,12 +50,15 @@ function ExamRoute() {
 			<main data-page="exam-locked">
 				<h1>Necesitás estar inscripto</h1>
 				<p>Este examen es parte de {page.course.name}.</p>
-				<Link
-					to="/cursos/$courseSlug"
-					params={{ courseSlug: page.course.slug }}
-				>
-					Ver el curso
-				</Link>
+				<div data-actions>
+					<Link
+						to="/cursos/$courseSlug"
+						params={{ courseSlug: page.course.slug }}
+						data-cta="primary"
+					>
+						Ver el curso
+					</Link>
+				</div>
 			</main>
 		);
 	}

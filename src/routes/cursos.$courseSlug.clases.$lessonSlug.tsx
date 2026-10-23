@@ -59,9 +59,14 @@ function LessonRoute() {
 		return (
 			<main data-page="lesson-locked">
 				<h1>Ingresá para ver esta clase</h1>
-				<a href={`${appOrigin}/login?return=${encodeURIComponent(here)}`}>
-					Ingresar
-				</a>
+				<div data-actions>
+					<a
+						href={`${appOrigin}/login?return=${encodeURIComponent(here)}`}
+						data-cta="primary"
+					>
+						Ingresar
+					</a>
+				</div>
 			</main>
 		);
 	}
@@ -70,12 +75,15 @@ function LessonRoute() {
 			<main data-page="lesson-locked">
 				<h1>Necesitás estar inscripto</h1>
 				<p>Esta clase es parte de {data.course.name}.</p>
-				<Link
-					to="/cursos/$courseSlug"
-					params={{ courseSlug: data.course.slug }}
-				>
-					Ver el curso
-				</Link>
+				<div data-actions>
+					<Link
+						to="/cursos/$courseSlug"
+						params={{ courseSlug: data.course.slug }}
+						data-cta="primary"
+					>
+						Ver el curso
+					</Link>
+				</div>
 			</main>
 		);
 	}

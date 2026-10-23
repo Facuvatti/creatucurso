@@ -65,17 +65,19 @@ export function PanelCoursePage({
 	return (
 		<main data-page="panel-course">
 			<p>
-				<Link to="/panel">← Panel</Link>
+				<Link to="/panel">Panel</Link>
 			</p>
 			<h1>{course.name}</h1>
 			<p>
-				Estado: <strong>{published ? "publicado" : "borrador"}</strong>{" "}
-				<PublishControl course={course} />{" "}
+				Estado: <strong>{published ? "publicado" : "borrador"}</strong>
+			</p>
+			<div data-actions>
+				<PublishControl course={course} />
 				<Link to="/cursos/$courseSlug" params={{ courseSlug: course.slug }}>
 					Ver como alumno
-				</Link>{" "}
+				</Link>
 				<ExportButton course={course} />
-			</p>
+			</div>
 			{message && <output>{message}</output>}
 
 			<CourseDetailsForm course={course} />

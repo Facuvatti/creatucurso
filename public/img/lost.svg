@@ -1,0 +1,13 @@
+<svg width="240" height="180" viewBox="0 0 240 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="a" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0ea5e9"/><stop offset="0.55" stop-color="#4f46e5"/><stop offset="1" stop-color="#7c3aed"/></linearGradient>
+    <linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fbbf24"/><stop offset="1" stop-color="#f97316"/></linearGradient>
+  </defs>
+  <ellipse cx="120" cy="164" rx="84" ry="9" fill="#94a3b8" fill-opacity="0.22"/>
+  <path d="M60 126c-18 0-32-13-32-30 0-14 11-27 26-30 6-20 24-34 46-34 19 0 35 10 43 25 5-2 10-3 15-3 20 0 36 14 36 32 0 18-15 40-38 40z" fill="#818cf8" fill-opacity="0.15"/>
+  <text x="120" y="112" text-anchor="middle" font-family="system-ui, sans-serif" font-weight="800" font-size="84" letter-spacing="-4" fill="url(#a)">404</text>
+  <circle cx="62" cy="64" r="8" fill="url(#b)"/>
+  <path d="M190 38l5 13 13 5-13 5-5 13-5-13-13-5 13-5z" fill="#38bdf8"/>
+  <path d="M96 24l24-10 24 10-24 10z" fill="url(#a)" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M106 32v8c0 4 6 7 14 7s14-3 14-7v-8l-14 6z" fill="#4338ca"/>
+</svg>

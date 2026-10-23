@@ -33,12 +33,14 @@ function FrameRules() {
 				</li>
 			</ul>
 			<p>
+				Usá un tamaño personalizado de 3508 x 2480 px y descargalo como PNG o
+				PDF.
+			</p>
+			<div data-actions>
 				<a href={CANVA_URL} target="_blank" rel="noreferrer noopener">
 					Crear el diseño en Canva
-				</a>{" "}
-				(usá un tamaño personalizado de 3508 x 2480 px y descargalo como PNG o
-				PDF).
-			</p>
+				</a>
+			</div>
 		</>
 	);
 }
@@ -366,7 +368,9 @@ export function CertificateEditor({
 						{c.studentName}{" "}
 						<small>
 							({new Date(c.issuedAt).toLocaleDateString("es-AR")}){" "}
-							<a href={`/certificados/${c.credentialId}`}>ver</a>
+							<a href={`/certificados/${c.credentialId}`} data-cta="ghost">
+								ver
+							</a>
 						</small>{" "}
 						{c.status === "revoked" ? (
 							<strong>

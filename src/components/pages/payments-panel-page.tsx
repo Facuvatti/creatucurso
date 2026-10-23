@@ -33,7 +33,7 @@ export function PaymentsPanelPage({
 	return (
 		<main data-page="payments-panel">
 			<p>
-				<Link to="/panel">← Panel</Link>
+				<Link to="/panel">Panel</Link>
 			</p>
 			<h1>Cobros</h1>
 

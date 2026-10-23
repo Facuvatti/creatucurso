@@ -27,14 +27,20 @@ export function CheckoutPage({
 		<main data-page="checkout">
 			<p>
 				<Link to="/cursos/$courseSlug" params={{ courseSlug }}>
-					← {courseName}
+					{courseName}
 				</Link>
 			</p>
 			<h1>Comprar {courseName}</h1>
 			<p>Total: {formatMoney(amount, currency)}</p>
 
 			{step === "idle" || step === "starting" ? (
-				<button type="button" onClick={onStart} disabled={step === "starting"}>
+				<button
+					type="button"
+					onClick={onStart}
+					disabled={step === "starting"}
+					data-cta="primary"
+					data-size="lg"
+				>
 					Continuar al pago
 				</button>
 			) : null}
@@ -42,7 +48,13 @@ export function CheckoutPage({
 			<div id="payment-element" />
 
 			{step === "ready" || step === "paying" ? (
-				<button type="button" onClick={onPay} disabled={step === "paying"}>
+				<button
+					type="button"
+					onClick={onPay}
+					disabled={step === "paying"}
+					data-cta="primary"
+					data-size="lg"
+				>
 					Pagar {formatMoney(amount, currency)}
 				</button>
 			) : null}

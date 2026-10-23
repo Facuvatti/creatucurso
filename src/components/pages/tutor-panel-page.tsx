@@ -20,12 +20,11 @@ export function TutorPanelPage({
 }: Props) {
 	return (
 		<main data-page="tutor-panel">
-			<p>
-				{isStaff && <Link to="/panel">Panel</Link>}{" "}
+			<div data-actions>
+				{isStaff && <Link to="/panel">Panel</Link>}
 				<Link to="/panel/moderacion">Moderación</Link>
-				{" "}
 				<Link to="/mensajes">Mensajes</Link>
-			</p>
+			</div>
 			<h1>Tutoría</h1>
 			<p>Comentarios que esperan una respuesta.</p>
 			{message && <output>{message}</output>}

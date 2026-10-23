@@ -26,6 +26,7 @@ function RecoverRoute() {
 				</p>
 			) : (
 				<form
+					method="post"
 					onSubmit={async (event) => {
 						event.preventDefault();
 						setPending(true);
@@ -55,9 +56,11 @@ function RecoverRoute() {
 					</button>
 				</form>
 			)}
-			<p>
-				<a href="/login">Volver a ingresar</a>
-			</p>
+			<div data-actions>
+				<a href="/login" data-cta="ghost">
+					Volver a ingresar
+				</a>
+			</div>
 		</main>
 	);
 }

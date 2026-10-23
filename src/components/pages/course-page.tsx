@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { allLessons, type CourseOutline } from "../../areas/catalog/types.ts";
 import type { CourseAccess } from "../../server/catalog.functions.ts";
 import { formatMoney } from "../../shared/money.ts";
+import { CourseCover } from "../ui/course-cover.tsx";
 
 type Props = {
 	course: CourseOutline;
@@ -56,6 +57,9 @@ export function CoursePage({
 			<p>
 				<Link to="/">Volver a los cursos</Link>
 			</p>
+			<div data-course-banner>
+				<CourseCover name={course.name} />
+			</div>
 			<h1>{course.name}</h1>
 			{course.status === "draft" && (
 				<p data-flag="draft">
@@ -111,41 +115,59 @@ export function CoursePage({
 			</section>
 
 			<section>
-				{access.canStudy && first ? (
-					<Link
-						to="/cursos/$courseSlug/clases/$lessonSlug"
-						params={{ courseSlug: course.slug, lessonSlug: first.slug }}
-					>
-						Entrar al curso
-					</Link>
-				) : !access.signedIn ? (
-					<a href={loginUrl}>Ingresá para inscribirte</a>
-				) : paid ? (
-					<Link
-						to="/cursos/$courseSlug/comprar"
-						params={{ courseSlug: course.slug }}
-					>
-						Comprar el curso
-					</Link>
-				) : (
-					<button type="button" onClick={onEnrollFree} disabled={pending}>
-						Inscribirme gratis
-					</button>
-				)}
-				{certificate && (
+				<div data-actions>
+					{access.canStudy && first ? (
+						<Link
+							to="/cursos/$courseSlug/clases/$lessonSlug"
+							params={{ courseSlug: course.slug, lessonSlug: first.slug }}
+							data-cta="primary"
+							data-size="lg"
+						>
+							Entrar al curso
+						</Link>
+					) : !access.signedIn ? (
+						<a href={loginUrl} data-cta="primary" data-size="lg">
+							Ingresá para inscribirte
+						</a>
+					) : paid ? (
+						<Link
+							to="/cursos/$courseSlug/comprar"
+							params={{ courseSlug: course.slug }}
+							data-cta="primary"
+							data-size="lg"
+						>
+							Comprar el curso
+						</Link>
+					) : (
+						<button
+							type="button"
+							onClick={onEnrollFree}
+							disabled={pending}
+							data-cta="primary"
+							data-size="lg"
+						>
+							Inscribirme gratis
+						</button>
+					)}
+					{certificate?.status === "valid" && (
+						<a href={`/certificados/${certificate.credentialId}`}>
+							Ver mi certificado
+						</a>
+					)}
+				</div>
+				{certificate?.status === "revoked" && (
 					<p data-certificate>
-						{certificate.status === "valid" ? (
-							<a href={`/certificados/${certificate.credentialId}`}>
-								Ver mi certificado
-							</a>
-						) : (
-							<span>Tu certificado fue revocado.</span>
-						)}
+						<span>Tu certificado fue revocado.</span>
 					</p>
 				)}
 				{refundable && (
 					<p>
-						<button type="button" onClick={onRequestRefund} disabled={pending}>
+						<button
+							type="button"
+							onClick={onRequestRefund}
+							disabled={pending}
+							data-cta="ghost"
+						>
 							Solicitar reembolso
 						</button>
 					</p>

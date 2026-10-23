@@ -22,10 +22,12 @@ function ResetRoute() {
 		return (
 			<main data-page="reset">
 				<h1>Enlace inválido</h1>
-				<p>
-					El enlace venció o no es válido.{" "}
-					<a href="/recuperar">Pedí uno nuevo</a>.
-				</p>
+				<p>El enlace venció o no es válido.</p>
+				<div data-actions>
+					<a href="/recuperar" data-cta="primary">
+						Pedí uno nuevo
+					</a>
+				</div>
 			</main>
 		);
 	}
@@ -34,9 +36,11 @@ function ResetRoute() {
 		return (
 			<main data-page="reset">
 				<h1>Contraseña actualizada</h1>
-				<p>
-					<a href="/login">Ingresar</a>
-				</p>
+				<div data-actions>
+					<a href="/login" data-cta="primary">
+						Ingresar
+					</a>
+				</div>
 			</main>
 		);
 	}
@@ -45,6 +49,7 @@ function ResetRoute() {
 		<main data-page="reset">
 			<h1>Elegí una contraseña nueva</h1>
 			<form
+				method="post"
 				onSubmit={async (event) => {
 					event.preventDefault();
 					setPending(true);

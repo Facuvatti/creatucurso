@@ -24,9 +24,11 @@ export function LegalPage({
 			) : (
 				<p>Este documento está en preparación.</p>
 			)}
-			<p>
-				<a href="/">Volver al inicio</a>
-			</p>
+			<div data-actions>
+				<a href="/" data-cta="ghost">
+					Volver al inicio
+				</a>
+			</div>
 		</main>
 	);
 }

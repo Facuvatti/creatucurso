@@ -46,7 +46,7 @@ export function BillingPanelPage({
 	return (
 		<main data-page="billing-panel">
 			<p>
-				<Link to="/panel">← Panel</Link>
+				<Link to="/panel">Panel</Link>
 			</p>
 			<h1>Facturación</h1>
 			{message && <p role="status">{message}</p>}
@@ -234,28 +234,34 @@ export function BillingNotice({
 	owner: boolean;
 }) {
 	const link = owner ? (
-		<>
-			{" "}
-			<a href="/panel/facturacion">Ir a Facturación</a>
-		</>
+		<div data-actions>
+			<a href="/panel/facturacion" data-cta="primary">
+				Ir a Facturación
+			</a>
+		</div>
 	) : null;
 	if (billing.status === "suspended") {
 		return (
-			<p data-status="disconnected" role="alert">
-				{staff
-					? "Tu academia está suspendida por falta de pago: tus alumnos siguen estudiando, pero no podés sumar alumnos ni vender cursos hasta regularizar la suscripción."
-					: "Esta academia está suspendida temporalmente. Quienes ya están inscriptos pueden seguir estudiando; por ahora no se aceptan nuevas inscripciones."}
+			<>
+				<p data-status="disconnected" role="alert">
+					{staff
+						? "Tu academia está suspendida por falta de pago: tus alumnos siguen estudiando, pero no podés sumar alumnos ni vender cursos hasta regularizar la suscripción."
+						: "Esta academia está suspendida temporalmente. Quienes ya están inscriptos pueden seguir estudiando; por ahora no se aceptan nuevas inscripciones."}
+				</p>
 				{staff && link}
-			</p>
+			</>
 		);
 	}
 	if (billing.status === "past_due" && staff) {
 		return (
-			<p data-status="warning" role="alert">
-				Hay un pago pendiente de la suscripción de tu academia. Regularizalo
-				{billing.suspendAt ? ` antes del ${date(billing.suspendAt)}` : ""} para
-				evitar la suspensión.{link}
-			</p>
+			<>
+				<p data-status="warning" role="alert">
+					Hay un pago pendiente de la suscripción de tu academia. Regularizalo
+					{billing.suspendAt ? ` antes del ${date(billing.suspendAt)}` : ""}{" "}
+					para evitar la suspensión.
+				</p>
+				{link}
+			</>
 		);
 	}
 	return null;
