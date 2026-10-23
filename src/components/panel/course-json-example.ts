@@ -26,6 +26,16 @@ export const COURSE_JSON_EXAMPLE = `{
           "order": 1,
           "videos": ["C:/Users/maria/curso-web/mod1/clase1.mp4"],
           "notes": ["C:/Users/maria/curso-web/mod1/clase1-apunte.pdf"]
+        },
+        {
+          "title": "Quiz de etiquetas",
+          "description": "Una app web embebida que devuelve un puntaje.",
+          "order": 2,
+          "embed": {
+            "url": "https://quiz.example.com/etiquetas",
+            "passingScore": 60,
+            "verifiedOnly": false
+          }
         }
       ]
     }

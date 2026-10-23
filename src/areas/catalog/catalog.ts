@@ -67,6 +67,9 @@ type LessonRow = {
 	position: number;
 	videos: MediaRef[];
 	notes: MediaRef[];
+	embed_url: string | null;
+	embed_passing_score: number;
+	embed_verified_only: boolean;
 };
 
 const COURSE_COLUMNS = `id, organization_id, slug, name, short_description, long_description,
@@ -100,7 +103,8 @@ async function outlineOf(row: CourseRow): Promise<CourseOutline> {
 			[row.id],
 		),
 		pool.query<LessonRow>(
-			`select id, module_id, slug, title, description, position, videos, notes
+			`select id, module_id, slug, title, description, position, videos, notes,
+			        embed_url, embed_passing_score, embed_verified_only
 			 from catalog.lesson where course_id = $1 order by position`,
 			[row.id],
 		),
@@ -121,6 +125,9 @@ async function outlineOf(row: CourseRow): Promise<CourseOutline> {
 			position: l.position,
 			videos: l.videos,
 			notes: l.notes,
+			embedUrl: l.embed_url,
+			embedPassingScore: l.embed_passing_score,
+			embedVerifiedOnly: l.embed_verified_only,
 		});
 		lessonsByModule.set(l.module_id, list);
 	}
@@ -185,8 +192,9 @@ export async function createCourse(
 				for (const lesson of module.lessons) {
 					await client.query(
 						`insert into catalog.lesson
-						 (course_id, module_id, slug, title, description, position, videos, notes)
-						 values ($1, $2, $3, $4, $5, $6, $7, $8)`,
+						 (course_id, module_id, slug, title, description, position, videos, notes,
+						  embed_url, embed_passing_score, embed_verified_only)
+						 values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
 						[
 							courseId,
 							moduleId,
@@ -196,6 +204,9 @@ export async function createCourse(
 							lesson.position,
 							JSON.stringify(lesson.videos),
 							JSON.stringify(lesson.notes),
+							lesson.embedUrl,
+							lesson.embedPassingScore,
+							lesson.embedVerifiedOnly,
 						],
 					);
 				}
@@ -714,6 +725,21 @@ export async function updateLesson(
 		 where course_id = $1 and id = $2`,
 		[courseId, lessonId, values.title, values.description],
 	);
+}
+
+/** Sets or clears (url null) the embedded web app of a lesson of this course. */
+export async function setLessonEmbed(
+	courseId: string,
+	lessonId: string,
+	values: { url: string | null; passingScore: number; verifiedOnly: boolean },
+): Promise<boolean> {
+	const { rowCount } = await pool.query(
+		`update catalog.lesson
+		 set embed_url = $3, embed_passing_score = $4, embed_verified_only = $5
+		 where course_id = $1 and id = $2`,
+		[courseId, lessonId, values.url, values.passingScore, values.verifiedOnly],
+	);
+	return (rowCount ?? 0) > 0;
 }
 
 export async function deleteLesson(courseId: string, lessonId: string) {

@@ -94,6 +94,7 @@ function LessonRoute() {
 			data={data}
 			pending={pending}
 			viewerEmail={user?.email ?? ""}
+			onEmbedReported={() => router.invalidate()}
 			onComplete={async () => {
 				setPending(true);
 				await completeLesson({ data: params });

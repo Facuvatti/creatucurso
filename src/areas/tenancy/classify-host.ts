@@ -25,7 +25,7 @@ const DNS_LABEL = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
 const IPV4 = /^\d{1,3}(\.\d{1,3}){3}$/;
 const UNKNOWN: HostClassification = { kind: "unknown" };
 
-function normalize(host: string): string {
+export function normalize(host: string): string {
 	return host.trim().toLowerCase().replace(/:\d+$/, "").replace(/\.$/, "");
 }
 

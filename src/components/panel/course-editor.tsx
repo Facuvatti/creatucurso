@@ -8,6 +8,7 @@ import {
 	moveCourseItem,
 	renameCourseSlug,
 	setCourseStatus,
+	setLessonEmbed,
 	updateCourseDetails,
 	updateLesson,
 	updateModule,
@@ -328,6 +329,61 @@ export function StructureEditor({ course }: { course: CourseOutline }) {
 											}
 										>
 											Borrar clase
+										</button>
+									</form>
+									<form
+										data-embed-settings
+										onSubmit={(event) => {
+											event.preventDefault();
+											const form = event.currentTarget;
+											const url = field(form, "embedUrl").trim();
+											run(
+												() =>
+													setLessonEmbed({
+														data: {
+															courseId: course.id,
+															lessonId: lesson.id,
+															url: url === "" ? null : url,
+															passingScore: Number(field(form, "passingScore")),
+															verifiedOnly:
+																new FormData(form).get("verifiedOnly") !== null,
+														},
+													}),
+												"App embebida guardada.",
+											);
+										}}
+									>
+										<label>
+											URL de la app (https, vacío = sin app)
+											<input
+												name="embedUrl"
+												type="url"
+												defaultValue={lesson.embedUrl ?? ""}
+												placeholder="https://mi-app.example.com/quiz"
+											/>
+										</label>
+										<label>
+											Puntaje mínimo (0-100)
+											<input
+												name="passingScore"
+												type="number"
+												min={0}
+												max={100}
+												step={1}
+												defaultValue={lesson.embedPassingScore ?? 60}
+												required
+											/>
+										</label>
+										<label>
+											<input
+												name="verifiedOnly"
+												type="checkbox"
+												defaultChecked={lesson.embedVerifiedOnly ?? false}
+											/>{" "}
+											Exigir resultado verificado
+										</label>
+										<button type="submit" disabled={pending}>
+											Guardar app
 										</button>
 									</form>
 								</li>

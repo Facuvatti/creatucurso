@@ -32,6 +32,15 @@ export function courseToImport(course: CourseOutline): CourseImport {
 				order: l + 1,
 				videos: lesson.videos.map((v) => v.ref),
 				notes: lesson.notes.map((n) => n.ref),
+				...(lesson.embedUrl
+					? {
+							embed: {
+								url: lesson.embedUrl,
+								passingScore: lesson.embedPassingScore,
+								verifiedOnly: lesson.embedVerifiedOnly,
+							},
+						}
+					: {}),
 			})),
 		})),
 	};

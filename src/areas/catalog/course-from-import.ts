@@ -47,6 +47,9 @@ export function courseFromImport(
 					position: lesson.order,
 					videos: lesson.videos.map(toMediaRef),
 					notes: lesson.notes.map(toMediaRef),
+					embedUrl: lesson.embed?.url ?? null,
+					embedPassingScore: lesson.embed?.passingScore ?? 60,
+					embedVerifiedOnly: lesson.embed?.verifiedOnly ?? false,
 				};
 			}),
 		})),

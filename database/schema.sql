@@ -118,6 +118,51 @@ create table if not exists catalog.lesson_progress (
 	primary key (lesson_id, user_id)
 );
 
+-- Lessons with an embedded web app that reports a result (docs/plan-embedded-lessons.md).
+alter table catalog.lesson add column if not exists embed_url text;
+alter table catalog.lesson add column if not exists embed_passing_score integer not null default 60;
+alter table catalog.lesson add column if not exists embed_verified_only boolean not null default false;
+do $$ begin
+	alter table catalog.lesson add constraint lesson_embed_passing_score_check
+		check (embed_passing_score between 0 and 100);
+exception when duplicate_object then null; end $$;
+
+-- HMAC secret of a course for the signed result reports; stored encrypted.
+create table if not exists catalog.course_app_secret (
+	course_id uuid primary key references catalog.course (id) on delete cascade,
+	secret_encrypted text not null,
+	created_at timestamptz not null default now(),
+	rotated_at timestamptz
+);
+
+-- The token the embedded app echoes back; only its sha256 is stored.
+create table if not exists catalog.embed_session (
+	token_hash text primary key,
+	lesson_id uuid not null references catalog.lesson (id) on delete cascade,
+	user_id text not null references auth."user" (id) on delete cascade,
+	expires_at timestamptz not null,
+	created_at timestamptz not null default now()
+);
+create index if not exists embed_session_user_idx on catalog.embed_session (user_id, created_at);
+create index if not exists embed_session_expires_idx on catalog.embed_session (expires_at);
+
+-- One row per student and lesson. A verified (server) result is never replaced by a client one.
+create table if not exists catalog.lesson_result (
+	lesson_id uuid not null references catalog.lesson (id) on delete cascade,
+	user_id text not null references auth."user" (id) on delete cascade,
+	score double precision,
+	max_score double precision,
+	passed boolean,
+	time_spent_sec integer,
+	metadata jsonb,
+	source text not null check (source in ('client', 'server')),
+	verified boolean not null default false,
+	last_ts bigint not null default 0,
+	created_at timestamptz not null default now(),
+	updated_at timestamptz not null default now(),
+	primary key (lesson_id, user_id)
+);
+
 -- Our tables: exams (form exams graded instantly; ADR-0033) -----------------------------
 -- The answer key (option.correct, accepted_answer) is read only by the server. Student
 -- queries never select it before the attempt is submitted.

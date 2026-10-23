@@ -1467,6 +1467,16 @@ video {
   box-shadow: var(--shadow-lg);
 }
 
+[data-embed] iframe {
+  display: block;
+  width: 100%;
+  min-height: 32rem;
+  height: 70vh;
+  border: 0;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+}
+
 /* --------------------------------------------------------------------------
    Chat (messages page): layout lives next to the component, the look is here
    -------------------------------------------------------------------------- */

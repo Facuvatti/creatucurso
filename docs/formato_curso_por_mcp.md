@@ -74,8 +74,28 @@
           "notes": [
             "C:/Users/maria/Desktop/curso-web/mod2/clase1-apunte.pdf"
           ]
+        },
+        {
+          "title": "Quiz de selectores",
+          "description": "Actividad interactiva alojada en tu propia web.",
+          "order": 2,
+          "embed": {
+            "url": "https://quiz.miacademia.example/selectores",
+            "passingScore": 70,
+            "verifiedOnly": false
+          }
         }
       ]
     }
   ]
 }
+
+## Clases con app embebida (`embed`)
+
+Una clase puede mostrar una app web propia en lugar de (o además de) un video:
+
+- `embed.url` (obligatorio dentro de `embed`): URL `https://` de la app, sin credenciales ni puerto distinto del estándar, sin IP ni `localhost`, y fuera del dominio de la plataforma.
+- `embed.passingScore` (opcional, 0 a 100, por defecto 60): porcentaje mínimo para aprobar cuando la app informa solo `score`.
+- `embed.verifiedOnly` (opcional, por defecto `false`): si es `true`, solo cuenta el resultado firmado por el servidor de la app.
+
+Cada clase necesita al menos un video o un `embed`. El secreto para firmar resultados se genera en el panel del curso (no se importa). Ver `docs/lesson-sdk.md`.

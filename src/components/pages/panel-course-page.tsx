@@ -13,6 +13,7 @@ import {
 	PublishControl,
 	StructureEditor,
 } from "../panel/course-editor.tsx";
+import { EmbedPanel, type EmbedResultRow } from "../panel/embed-panel.tsx";
 import { ExamEditor } from "../panel/exam-editor.tsx";
 
 type Props = {
@@ -21,6 +22,9 @@ type Props = {
 	videos: Record<string, VideoInfo>;
 	certificates: CertificatePanel;
 	exams: StaffExam[];
+	hasAppSecret: boolean;
+	embedResults: EmbedResultRow[];
+	onEmbedChanged: () => void;
 	onExamsChanged: () => void;
 	onCertificatesChanged: () => void;
 	onVideoChanged: () => void;
@@ -48,6 +52,9 @@ export function PanelCoursePage({
 	videos,
 	certificates,
 	exams,
+	hasAppSecret,
+	embedResults,
+	onEmbedChanged,
 	onExamsChanged,
 	onCertificatesChanged,
 	onVideoChanged,
@@ -185,6 +192,13 @@ export function PanelCoursePage({
 				modules={course.modules.map((m) => ({ id: m.id, title: m.title }))}
 				exams={exams}
 				onChanged={onExamsChanged}
+			/>
+
+			<EmbedPanel
+				courseId={course.id}
+				hasSecret={hasAppSecret}
+				rows={embedResults}
+				onChanged={onEmbedChanged}
 			/>
 
 			<CertificateEditor

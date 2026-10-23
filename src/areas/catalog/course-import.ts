@@ -1,4 +1,5 @@
 import { MAX_SLUG_LENGTH, slugify } from "../../shared/text/slugify.ts";
+import { validateEmbedUrl } from "./embed-url.ts";
 
 export type ImportIssue = { path: string; message: string };
 
@@ -8,6 +9,7 @@ type ImportClass = {
 	order: number;
 	videos: string[];
 	notes: string[];
+	embed?: { url: string; passingScore?: number; verifiedOnly?: boolean };
 };
 
 type ImportModule = {
@@ -130,6 +132,7 @@ export function parseCourseImport(input: unknown): ParseCourseImportResult {
 			"order",
 			"videos",
 			"notes",
+			"embed",
 		]);
 		const blank = {
 			title: "",
@@ -138,19 +141,56 @@ export function parseCourseImport(input: unknown): ParseCourseImportResult {
 			notes: [] as string[],
 		};
 		if (!raw) return blank;
+		const embed = parseEmbed(raw.embed, child(path, "embed"));
+		const videos = list(raw.videos, child(path, "videos"), 10, mediaRef);
+		if (videos.length === 0 && raw.embed === undefined) {
+			add(path, "at least one video or an embed is required");
+		}
 		return order(raw, path, {
 			title: required(raw.title, child(path, "title"), 150),
 			description: optional(raw.description, child(path, "description"), 2000),
 			order: 0,
-			videos: list(
-				raw.videos,
-				child(path, "videos"),
-				10,
-				mediaRef,
-				"at least one video is required",
-			),
+			videos,
 			notes: list(raw.notes, child(path, "notes"), 20, mediaRef),
+			...(embed ? { embed } : {}),
 		});
+	}
+
+	function parseEmbed(value: unknown, path: string): ImportClass["embed"] {
+		if (value === undefined) return undefined;
+		const raw = object(value, path, ["url", "passingScore", "verifiedOnly"]);
+		if (!raw) return undefined;
+		let url = "";
+		if (typeof raw.url !== "string") add(child(path, "url"), "must be text");
+		else {
+			const checked = validateEmbedUrl(raw.url);
+			if (checked.ok) url = checked.url;
+			else add(child(path, "url"), checked.message);
+		}
+		const score = raw.passingScore;
+		if (
+			score !== undefined &&
+			(typeof score !== "number" ||
+				!Number.isInteger(score) ||
+				score < 0 ||
+				score > 100)
+		) {
+			add(child(path, "passingScore"), "must be a whole number from 0 to 100");
+		}
+		if (
+			raw.verifiedOnly !== undefined &&
+			typeof raw.verifiedOnly !== "boolean"
+		) {
+			add(child(path, "verifiedOnly"), "must be true or false");
+		}
+		if (!url) return undefined;
+		return {
+			url,
+			...(typeof score === "number" ? { passingScore: score } : {}),
+			...(typeof raw.verifiedOnly === "boolean"
+				? { verifiedOnly: raw.verifiedOnly }
+				: {}),
+		};
 	}
 
 	function parseModule(value: unknown, path: string): Optional<ImportModule> {

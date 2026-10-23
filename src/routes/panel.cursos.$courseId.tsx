@@ -12,6 +12,8 @@ import {
 	addLesson,
 	addModule,
 	enrollStudentByEmail,
+	getCourseAppSecretStatus,
+	getEmbedResults,
 	getPanelCourse,
 } from "../server/catalog.functions.ts";
 import { getCertificatePanel } from "../server/certificates.functions.ts";
@@ -50,7 +52,21 @@ export const Route = createFileRoute("/panel/cursos/$courseId")({
 			data: { courseId: params.courseId },
 		});
 		const exams = await getPanelExams({ data: { courseId: params.courseId } });
-		return { course, tutors, videos, certificates, exams };
+		const secretStatus = await getCourseAppSecretStatus({
+			data: { courseId: params.courseId },
+		});
+		const embed = await getEmbedResults({
+			data: { courseId: params.courseId },
+		});
+		return {
+			course,
+			tutors,
+			videos,
+			certificates,
+			exams,
+			hasAppSecret: secretStatus.hasSecret,
+			embedResults: embed.ok ? embed.rows : [],
+		};
 	},
 	head: ({ loaderData }) => ({
 		meta: [{ title: `${loaderData?.course.name ?? "Curso"} | Panel` }],
@@ -59,7 +75,15 @@ export const Route = createFileRoute("/panel/cursos/$courseId")({
 });
 
 function PanelCourseRoute() {
-	const { course, tutors, videos, certificates, exams } = Route.useLoaderData();
+	const {
+		course,
+		tutors,
+		videos,
+		certificates,
+		exams,
+		hasAppSecret,
+		embedResults,
+	} = Route.useLoaderData();
 	const router = useRouter();
 	const [pending, setPending] = useState(false);
 	const [message, setMessage] = useState<string>();
@@ -108,6 +132,9 @@ function PanelCourseRoute() {
 			videos={liveVideos}
 			certificates={certificates}
 			exams={exams}
+			hasAppSecret={hasAppSecret}
+			embedResults={embedResults}
+			onEmbedChanged={() => router.invalidate()}
 			onExamsChanged={() => router.invalidate()}
 			onCertificatesChanged={() => router.invalidate()}
 			onVideoChanged={() => router.invalidate()}

@@ -7,6 +7,7 @@ import * as catalog from "../areas/catalog/catalog.ts";
 import { courseToImport } from "../areas/catalog/course-export.ts";
 import type { UploadSlot } from "../areas/catalog/course-from-import.ts";
 import type { ImportIssue } from "../areas/catalog/course-import.ts";
+import * as embed from "../areas/catalog/embed.ts";
 import {
 	allLessons,
 	type CourseOutline,
@@ -17,7 +18,7 @@ import {
 import { findRoles, findUserIdByEmail } from "../areas/identity/members.ts";
 import { videoOfLesson } from "../areas/media/media.ts";
 import { slugify } from "../shared/text/slugify.ts";
-import { email, oneOf, record, text, uuid } from "../shared/validate.ts";
+import { bool, email, oneOf, record, text, uuid } from "../shared/validate.ts";
 import {
 	accessFor,
 	assertEnrollment,
@@ -95,6 +96,19 @@ export type LessonPageData =
 			next: { slug: string; title: string } | null;
 			completed: boolean;
 			canTrackProgress: boolean;
+			/** The embedded web app of the lesson, with this person's last result. */
+			embed: {
+				url: string;
+				origin: string;
+				passingScore: number;
+				verifiedOnly: boolean;
+				result: {
+					score: number | null;
+					maxScore: number | null;
+					passed: boolean | null;
+					verified: boolean;
+				} | null;
+			} | null;
 	  }
 	| { kind: "login" }
 	| { kind: "enroll"; course: { name: string; slug: string } }
@@ -136,6 +150,17 @@ export const getLessonPage = createServerFn({ method: "GET" })
 		const video = await videoOfLesson(lesson.id);
 		const brief = (l: Lesson | undefined) =>
 			l ? { slug: l.slug, title: l.title } : null;
+		const embedded = lesson.embedUrl
+			? {
+					url: lesson.embedUrl,
+					origin: embed.embedOrigin(lesson.embedUrl),
+					passingScore: lesson.embedPassingScore,
+					verifiedOnly: lesson.embedVerifiedOnly,
+					result: context.user
+						? await embed.getStudentResult(lesson.id, context.user.id)
+						: null,
+				}
+			: null;
 
 		return {
 			kind: "ok",
@@ -147,8 +172,118 @@ export const getLessonPage = createServerFn({ method: "GET" })
 			next: brief(lessons[index + 1]),
 			completed: completedIds.includes(lesson.id),
 			canTrackProgress: access.enrolled,
+			embed: embedded,
 		};
 	});
+
+// ------------------------------------------------------------ embedded lessons
+
+const NOT_ENROLLED = "Tenés que estar inscripto en el curso para esta clase.";
+
+/** The embedded lesson of an active student, or the reason it cannot be used. */
+async function embeddedLessonOf(data: {
+	courseSlug: string;
+	lessonSlug: string;
+}): Promise<
+	| { ok: true; user: { id: string }; course: CourseOutline; lesson: Lesson }
+	| { ok: false; message: string }
+> {
+	const context = await requireTenantContext();
+	const { user } = context;
+	if (!user) return { ok: false, message: "Iniciá sesión para continuar." };
+	const lookup = await catalog.findCourseBySlug(
+		context.tenant.id,
+		data.courseSlug,
+	);
+	if (!lookup || lookup.kind !== "found") {
+		return { ok: false, message: "No encontramos la clase." };
+	}
+	const lesson = allLessons(lookup.course).find(
+		(l) => l.slug === data.lessonSlug,
+	);
+	if (!lesson?.embedUrl)
+		return { ok: false, message: "Esta clase no tiene una app." };
+	const access = await accessFor(context, lookup.course);
+	if (!access.enrolled) return { ok: false, message: NOT_ENROLLED };
+	return { ok: true, user, course: lookup.course, lesson };
+}
+
+export const startEmbedSession = createServerFn({ method: "POST" })
+	.validator(checkLesson)
+	.handler(
+		async ({
+			data,
+		}): Promise<
+			| { ok: true; token: string; expiresAt: string }
+			| { ok: false; message: string }
+		> => {
+			const found = await embeddedLessonOf(data);
+			if (!found.ok) return found;
+			const session = await embed.startSession(found.lesson.id, found.user.id);
+			if (!session.ok) return session;
+			return {
+				ok: true,
+				token: session.token,
+				expiresAt: session.expiresAt.toISOString(),
+			};
+		},
+	);
+
+export const reportEmbedResult = createServerFn({ method: "POST" })
+	.validator((data: unknown) => {
+		const input = record(data);
+		const report = {
+			score: input.score,
+			maxScore: input.maxScore,
+			passed: input.passed,
+			timeSpentSec: input.timeSpentSec,
+			metadata: input.metadata,
+		};
+		if (JSON.stringify(report).length > embed.MAX_REPORT_BYTES) {
+			throw new Error("The result is too large.");
+		}
+		return { ...checkLesson(data), report };
+	})
+	.handler(
+		async ({
+			data,
+		}): Promise<
+			| {
+					ok: true;
+					passed: boolean;
+					lessonCompleted: boolean;
+					courseCompleted: boolean;
+			  }
+			| { ok: false; message: string }
+		> => {
+			const found = await embeddedLessonOf(data);
+			if (!found.ok) return found;
+			const normalized = embed.normalizeResult(
+				data.report,
+				found.lesson.embedPassingScore,
+			);
+			if (!normalized.ok) return { ok: false, message: normalized.message };
+
+			const outcome = await embed.recordResult({
+				courseId: found.course.id,
+				lessonId: found.lesson.id,
+				userId: found.user.id,
+				source: "client",
+				result: normalized.result,
+				passed: normalized.passed,
+			});
+			if (!outcome.ok) {
+				return {
+					ok: false,
+					message:
+						outcome.reason === "not-enrolled"
+							? NOT_ENROLLED
+							: "No pudimos guardar el resultado.",
+				};
+			}
+			return outcome;
+		},
+	);
 
 export const completeLesson = createServerFn({ method: "POST" })
 	.validator(checkLesson)
@@ -506,5 +641,91 @@ export const exportCourseJson = createServerFn({ method: "GET" })
 				filename: `${course.slug}.json`,
 				json: JSON.stringify(courseToImport(course), null, 2),
 			};
+		},
+	);
+
+export const setLessonEmbed = createServerFn({ method: "POST" })
+	.validator((data: unknown) => {
+		const input = record(data);
+		const rawUrl = input.url;
+		if (rawUrl !== null && typeof rawUrl !== "string") {
+			throw new Error("url must be text or null.");
+		}
+		const score = input.passingScore;
+		if (
+			typeof score !== "number" ||
+			!Number.isInteger(score) ||
+			score < 0 ||
+			score > 100
+		) {
+			throw new Error("passingScore must be a whole number from 0 to 100.");
+		}
+		return {
+			...checkCourseId(data),
+			lessonId: uuid(input, "lessonId"),
+			url: rawUrl === null || rawUrl.trim() === "" ? null : rawUrl.trim(),
+			passingScore: score,
+			verifiedOnly: bool(input, "verifiedOnly"),
+		};
+	})
+	.handler(async ({ data }): Promise<ActionResult> => {
+		const { course } = await staffCourse(data.courseId);
+		if (!course) return NO_COURSE;
+		let url: string | null = null;
+		if (data.url !== null) {
+			const checked = embed.validateEmbedUrl(data.url);
+			if (!checked.ok) {
+				return {
+					ok: false,
+					message:
+						"La dirección de la app no es válida: tiene que ser una URL https:// de un dominio público, sin usuario ni puerto.",
+				};
+			}
+			url = checked.url;
+		}
+		const saved = await catalog.setLessonEmbed(course.id, data.lessonId, {
+			url,
+			passingScore: data.passingScore,
+			verifiedOnly: data.verifiedOnly,
+		});
+		return saved
+			? { ok: true }
+			: { ok: false, message: "No encontramos la clase." };
+	});
+
+export const getCourseAppSecretStatus = createServerFn({ method: "GET" })
+	.validator(checkCourseId)
+	.handler(async ({ data }): Promise<{ hasSecret: boolean }> => {
+		const { course } = await staffCourse(data.courseId);
+		if (!course) return { hasSecret: false };
+		return { hasSecret: await embed.hasAppSecret(course.id) };
+	});
+
+/** Creates the HMAC secret of the course or replaces it; the plain text is shown once. */
+export const rotateCourseAppSecret = createServerFn({ method: "POST" })
+	.validator(checkCourseId)
+	.handler(
+		async ({
+			data,
+		}): Promise<
+			{ ok: true; secret: string } | { ok: false; message: string }
+		> => {
+			const { course } = await staffCourse(data.courseId);
+			if (!course) return NO_COURSE;
+			return { ok: true, secret: await embed.rotateAppSecret(course.id) };
+		},
+	);
+
+export const getEmbedResults = createServerFn({ method: "GET" })
+	.validator(checkCourseId)
+	.handler(
+		async ({
+			data,
+		}): Promise<
+			{ ok: true; rows: embed.ResultRow[] } | { ok: false; message: string }
+		> => {
+			const { course } = await staffCourse(data.courseId);
+			if (!course) return NO_COURSE;
+			return { ok: true, rows: await embed.listResults(course.id) };
 		},
 	);

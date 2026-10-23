@@ -31,6 +31,10 @@ export type Lesson = {
 	position: number;
 	videos: MediaRef[];
 	notes: MediaRef[];
+	/** Web app embedded in the lesson (it reports a result); null when the lesson has none. */
+	embedUrl: string | null;
+	embedPassingScore: number;
+	embedVerifiedOnly: boolean;
 };
 
 export type Module = {

@@ -34,6 +34,7 @@ import { Route as PanelTutoriaRouteImport } from './routes/panel.tutoria'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiChatStreamRouteImport } from './routes/api/chat/stream'
 import { Route as ApiGmailCallbackRouteImport } from './routes/api/gmail/callback'
+import { Route as ApiLessonsResultsRouteImport } from './routes/api/lessons/results'
 import { Route as ApiMediaHeartbeatRouteImport } from './routes/api/media/heartbeat'
 import { Route as ApiMediaSessionRouteImport } from './routes/api/media/session'
 import { Route as ApiMediaTusHookRouteImport } from './routes/api/media/tus-hook'
@@ -182,6 +183,11 @@ const ApiChatStreamRoute = ApiChatStreamRouteImport.update({
 const ApiGmailCallbackRoute = ApiGmailCallbackRouteImport.update({
   id: '/api/gmail/callback',
   path: '/api/gmail/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLessonsResultsRoute = ApiLessonsResultsRouteImport.update({
+  id: '/api/lessons/results',
+  path: '/api/lessons/results',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMediaHeartbeatRoute = ApiMediaHeartbeatRouteImport.update({
@@ -345,6 +351,7 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/gmail/callback': typeof ApiGmailCallbackRoute
+  '/api/lessons/results': typeof ApiLessonsResultsRoute
   '/api/media/heartbeat': typeof ApiMediaHeartbeatRoute
   '/api/media/session': typeof ApiMediaSessionRoute
   '/api/media/tus-hook': typeof ApiMediaTusHookRoute
@@ -396,6 +403,7 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/gmail/callback': typeof ApiGmailCallbackRoute
+  '/api/lessons/results': typeof ApiLessonsResultsRoute
   '/api/media/heartbeat': typeof ApiMediaHeartbeatRoute
   '/api/media/session': typeof ApiMediaSessionRoute
   '/api/media/tus-hook': typeof ApiMediaTusHookRoute
@@ -448,6 +456,7 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/gmail/callback': typeof ApiGmailCallbackRoute
+  '/api/lessons/results': typeof ApiLessonsResultsRoute
   '/api/media/heartbeat': typeof ApiMediaHeartbeatRoute
   '/api/media/session': typeof ApiMediaSessionRoute
   '/api/media/tus-hook': typeof ApiMediaTusHookRoute
@@ -501,6 +510,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/chat/stream'
     | '/api/gmail/callback'
+    | '/api/lessons/results'
     | '/api/media/heartbeat'
     | '/api/media/session'
     | '/api/media/tus-hook'
@@ -552,6 +562,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/chat/stream'
     | '/api/gmail/callback'
+    | '/api/lessons/results'
     | '/api/media/heartbeat'
     | '/api/media/session'
     | '/api/media/tus-hook'
@@ -603,6 +614,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/chat/stream'
     | '/api/gmail/callback'
+    | '/api/lessons/results'
     | '/api/media/heartbeat'
     | '/api/media/session'
     | '/api/media/tus-hook'
@@ -655,6 +667,7 @@ export interface RootRouteChildren {
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiChatStreamRoute: typeof ApiChatStreamRoute
   ApiGmailCallbackRoute: typeof ApiGmailCallbackRoute
+  ApiLessonsResultsRoute: typeof ApiLessonsResultsRoute
   ApiMediaHeartbeatRoute: typeof ApiMediaHeartbeatRoute
   ApiMediaSessionRoute: typeof ApiMediaSessionRoute
   ApiMediaTusHookRoute: typeof ApiMediaTusHookRoute
@@ -855,6 +868,13 @@ declare module '@tanstack/react-router' {
       path: '/api/gmail/callback'
       fullPath: '/api/gmail/callback'
       preLoaderRoute: typeof ApiGmailCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lessons/results': {
+      id: '/api/lessons/results'
+      path: '/api/lessons/results'
+      fullPath: '/api/lessons/results'
+      preLoaderRoute: typeof ApiLessonsResultsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/media/heartbeat': {
@@ -1069,6 +1089,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiChatStreamRoute: ApiChatStreamRoute,
   ApiGmailCallbackRoute: ApiGmailCallbackRoute,
+  ApiLessonsResultsRoute: ApiLessonsResultsRoute,
   ApiMediaHeartbeatRoute: ApiMediaHeartbeatRoute,
   ApiMediaSessionRoute: ApiMediaSessionRoute,
   ApiMediaTusHookRoute: ApiMediaTusHookRoute,
@@ -1098,3 +1119,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
