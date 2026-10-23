@@ -21,13 +21,7 @@ import { BlockList, isIP } from "node:net";
 import { pool } from "../../server/db.server.ts";
 import { appOrigin } from "../../server/origins.server.ts";
 import { cloudflareEnabled } from "./cloudflare.ts";
-import {
-	apexIps,
-	type DomainKind,
-	domainKind,
-	getDomainState,
-	refreshDomain,
-} from "./domains.ts";
+import { getDomainState, refreshDomain } from "./domains.ts";
 import { resolveTenant } from "./tenants.ts";
 
 /** serviceId of our template; providerId is the platform domain. */
@@ -178,14 +172,9 @@ export type DomainConnectOffer = {
 	/** Name of the DNS provider, shown on the button. */
 	providerName: string;
 	urlSyncUX: string;
-	/**
-	 * Zone (root domain) and host: cursos.maria.com -> maria.com + cursos.
-	 * An apex domain is its own zone with an empty host.
-	 */
+	/** Zone (root domain) and host: cursos.maria.com -> maria.com + cursos. */
 	zone: string;
 	host: string;
-	/** Record group of the template to apply: CNAME (subdomain) or A (apex). */
-	kind: DomainKind;
 };
 
 const resolver = new Resolver({ timeout: 2000, tries: 2 });
@@ -195,24 +184,13 @@ const cache = new Map<
 >();
 
 /**
- * The zone of a custom domain: the closest parent name with its own NS records.
- * A subdomain skips itself (the CNAME is applied with a host); an apex domain is
- * its own zone.
+ * The zone of a custom domain: the closest parent name with its own NS records
+ * (the domain itself is skipped: the CNAME is applied with a host).
  */
-async function zoneOf(
-	domain: string,
-	kind: DomainKind,
-): Promise<string | null> {
+async function zoneOf(domain: string): Promise<string | null> {
 	const labels = domain.split(".");
 	if (process.env.DOMAIN_CONNECT_DISCOVERY_OVERRIDE) {
-		return kind === "apex" ? domain : labels.slice(1).join(".");
-	}
-	if (kind === "apex") {
-		try {
-			return (await resolver.resolveNs(domain)).length > 0 ? domain : null;
-		} catch {
-			return null;
-		}
+		return labels.slice(1).join(".");
 	}
 	for (let i = 1; i <= labels.length - 2; i++) {
 		const candidate = labels.slice(i).join(".");
@@ -242,12 +220,8 @@ async function discoveryPrefix(zone: string): Promise<string | null> {
 }
 
 async function discover(domain: string): Promise<DomainConnectOffer | null> {
-	const kind = domainKind(domain);
-	// Apex domains need the Cloudflare IPs the owner configured (ADR-0031).
-	if (kind === "apex" && apexIps().v4.length === 0) return null;
-	const zone = await zoneOf(domain, kind);
-	if (!zone) return null;
-	if (kind === "subdomain" && !domain.endsWith(`.${zone}`)) return null;
+	const zone = await zoneOf(domain);
+	if (!zone || !domain.endsWith(`.${zone}`)) return null;
 	const prefix = await discoveryPrefix(zone);
 	if (!prefix) return null;
 
@@ -277,8 +251,7 @@ async function discover(domain: string): Promise<DomainConnectOffer | null> {
 		providerName: rawName.trim().slice(0, 60),
 		urlSyncUX,
 		zone,
-		host: kind === "apex" ? "" : domain.slice(0, -(zone.length + 1)),
-		kind,
+		host: domain.slice(0, -(zone.length + 1)),
 	};
 }
 
@@ -399,19 +372,13 @@ export async function startDomainConnect(input: {
 	);
 
 	// The signature covers the exact query string sent, without sig and key.
-	// One service, two record groups (ADR-0031): CNAME for a subdomain, A for the apex.
 	const params: Record<string, string> = {
 		domain: input.offer.zone,
 		host: input.offer.host,
-		groupId: input.offer.kind,
+		groupId: "subdomain",
 		redirect_uri: returnUrl(state),
 		state,
 	};
-	if (input.offer.kind === "apex") {
-		const ipv4 = apexIps().v4[0];
-		if (!ipv4) throw new Error("CUSTOM_DOMAIN_APEX_IPV4 is required.");
-		params.ipv4 = ipv4;
-	}
 	const query = new URLSearchParams(params).toString();
 	const sig = sign("sha256", Buffer.from(query), privateKey()).toString(
 		"base64",

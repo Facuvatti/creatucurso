@@ -1,6 +1,6 @@
 # ADR-0031: Apex (root) custom domains
 
-**Status:** Accepted (owner decision, 2026-10-22: apex via A record is allowed)
+**Status:** Superseded (owner decision, 2026-10-22: apex domains are removed; only subdomains with a CNAME are supported). The text below is kept as history.
 **Date:** 2026-10-22
 
 ## Context

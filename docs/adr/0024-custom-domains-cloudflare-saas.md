@@ -8,7 +8,7 @@ The server has no open ports: everything goes through a Cloudflare Tunnel. Caddy
 
 ## Decision
 - Use **Cloudflare for SaaS Custom Hostnames**. The creator only types the domain in the panel and creates one DNS record at their registrar: `CNAME cursos -> dominios.<PLATFORM_DOMAIN>` (the fallback origin; env `CUSTOM_DOMAIN_TARGET`).
-- Ownership is proven by that CNAME (`resolveCname`, one extra hop allowed). The old TXT token is gone. Apex domains cannot have a CNAME: the panel asks for a subdomain such as `cursos.*` or `www.*` (apex via A record: ADR-0031).
+- Ownership is proven by that CNAME (`resolveCname`, one extra hop allowed). The old TXT token is gone. Apex domains cannot have a CNAME: the panel asks for a subdomain such as `cursos.*` or `www.*`. Apex domains were evaluated and dropped (ADR-0031).
 - Once the CNAME resolves, the app registers the custom hostname through the API (`src/areas/tenancy/cloudflare.ts`, DCV method `http`, TLS 1.2+), stores its id in `tenancy.domain_check` and sets `customDomainVerifiedAt`. State: `pending_dns` -> `issuing_certificate` -> `active` (or `error` with a Spanish reason).
 - The panel button "Verificar ahora" and a worker job (every minute) run the same function, `refreshDomain`. It is idempotent: it looks the hostname up before creating it.
 - Removing or changing the domain deletes the custom hostname in Cloudflare.

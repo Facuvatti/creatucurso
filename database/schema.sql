@@ -454,9 +454,6 @@ create table if not exists tenancy.domain_check (
 	last_checked_at timestamptz,
 	created_at timestamptz not null default now()
 );
--- subdomain = CNAME (cursos.maria.com); apex = A record (maria.com), ADR-0031.
-alter table tenancy.domain_check add column if not exists kind text not null default 'subdomain'
-	check (kind in ('subdomain', 'apex'));
 
 -- Single-use state of a Domain Connect attempt in flight (ADR-0030): the owner was
 -- sent to their DNS provider to apply our CNAME template and comes back with it.
