@@ -2,6 +2,8 @@
 
 Lets a web app embedded as a lesson report the student's result to the platform.
 
+Creators can give their coding agent the skill in `skills/creatucurso-lesson-app/SKILL.md` (packaged as `skills/creatucurso-lesson-app.skill`) to build such an app.
+
 ```html
 <script src="https://<academy>/sdk/lesson-sdk.js"></script>
 <script>
