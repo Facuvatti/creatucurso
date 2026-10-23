@@ -1477,6 +1477,30 @@ video {
   box-shadow: var(--shadow-lg);
 }
 
+[data-section="embed-agent"] [data-platforms] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+
+[data-section="embed-agent"] pre {
+  overflow: auto;
+  max-height: 22rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+[data-section="embed-agent"] [data-steps] {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--primary-soft);
+}
+
 /* --------------------------------------------------------------------------
    Chat (messages page): layout lives next to the component, the look is here
    -------------------------------------------------------------------------- */

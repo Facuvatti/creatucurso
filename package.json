@@ -20,7 +20,8 @@
     "db:auth": "node scripts/sync-auth-schema.ts",
     "db:auth:check": "node scripts/sync-auth-schema.ts --check",
     "stack": "scripts/stack.sh",
-    "db:reset": "node --env-file=.env scripts/reset-dev-db.ts"
+    "db:reset": "node --env-file=.env scripts/reset-dev-db.ts",
+    "skill:pack": "cd public/skills && rm -f creatucurso-lesson-app.zip && zip -qr creatucurso-lesson-app.zip creatucurso-lesson-app"
   },
   "dependencies": {
     "@fontsource-variable/bricolage-grotesque": "^5.3.0",

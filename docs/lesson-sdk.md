@@ -2,7 +2,7 @@
 
 Lets a web app embedded as a lesson report the student's result to the platform.
 
-Creators can give their coding agent the skill in `skills/creatucurso-lesson-app/SKILL.md` (packaged as `skills/creatucurso-lesson-app.skill`) to build such an app.
+Creators can give their AI agent the skill in `public/skills/creatucurso-lesson-app/SKILL.md` (served at `/skills/creatucurso-lesson-app/SKILL.md`, zipped at `/skills/creatucurso-lesson-app.zip`; rebuild the zip with `pnpm skill:pack` after editing it). The course panel ("Crear la app con tu agente de IA") links it to Claude, ChatGPT, Gemini and Kimi and generates a prompt with the course, lesson and academy addresses filled in.
 
 ```html
 <script src="https://<academy>/sdk/lesson-sdk.js"></script>

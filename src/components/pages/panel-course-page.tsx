@@ -13,6 +13,8 @@ import {
 	PublishControl,
 	StructureEditor,
 } from "../panel/course-editor.tsx";
+import type { AcademyAddresses } from "../panel/embed-agent-prompt.ts";
+import { EmbedAgentKit } from "../panel/embed-agent-kit.tsx";
 import { EmbedPanel, type EmbedResultRow } from "../panel/embed-panel.tsx";
 import { ExamEditor } from "../panel/exam-editor.tsx";
 
@@ -24,6 +26,7 @@ type Props = {
 	exams: StaffExam[];
 	hasAppSecret: boolean;
 	embedResults: EmbedResultRow[];
+	agentAddresses: AcademyAddresses;
 	onEmbedChanged: () => void;
 	onExamsChanged: () => void;
 	onCertificatesChanged: () => void;
@@ -54,6 +57,7 @@ export function PanelCoursePage({
 	exams,
 	hasAppSecret,
 	embedResults,
+	agentAddresses,
 	onEmbedChanged,
 	onExamsChanged,
 	onCertificatesChanged,
@@ -199,6 +203,12 @@ export function PanelCoursePage({
 				hasSecret={hasAppSecret}
 				rows={embedResults}
 				onChanged={onEmbedChanged}
+			/>
+
+			<EmbedAgentKit
+				course={course}
+				addresses={agentAddresses}
+				hasAppSecret={hasAppSecret}
 			/>
 
 			<CertificateEditor

@@ -17,6 +17,7 @@ import {
 } from "../areas/catalog/types.ts";
 import { findRoles, findUserIdByEmail } from "../areas/identity/members.ts";
 import { videoOfLesson } from "../areas/media/media.ts";
+import type { AcademyAddresses } from "../components/panel/embed-agent-prompt.ts";
 import { slugify } from "../shared/text/slugify.ts";
 import { bool, email, oneOf, record, text, uuid } from "../shared/validate.ts";
 import {
@@ -25,6 +26,8 @@ import {
 	type CourseAccess,
 } from "./access.server.ts";
 import { auth } from "./auth.server.ts";
+import { pool } from "./db.server.ts";
+import { tenantOrigin } from "./origins.server.ts";
 import { requireStaffContext, requireTenantContext } from "./request.server.ts";
 
 export type { CourseAccess };
@@ -699,6 +702,26 @@ export const getCourseAppSecretStatus = createServerFn({ method: "GET" })
 		const { course } = await staffCourse(data.courseId);
 		if (!course) return { hasSecret: false };
 		return { hasSecret: await embed.hasAppSecret(course.id) };
+	});
+
+/** Where the academy can be reached, for the prompt creators give their AI agent. */
+export const getEmbedAgentAddresses = createServerFn({ method: "GET" })
+	.validator(checkCourseId)
+	.handler(async ({ data }): Promise<AcademyAddresses> => {
+		const { tenant } = await staffCourse(data.courseId);
+		const { rows } = await pool.query<{ customDomain: string }>(
+			`select "customDomain" from auth.organization
+			  where id = $1 and "customDomainVerifiedAt" is not null`,
+			[tenant.id],
+		);
+		const domain = rows[0]?.customDomain;
+		return {
+			academyName: tenant.name,
+			platformOrigin: tenantOrigin(tenant.slug),
+			customOrigin: domain
+				? `${process.env.PUBLIC_URL_SCHEME ?? "https"}://${domain}`
+				: null,
+		};
 	});
 
 /** Creates the HMAC secret of the course or replaces it; the plain text is shown once. */

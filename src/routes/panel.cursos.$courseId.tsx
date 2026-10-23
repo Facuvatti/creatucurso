@@ -13,6 +13,7 @@ import {
 	addModule,
 	enrollStudentByEmail,
 	getCourseAppSecretStatus,
+	getEmbedAgentAddresses,
 	getEmbedResults,
 	getPanelCourse,
 } from "../server/catalog.functions.ts";
@@ -58,8 +59,12 @@ export const Route = createFileRoute("/panel/cursos/$courseId")({
 		const embed = await getEmbedResults({
 			data: { courseId: params.courseId },
 		});
+		const agentAddresses = await getEmbedAgentAddresses({
+			data: { courseId: params.courseId },
+		});
 		return {
 			course,
+			agentAddresses,
 			tutors,
 			videos,
 			certificates,
@@ -83,6 +88,7 @@ function PanelCourseRoute() {
 		exams,
 		hasAppSecret,
 		embedResults,
+		agentAddresses,
 	} = Route.useLoaderData();
 	const router = useRouter();
 	const [pending, setPending] = useState(false);
@@ -134,6 +140,7 @@ function PanelCourseRoute() {
 			exams={exams}
 			hasAppSecret={hasAppSecret}
 			embedResults={embedResults}
+			agentAddresses={agentAddresses}
 			onEmbedChanged={() => router.invalidate()}
 			onExamsChanged={() => router.invalidate()}
 			onCertificatesChanged={() => router.invalidate()}
