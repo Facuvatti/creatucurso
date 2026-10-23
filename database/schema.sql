@@ -353,6 +353,48 @@ create table if not exists community.comment_mute (
 	primary key (organization_id, user_id)
 );
 
+-- Our tables: chat (tutor/creator <-> student, one conversation per course; ADR-0032) ------
+create schema if not exists chat;
+
+-- Only a student with an active enrollment and a tutor of that course (or an owner/admin of the
+-- academy) may talk; the service checks this on every call, the table only keeps the pair unique.
+create table if not exists chat.conversation (
+	id uuid primary key default gen_random_uuid(),
+	organization_id text not null references auth.organization (id) on delete cascade,
+	course_id uuid not null references catalog.course (id) on delete cascade,
+	student_id text not null references auth."user" (id) on delete cascade,
+	-- The tutor of the course, or the owner/admin acting as the creator.
+	staff_id text not null references auth."user" (id) on delete cascade,
+	created_at timestamptz not null default now(),
+	last_message_at timestamptz not null default now(),
+	check (student_id <> staff_id),
+	unique (course_id, student_id, staff_id)
+);
+create index if not exists conversation_student_idx on chat.conversation (organization_id, student_id, last_message_at desc);
+create index if not exists conversation_staff_idx on chat.conversation (organization_id, staff_id, last_message_at desc);
+
+create table if not exists chat.message (
+	id uuid primary key,
+	conversation_id uuid not null references chat.conversation (id) on delete cascade,
+	sender_id text not null references auth."user" (id) on delete cascade,
+	body text not null default '' check (length(body) <= 4000),
+	-- Path relative to MEDIA_ROOT; never served from a public path.
+	attachment_path text,
+	attachment_name text,
+	attachment_type text,
+	created_at timestamptz not null default now(),
+	check (body <> '' or attachment_path is not null)
+);
+create index if not exists message_conversation_idx on chat.message (conversation_id, created_at desc);
+
+-- Everything of the conversation sent by the other person after last_read_at is unread.
+create table if not exists chat.read_position (
+	conversation_id uuid not null references chat.conversation (id) on delete cascade,
+	user_id text not null references auth."user" (id) on delete cascade,
+	last_read_at timestamptz not null default now(),
+	primary key (conversation_id, user_id)
+);
+
 -- Our tables: tenancy (custom domain state; ADR-0024) -----------------------------------
 create schema if not exists tenancy;
 

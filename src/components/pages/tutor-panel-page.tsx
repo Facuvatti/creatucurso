@@ -23,6 +23,8 @@ export function TutorPanelPage({
 			<p>
 				{isStaff && <Link to="/panel">Panel</Link>}{" "}
 				<Link to="/panel/moderacion">Moderación</Link>
+				{" "}
+				<Link to="/mensajes">Mensajes</Link>
 			</p>
 			<h1>Tutoría</h1>
 			<p>Comentarios que esperan una respuesta.</p>

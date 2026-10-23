@@ -36,6 +36,7 @@ export function TenantHomePage({
 							{roles.length > 0 && <> ({roles.join(", ")})</>}.
 						</p>
 						{isStaff && <Link to="/panel">Panel de la academia</Link>}
+						{roles.length > 0 && <Link to="/mensajes">Mensajes</Link>}
 						<form method="post" action="/auth/logout">
 							<button type="submit">Salir</button>
 						</form>
