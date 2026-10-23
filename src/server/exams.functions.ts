@@ -98,7 +98,10 @@ function checkQuestion(data: unknown) {
 			points: int(input, "points", 1, 100),
 			options: rawOptions.map((o) => {
 				const option = record(o);
-				return { text: text(option, "text", 300), correct: bool(option, "correct") };
+				return {
+					text: text(option, "text", 300),
+					correct: bool(option, "correct"),
+				};
 			}),
 			accepted: rawAccepted.map((a) => {
 				const answer = record(a);
@@ -265,7 +268,7 @@ type StudentAccess =
 async function studentAccess(courseSlug: string): Promise<StudentAccess> {
 	const context = await requireTenantContext();
 	const lookup = await catalog.findCourseBySlug(context.tenant.id, courseSlug);
-	if (!lookup || lookup.kind !== "found") return { kind: "notFound" };
+	if (lookup?.kind !== "found") return { kind: "notFound" };
 	const { course } = lookup;
 	if (!context.user) return { kind: "login" };
 	const access = await accessFor(context, course);

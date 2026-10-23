@@ -9,9 +9,7 @@ import { can } from "../areas/identity/permissions.ts";
 import { record, text, uuid } from "../shared/validate.ts";
 import { requireTenantContext } from "./request.server.ts";
 
-type Result<T = object> =
-	| ({ ok: true } & T)
-	| { ok: false; message: string };
+type Result<T = object> = ({ ok: true } & T) | { ok: false; message: string };
 
 /** A signed-in member of this academy. Each chat call then checks the pair itself (chat.ts). */
 async function requireChatUser() {

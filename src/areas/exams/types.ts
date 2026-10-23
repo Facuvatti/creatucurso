@@ -111,7 +111,13 @@ export type StudentExam = {
 	timeLimitSeconds: number | null;
 	required: boolean;
 	passed: boolean;
-	attempts: { attemptId: string; submittedAt: string; score: number; passed: boolean; expired: boolean }[];
+	attempts: {
+		attemptId: string;
+		submittedAt: string;
+		score: number;
+		passed: boolean;
+		expired: boolean;
+	}[];
 	/** An attempt started and not yet submitted (resumed on reload). */
 	open: AttemptView | null;
 };

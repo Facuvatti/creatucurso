@@ -288,9 +288,7 @@ export function MessagesPage({ overview, isStaff, start }: Props) {
 			<p>
 				<Link to="/">Inicio</Link> {isStaff && <Link to="/panel">Panel</Link>}
 			</p>
-			<h1>
-				Mensajes{unreadTotal > 0 && <> ({unreadTotal} sin leer)</>}
-			</h1>
+			<h1>Mensajes{unreadTotal > 0 && <> ({unreadTotal} sin leer)</>}</h1>
 			{!online && <output>Reconectando…</output>}
 			{message && <output>{message}</output>}
 

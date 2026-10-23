@@ -52,7 +52,10 @@ export function attachmentMaxBytes(): number {
 const shared = globalThis as typeof globalThis & {
 	__chatEvents?: EventEmitter;
 };
-const emitter = (shared.__chatEvents ??= new EventEmitter().setMaxListeners(0));
+if (!shared.__chatEvents) {
+	shared.__chatEvents = new EventEmitter().setMaxListeners(0);
+}
+const emitter = shared.__chatEvents;
 
 /** Calls `listener` for each message addressed to this person. Returns the unsubscribe function. */
 export function subscribe(

@@ -318,7 +318,8 @@ function questionProblem(q: QuestionInput): string | null {
 			return "Elegí si la respuesta correcta es verdadero o falso.";
 		}
 	} else {
-		if (q.accepted.length === 0) return "Cargá al menos una respuesta aceptada.";
+		if (q.accepted.length === 0)
+			return "Cargá al menos una respuesta aceptada.";
 		if (q.accepted.some((a) => a.value === "")) return "Hay respuestas vacías.";
 		if (
 			q.kind === "numeric" &&
@@ -377,10 +378,13 @@ export async function saveQuestion(
 				[id, examId, q.kind, q.prompt, q.points],
 			);
 			if (updated.rowCount === 0) return "No encontramos la pregunta.";
-			await client.query(`delete from exams.option where question_id = $1`, [id]);
-			await client.query(`delete from exams.accepted_answer where question_id = $1`, [
+			await client.query(`delete from exams.option where question_id = $1`, [
 				id,
 			]);
+			await client.query(
+				`delete from exams.accepted_answer where question_id = $1`,
+				[id],
+			);
 		}
 		if (id === null) return "No se pudo guardar la pregunta.";
 
@@ -627,7 +631,12 @@ export async function getStudentExam(
 	userId: string,
 ): Promise<StudentExam | null> {
 	return inTransaction(async (client) => {
-		const exam = await findPublishedExam(client, organizationId, courseId, examId);
+		const exam = await findPublishedExam(
+			client,
+			organizationId,
+			courseId,
+			examId,
+		);
 		if (!exam) return null;
 		const open = await findOpenAttempt(client, examId, userId);
 		const attempts = await client.query<{
@@ -657,7 +666,9 @@ export async function getStudentExam(
 				passed: a.passed,
 				expired: a.expired,
 			})),
-			open: open ? await attemptView(client, open, exam.time_limit_seconds) : null,
+			open: open
+				? await attemptView(client, open, exam.time_limit_seconds)
+				: null,
 		};
 	});
 }
@@ -689,7 +700,8 @@ export async function startAttempt(
 				courseId,
 				examId,
 			);
-			if (!exam) return { ok: false as const, message: "No encontramos el examen." };
+			if (!exam)
+				return { ok: false as const, message: "No encontramos el examen." };
 
 			const passed = await client.query(
 				`select 1 from exams.attempt where exam_id = $1 and user_id = $2 and passed limit 1`,
@@ -711,7 +723,10 @@ export async function startAttempt(
 				`select count(*) from exams.attempt where exam_id = $1 and user_id = $2`,
 				[examId, userId],
 			);
-			if (exam.max_attempts !== null && Number(used.rows[0]?.count) >= exam.max_attempts) {
+			if (
+				exam.max_attempts !== null &&
+				Number(used.rows[0]?.count) >= exam.max_attempts
+			) {
 				return {
 					ok: false as const,
 					message: "Ya usaste todos los intentos de este examen.",
@@ -785,7 +800,9 @@ export async function submitAttempt(
 	userId: string,
 	attemptId: string,
 	given: Answers,
-): Promise<{ ok: true; result: AttemptResult } | { ok: false; message: string }> {
+): Promise<
+	{ ok: true; result: AttemptResult } | { ok: false; message: string }
+> {
 	return inTransaction(async (client) => {
 		const found = await client.query<{
 			exam_id: string;
@@ -841,7 +858,9 @@ export async function submitAttempt(
 				score,
 				passed,
 				expired,
-				submittedAt: (saved.rows[0] as { submitted_at: Date }).submitted_at.toISOString(),
+				submittedAt: (
+					saved.rows[0] as { submitted_at: Date }
+				).submitted_at.toISOString(),
 				review: attempt.show_answers_after
 					? reviewOf(key, attempt.layout, answers)
 					: null,

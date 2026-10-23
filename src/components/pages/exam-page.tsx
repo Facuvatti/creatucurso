@@ -53,7 +53,10 @@ export function ExamList({
 function secondsLeft(deadline: string | null): number | null {
 	return deadline === null
 		? null
-		: Math.max(0, Math.ceil((new Date(deadline).getTime() - Date.now()) / 1000));
+		: Math.max(
+				0,
+				Math.ceil((new Date(deadline).getTime() - Date.now()) / 1000),
+			);
 }
 
 function clock(total: number): string {
@@ -94,6 +97,7 @@ export function ExamPage({ data }: { data: Ok }) {
 	}
 
 	// Countdown for display; the server enforces the limit from started_at.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: submit reads the latest answers on each tick
 	useEffect(() => {
 		if (!attempt || attempt.deadline === null) return;
 		const view = attempt;
@@ -106,7 +110,6 @@ export function ExamPage({ data }: { data: Ok }) {
 			}
 		}, 1000);
 		return () => clearInterval(timer);
-		// biome-ignore lint/correctness/useExhaustiveDependencies: submit reads the latest answers on each tick
 	}, [attempt, answers]);
 
 	const usedUp =
@@ -147,7 +150,8 @@ export function ExamPage({ data }: { data: Ok }) {
 									q.kind === "truefalse" ||
 									q.kind === "multiple") &&
 									q.options.map((o) => {
-										const chosen = (answers[q.id] as string[] | undefined) ?? [];
+										const chosen =
+											(answers[q.id] as string[] | undefined) ?? [];
 										const multiple = q.kind === "multiple";
 										return (
 											<label key={o.id}>
@@ -202,7 +206,9 @@ export function ExamPage({ data }: { data: Ok }) {
 						{exam.timeLimitSeconds
 							? ` Tenés ${Math.round(exam.timeLimitSeconds / 60)} minutos desde que empezás.`
 							: ""}
-						{exam.maxAttempts ? ` Intentos permitidos: ${exam.maxAttempts}.` : ""}
+						{exam.maxAttempts
+							? ` Intentos permitidos: ${exam.maxAttempts}.`
+							: ""}
 						{exam.required ? " Es obligatorio para completar el curso." : ""}
 					</p>
 					{exam.passed ? (
@@ -241,8 +247,8 @@ export function ExamPage({ data }: { data: Ok }) {
 							<ul>
 								{exam.attempts.map((a) => (
 									<li key={a.attemptId}>
-										{new Date(a.submittedAt).toLocaleString("es-AR")}:{" "}
-										{a.score} %{" "}
+										{new Date(a.submittedAt).toLocaleString("es-AR")}: {a.score}{" "}
+										%{" "}
 										{a.expired
 											? "(fuera de tiempo)"
 											: a.passed
@@ -252,7 +258,10 @@ export function ExamPage({ data }: { data: Ok }) {
 											type="button"
 											onClick={async () => {
 												const found = await getExamAttempt({
-													data: { courseSlug: course.slug, attemptId: a.attemptId },
+													data: {
+														courseSlug: course.slug,
+														attemptId: a.attemptId,
+													},
 												});
 												if (found) setResult(found);
 											}}
@@ -303,7 +312,10 @@ function ResultView({
 
 function ReviewRow({ item }: { item: ReviewItem }) {
 	const given = item.given;
-	const choice = item.kind === "single" || item.kind === "multiple" || item.kind === "truefalse";
+	const choice =
+		item.kind === "single" ||
+		item.kind === "multiple" ||
+		item.kind === "truefalse";
 	return (
 		<li>
 			<p>
@@ -315,13 +327,16 @@ function ReviewRow({ item }: { item: ReviewItem }) {
 						<li key={o.id}>
 							{o.text}
 							{o.correct ? " (correcta)" : ""}
-							{Array.isArray(given) && given.includes(o.id) ? " ← tu respuesta" : ""}
+							{Array.isArray(given) && given.includes(o.id)
+								? " ← tu respuesta"
+								: ""}
 						</li>
 					))}
 				</ul>
 			) : (
 				<p>
-					Tu respuesta: {typeof given === "string" && given !== "" ? given : "(vacía)"}.
+					Tu respuesta:{" "}
+					{typeof given === "string" && given !== "" ? given : "(vacía)"}.
 					Respuestas aceptadas: {item.accepted.join(", ")}.
 				</p>
 			)}

@@ -15,8 +15,8 @@ import { Route as CrearAcademiaRouteImport } from './routes/crear-academia'
 import { Route as HandoffRouteImport } from './routes/handoff'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as PrivacidadRouteImport } from './routes/privacidad'
 import { Route as MensajesRouteImport } from './routes/mensajes'
+import { Route as PrivacidadRouteImport } from './routes/privacidad'
 import { Route as RecuperarRouteImport } from './routes/recuperar'
 import { Route as RestablecerRouteImport } from './routes/restablecer'
 import { Route as TerminosRouteImport } from './routes/terminos'
@@ -32,10 +32,10 @@ import { Route as PanelModeracionRouteImport } from './routes/panel.moderacion'
 import { Route as PanelPagosRouteImport } from './routes/panel.pagos'
 import { Route as PanelTutoriaRouteImport } from './routes/panel.tutoria'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiChatStreamRouteImport } from './routes/api/chat/stream'
 import { Route as ApiGmailCallbackRouteImport } from './routes/api/gmail/callback'
 import { Route as ApiMediaHeartbeatRouteImport } from './routes/api/media/heartbeat'
 import { Route as ApiMediaSessionRouteImport } from './routes/api/media/session'
-import { Route as ApiChatStreamRouteImport } from './routes/api/chat/stream'
 import { Route as ApiMediaTusHookRouteImport } from './routes/api/media/tus-hook'
 import { Route as ApiMercadopagoCallbackRouteImport } from './routes/api/mercadopago/callback'
 import { Route as ApiWebhooksMercadopagoRouteImport } from './routes/api/webhooks/mercadopago'
@@ -48,9 +48,9 @@ import { Route as CursosCourseSlugComprarRouteImport } from './routes/cursos.$co
 import { Route as PanelCursosCourseIdRouteImport } from './routes/panel.cursos.$courseId'
 import { Route as ApiAutomationsAttachmentsAutomationIdRouteImport } from './routes/api/automations/attachments.$automationId'
 import { Route as ApiCertificatesFrameCourseIdRouteImport } from './routes/api/certificates/frame.$courseId'
-import { Route as ApiChatSendConversationIdRouteImport } from './routes/api/chat/send.$conversationId'
-import { Route as ApiChatAttachmentMessageIdRouteImport } from './routes/api/chat/attachment.$messageId'
 import { Route as ApiCertificatesPreviewCourseIdRouteImport } from './routes/api/certificates/preview.$courseId'
+import { Route as ApiChatAttachmentMessageIdRouteImport } from './routes/api/chat/attachment.$messageId'
+import { Route as ApiChatSendConversationIdRouteImport } from './routes/api/chat/send.$conversationId'
 import { Route as ApiDomainConnectReturnStateRouteImport } from './routes/api/domain-connect/return.$state'
 import { Route as ApiMediaKeyVideoIdRouteImport } from './routes/api/media/key.$videoId'
 import { Route as ApiWebhooksHyperswitchOrganizationIdRouteImport } from './routes/api/webhooks/hyperswitch.$organizationId'
@@ -89,14 +89,14 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PrivacidadRoute = PrivacidadRouteImport.update({
-  id: '/privacidad',
-  path: '/privacidad',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const MensajesRoute = MensajesRouteImport.update({
   id: '/mensajes',
   path: '/mensajes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacidadRoute = PrivacidadRouteImport.update({
+  id: '/privacidad',
+  path: '/privacidad',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RecuperarRoute = RecuperarRouteImport.update({
@@ -174,6 +174,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiChatStreamRoute = ApiChatStreamRouteImport.update({
+  id: '/api/chat/stream',
+  path: '/api/chat/stream',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiGmailCallbackRoute = ApiGmailCallbackRouteImport.update({
   id: '/api/gmail/callback',
   path: '/api/gmail/callback',
@@ -187,11 +192,6 @@ const ApiMediaHeartbeatRoute = ApiMediaHeartbeatRouteImport.update({
 const ApiMediaSessionRoute = ApiMediaSessionRouteImport.update({
   id: '/api/media/session',
   path: '/api/media/session',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiChatStreamRoute = ApiChatStreamRouteImport.update({
-  id: '/api/chat/stream',
-  path: '/api/chat/stream',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMediaTusHookRoute = ApiMediaTusHookRouteImport.update({
@@ -259,10 +259,10 @@ const ApiCertificatesFrameCourseIdRoute =
     path: '/api/certificates/frame/$courseId',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiChatSendConversationIdRoute =
-  ApiChatSendConversationIdRouteImport.update({
-    id: '/api/chat/send/$conversationId',
-    path: '/api/chat/send/$conversationId',
+const ApiCertificatesPreviewCourseIdRoute =
+  ApiCertificatesPreviewCourseIdRouteImport.update({
+    id: '/api/certificates/preview/$courseId',
+    path: '/api/certificates/preview/$courseId',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiChatAttachmentMessageIdRoute =
@@ -271,10 +271,10 @@ const ApiChatAttachmentMessageIdRoute =
     path: '/api/chat/attachment/$messageId',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiCertificatesPreviewCourseIdRoute =
-  ApiCertificatesPreviewCourseIdRouteImport.update({
-    id: '/api/certificates/preview/$courseId',
-    path: '/api/certificates/preview/$courseId',
+const ApiChatSendConversationIdRoute =
+  ApiChatSendConversationIdRouteImport.update({
+    id: '/api/chat/send/$conversationId',
+    path: '/api/chat/send/$conversationId',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiDomainConnectReturnStateRoute =
@@ -326,8 +326,8 @@ export interface FileRoutesByFullPath {
   '/handoff': typeof HandoffRoute
   '/health': typeof HealthRoute
   '/login': typeof LoginRoute
-  '/privacidad': typeof PrivacidadRoute
   '/mensajes': typeof MensajesRoute
+  '/privacidad': typeof PrivacidadRoute
   '/recuperar': typeof RecuperarRoute
   '/restablecer': typeof RestablecerRoute
   '/terminos': typeof TerminosRoute
@@ -343,10 +343,10 @@ export interface FileRoutesByFullPath {
   '/panel/tutoria': typeof PanelTutoriaRoute
   '/panel/': typeof PanelIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/gmail/callback': typeof ApiGmailCallbackRoute
   '/api/media/heartbeat': typeof ApiMediaHeartbeatRoute
   '/api/media/session': typeof ApiMediaSessionRoute
-  '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/media/tus-hook': typeof ApiMediaTusHookRoute
   '/api/mercadopago/callback': typeof ApiMercadopagoCallbackRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRouteWithChildren
@@ -359,9 +359,9 @@ export interface FileRoutesByFullPath {
   '/cursos/$courseSlug/': typeof CursosCourseSlugIndexRoute
   '/api/automations/attachments/$automationId': typeof ApiAutomationsAttachmentsAutomationIdRoute
   '/api/certificates/frame/$courseId': typeof ApiCertificatesFrameCourseIdRoute
-  '/api/chat/send/$conversationId': typeof ApiChatSendConversationIdRoute
-  '/api/chat/attachment/$messageId': typeof ApiChatAttachmentMessageIdRoute
   '/api/certificates/preview/$courseId': typeof ApiCertificatesPreviewCourseIdRoute
+  '/api/chat/attachment/$messageId': typeof ApiChatAttachmentMessageIdRoute
+  '/api/chat/send/$conversationId': typeof ApiChatSendConversationIdRoute
   '/api/domain-connect/return/$state': typeof ApiDomainConnectReturnStateRoute
   '/api/media/key/$videoId': typeof ApiMediaKeyVideoIdRoute
   '/api/webhooks/hyperswitch/$organizationId': typeof ApiWebhooksHyperswitchOrganizationIdRoute
@@ -377,8 +377,8 @@ export interface FileRoutesByTo {
   '/handoff': typeof HandoffRoute
   '/health': typeof HealthRoute
   '/login': typeof LoginRoute
-  '/privacidad': typeof PrivacidadRoute
   '/mensajes': typeof MensajesRoute
+  '/privacidad': typeof PrivacidadRoute
   '/recuperar': typeof RecuperarRoute
   '/restablecer': typeof RestablecerRoute
   '/terminos': typeof TerminosRoute
@@ -394,10 +394,10 @@ export interface FileRoutesByTo {
   '/panel/tutoria': typeof PanelTutoriaRoute
   '/panel': typeof PanelIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/gmail/callback': typeof ApiGmailCallbackRoute
   '/api/media/heartbeat': typeof ApiMediaHeartbeatRoute
   '/api/media/session': typeof ApiMediaSessionRoute
-  '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/media/tus-hook': typeof ApiMediaTusHookRoute
   '/api/mercadopago/callback': typeof ApiMercadopagoCallbackRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRouteWithChildren
@@ -410,9 +410,9 @@ export interface FileRoutesByTo {
   '/cursos/$courseSlug': typeof CursosCourseSlugIndexRoute
   '/api/automations/attachments/$automationId': typeof ApiAutomationsAttachmentsAutomationIdRoute
   '/api/certificates/frame/$courseId': typeof ApiCertificatesFrameCourseIdRoute
-  '/api/chat/send/$conversationId': typeof ApiChatSendConversationIdRoute
-  '/api/chat/attachment/$messageId': typeof ApiChatAttachmentMessageIdRoute
   '/api/certificates/preview/$courseId': typeof ApiCertificatesPreviewCourseIdRoute
+  '/api/chat/attachment/$messageId': typeof ApiChatAttachmentMessageIdRoute
+  '/api/chat/send/$conversationId': typeof ApiChatSendConversationIdRoute
   '/api/domain-connect/return/$state': typeof ApiDomainConnectReturnStateRoute
   '/api/media/key/$videoId': typeof ApiMediaKeyVideoIdRoute
   '/api/webhooks/hyperswitch/$organizationId': typeof ApiWebhooksHyperswitchOrganizationIdRoute
@@ -429,8 +429,8 @@ export interface FileRoutesById {
   '/handoff': typeof HandoffRoute
   '/health': typeof HealthRoute
   '/login': typeof LoginRoute
-  '/privacidad': typeof PrivacidadRoute
   '/mensajes': typeof MensajesRoute
+  '/privacidad': typeof PrivacidadRoute
   '/recuperar': typeof RecuperarRoute
   '/restablecer': typeof RestablecerRoute
   '/terminos': typeof TerminosRoute
@@ -446,10 +446,10 @@ export interface FileRoutesById {
   '/panel/tutoria': typeof PanelTutoriaRoute
   '/panel/': typeof PanelIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/gmail/callback': typeof ApiGmailCallbackRoute
   '/api/media/heartbeat': typeof ApiMediaHeartbeatRoute
   '/api/media/session': typeof ApiMediaSessionRoute
-  '/api/chat/stream': typeof ApiChatStreamRoute
   '/api/media/tus-hook': typeof ApiMediaTusHookRoute
   '/api/mercadopago/callback': typeof ApiMercadopagoCallbackRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRouteWithChildren
@@ -462,9 +462,9 @@ export interface FileRoutesById {
   '/cursos/$courseSlug/': typeof CursosCourseSlugIndexRoute
   '/api/automations/attachments/$automationId': typeof ApiAutomationsAttachmentsAutomationIdRoute
   '/api/certificates/frame/$courseId': typeof ApiCertificatesFrameCourseIdRoute
-  '/api/chat/send/$conversationId': typeof ApiChatSendConversationIdRoute
-  '/api/chat/attachment/$messageId': typeof ApiChatAttachmentMessageIdRoute
   '/api/certificates/preview/$courseId': typeof ApiCertificatesPreviewCourseIdRoute
+  '/api/chat/attachment/$messageId': typeof ApiChatAttachmentMessageIdRoute
+  '/api/chat/send/$conversationId': typeof ApiChatSendConversationIdRoute
   '/api/domain-connect/return/$state': typeof ApiDomainConnectReturnStateRoute
   '/api/media/key/$videoId': typeof ApiMediaKeyVideoIdRoute
   '/api/webhooks/hyperswitch/$organizationId': typeof ApiWebhooksHyperswitchOrganizationIdRoute
@@ -482,8 +482,8 @@ export interface FileRouteTypes {
     | '/handoff'
     | '/health'
     | '/login'
-    | '/privacidad'
     | '/mensajes'
+    | '/privacidad'
     | '/recuperar'
     | '/restablecer'
     | '/terminos'
@@ -499,10 +499,10 @@ export interface FileRouteTypes {
     | '/panel/tutoria'
     | '/panel/'
     | '/api/auth/$'
+    | '/api/chat/stream'
     | '/api/gmail/callback'
     | '/api/media/heartbeat'
     | '/api/media/session'
-    | '/api/chat/stream'
     | '/api/media/tus-hook'
     | '/api/mercadopago/callback'
     | '/api/webhooks/mercadopago'
@@ -515,9 +515,9 @@ export interface FileRouteTypes {
     | '/cursos/$courseSlug/'
     | '/api/automations/attachments/$automationId'
     | '/api/certificates/frame/$courseId'
-    | '/api/chat/send/$conversationId'
-    | '/api/chat/attachment/$messageId'
     | '/api/certificates/preview/$courseId'
+    | '/api/chat/attachment/$messageId'
+    | '/api/chat/send/$conversationId'
     | '/api/domain-connect/return/$state'
     | '/api/media/key/$videoId'
     | '/api/webhooks/hyperswitch/$organizationId'
@@ -533,8 +533,8 @@ export interface FileRouteTypes {
     | '/handoff'
     | '/health'
     | '/login'
-    | '/privacidad'
     | '/mensajes'
+    | '/privacidad'
     | '/recuperar'
     | '/restablecer'
     | '/terminos'
@@ -550,10 +550,10 @@ export interface FileRouteTypes {
     | '/panel/tutoria'
     | '/panel'
     | '/api/auth/$'
+    | '/api/chat/stream'
     | '/api/gmail/callback'
     | '/api/media/heartbeat'
     | '/api/media/session'
-    | '/api/chat/stream'
     | '/api/media/tus-hook'
     | '/api/mercadopago/callback'
     | '/api/webhooks/mercadopago'
@@ -566,9 +566,9 @@ export interface FileRouteTypes {
     | '/cursos/$courseSlug'
     | '/api/automations/attachments/$automationId'
     | '/api/certificates/frame/$courseId'
-    | '/api/chat/send/$conversationId'
-    | '/api/chat/attachment/$messageId'
     | '/api/certificates/preview/$courseId'
+    | '/api/chat/attachment/$messageId'
+    | '/api/chat/send/$conversationId'
     | '/api/domain-connect/return/$state'
     | '/api/media/key/$videoId'
     | '/api/webhooks/hyperswitch/$organizationId'
@@ -584,8 +584,8 @@ export interface FileRouteTypes {
     | '/handoff'
     | '/health'
     | '/login'
-    | '/privacidad'
     | '/mensajes'
+    | '/privacidad'
     | '/recuperar'
     | '/restablecer'
     | '/terminos'
@@ -601,10 +601,10 @@ export interface FileRouteTypes {
     | '/panel/tutoria'
     | '/panel/'
     | '/api/auth/$'
+    | '/api/chat/stream'
     | '/api/gmail/callback'
     | '/api/media/heartbeat'
     | '/api/media/session'
-    | '/api/chat/stream'
     | '/api/media/tus-hook'
     | '/api/mercadopago/callback'
     | '/api/webhooks/mercadopago'
@@ -617,9 +617,9 @@ export interface FileRouteTypes {
     | '/cursos/$courseSlug/'
     | '/api/automations/attachments/$automationId'
     | '/api/certificates/frame/$courseId'
-    | '/api/chat/send/$conversationId'
-    | '/api/chat/attachment/$messageId'
     | '/api/certificates/preview/$courseId'
+    | '/api/chat/attachment/$messageId'
+    | '/api/chat/send/$conversationId'
     | '/api/domain-connect/return/$state'
     | '/api/media/key/$videoId'
     | '/api/webhooks/hyperswitch/$organizationId'
@@ -636,8 +636,8 @@ export interface RootRouteChildren {
   HandoffRoute: typeof HandoffRoute
   HealthRoute: typeof HealthRoute
   LoginRoute: typeof LoginRoute
-  PrivacidadRoute: typeof PrivacidadRoute
   MensajesRoute: typeof MensajesRoute
+  PrivacidadRoute: typeof PrivacidadRoute
   RecuperarRoute: typeof RecuperarRoute
   RestablecerRoute: typeof RestablecerRoute
   TerminosRoute: typeof TerminosRoute
@@ -653,10 +653,10 @@ export interface RootRouteChildren {
   PanelTutoriaRoute: typeof PanelTutoriaRoute
   PanelIndexRoute: typeof PanelIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiChatStreamRoute: typeof ApiChatStreamRoute
   ApiGmailCallbackRoute: typeof ApiGmailCallbackRoute
   ApiMediaHeartbeatRoute: typeof ApiMediaHeartbeatRoute
   ApiMediaSessionRoute: typeof ApiMediaSessionRoute
-  ApiChatStreamRoute: typeof ApiChatStreamRoute
   ApiMediaTusHookRoute: typeof ApiMediaTusHookRoute
   ApiMercadopagoCallbackRoute: typeof ApiMercadopagoCallbackRoute
   ApiWebhooksMercadopagoRoute: typeof ApiWebhooksMercadopagoRouteWithChildren
@@ -669,9 +669,9 @@ export interface RootRouteChildren {
   CursosCourseSlugIndexRoute: typeof CursosCourseSlugIndexRoute
   ApiAutomationsAttachmentsAutomationIdRoute: typeof ApiAutomationsAttachmentsAutomationIdRoute
   ApiCertificatesFrameCourseIdRoute: typeof ApiCertificatesFrameCourseIdRoute
-  ApiChatSendConversationIdRoute: typeof ApiChatSendConversationIdRoute
-  ApiChatAttachmentMessageIdRoute: typeof ApiChatAttachmentMessageIdRoute
   ApiCertificatesPreviewCourseIdRoute: typeof ApiCertificatesPreviewCourseIdRoute
+  ApiChatAttachmentMessageIdRoute: typeof ApiChatAttachmentMessageIdRoute
+  ApiChatSendConversationIdRoute: typeof ApiChatSendConversationIdRoute
   ApiDomainConnectReturnStateRoute: typeof ApiDomainConnectReturnStateRoute
   ApiMediaKeyVideoIdRoute: typeof ApiMediaKeyVideoIdRoute
   ApiWebhooksHyperswitchOrganizationIdRoute: typeof ApiWebhooksHyperswitchOrganizationIdRoute
@@ -724,18 +724,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/privacidad': {
-      id: '/privacidad'
-      path: '/privacidad'
-      fullPath: '/privacidad'
-      preLoaderRoute: typeof PrivacidadRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/mensajes': {
       id: '/mensajes'
       path: '/mensajes'
       fullPath: '/mensajes'
       preLoaderRoute: typeof MensajesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacidad': {
+      id: '/privacidad'
+      path: '/privacidad'
+      fullPath: '/privacidad'
+      preLoaderRoute: typeof PrivacidadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/recuperar': {
@@ -843,6 +843,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/chat/stream': {
+      id: '/api/chat/stream'
+      path: '/api/chat/stream'
+      fullPath: '/api/chat/stream'
+      preLoaderRoute: typeof ApiChatStreamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/gmail/callback': {
       id: '/api/gmail/callback'
       path: '/api/gmail/callback'
@@ -862,13 +869,6 @@ declare module '@tanstack/react-router' {
       path: '/api/media/session'
       fullPath: '/api/media/session'
       preLoaderRoute: typeof ApiMediaSessionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/chat/stream': {
-      id: '/api/chat/stream'
-      path: '/api/chat/stream'
-      fullPath: '/api/chat/stream'
-      preLoaderRoute: typeof ApiChatStreamRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/media/tus-hook': {
@@ -955,11 +955,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCertificatesFrameCourseIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/chat/send/$conversationId': {
-      id: '/api/chat/send/$conversationId'
-      path: '/api/chat/send/$conversationId'
-      fullPath: '/api/chat/send/$conversationId'
-      preLoaderRoute: typeof ApiChatSendConversationIdRouteImport
+    '/api/certificates/preview/$courseId': {
+      id: '/api/certificates/preview/$courseId'
+      path: '/api/certificates/preview/$courseId'
+      fullPath: '/api/certificates/preview/$courseId'
+      preLoaderRoute: typeof ApiCertificatesPreviewCourseIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/chat/attachment/$messageId': {
@@ -969,11 +969,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiChatAttachmentMessageIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/certificates/preview/$courseId': {
-      id: '/api/certificates/preview/$courseId'
-      path: '/api/certificates/preview/$courseId'
-      fullPath: '/api/certificates/preview/$courseId'
-      preLoaderRoute: typeof ApiCertificatesPreviewCourseIdRouteImport
+    '/api/chat/send/$conversationId': {
+      id: '/api/chat/send/$conversationId'
+      path: '/api/chat/send/$conversationId'
+      fullPath: '/api/chat/send/$conversationId'
+      preLoaderRoute: typeof ApiChatSendConversationIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/domain-connect/return/$state': {
@@ -1050,8 +1050,8 @@ const rootRouteChildren: RootRouteChildren = {
   HandoffRoute: HandoffRoute,
   HealthRoute: HealthRoute,
   LoginRoute: LoginRoute,
-  PrivacidadRoute: PrivacidadRoute,
   MensajesRoute: MensajesRoute,
+  PrivacidadRoute: PrivacidadRoute,
   RecuperarRoute: RecuperarRoute,
   RestablecerRoute: RestablecerRoute,
   TerminosRoute: TerminosRoute,
@@ -1067,10 +1067,10 @@ const rootRouteChildren: RootRouteChildren = {
   PanelTutoriaRoute: PanelTutoriaRoute,
   PanelIndexRoute: PanelIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiChatStreamRoute: ApiChatStreamRoute,
   ApiGmailCallbackRoute: ApiGmailCallbackRoute,
   ApiMediaHeartbeatRoute: ApiMediaHeartbeatRoute,
   ApiMediaSessionRoute: ApiMediaSessionRoute,
-  ApiChatStreamRoute: ApiChatStreamRoute,
   ApiMediaTusHookRoute: ApiMediaTusHookRoute,
   ApiMercadopagoCallbackRoute: ApiMercadopagoCallbackRoute,
   ApiWebhooksMercadopagoRoute: ApiWebhooksMercadopagoRouteWithChildren,
@@ -1084,9 +1084,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAutomationsAttachmentsAutomationIdRoute:
     ApiAutomationsAttachmentsAutomationIdRoute,
   ApiCertificatesFrameCourseIdRoute: ApiCertificatesFrameCourseIdRoute,
-  ApiChatSendConversationIdRoute: ApiChatSendConversationIdRoute,
-  ApiChatAttachmentMessageIdRoute: ApiChatAttachmentMessageIdRoute,
   ApiCertificatesPreviewCourseIdRoute: ApiCertificatesPreviewCourseIdRoute,
+  ApiChatAttachmentMessageIdRoute: ApiChatAttachmentMessageIdRoute,
+  ApiChatSendConversationIdRoute: ApiChatSendConversationIdRoute,
   ApiDomainConnectReturnStateRoute: ApiDomainConnectReturnStateRoute,
   ApiMediaKeyVideoIdRoute: ApiMediaKeyVideoIdRoute,
   ApiWebhooksHyperswitchOrganizationIdRoute:
@@ -1098,12 +1098,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

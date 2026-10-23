@@ -266,7 +266,11 @@ function ExamCard({
 					type="button"
 					disabled={pending}
 					onClick={() => {
-						if (!window.confirm(`¿Borrar el examen "${exam.title}" y sus intentos?`))
+						if (
+							!window.confirm(
+								`¿Borrar el examen "${exam.title}" y sus intentos?`,
+							)
+						)
 							return;
 						run(
 							() => deleteExam({ data: { courseId, examId: exam.id } }),
@@ -286,7 +290,9 @@ function ExamCard({
 						)
 					}
 				>
-					{results ? "Ocultar resultados" : `Ver resultados (${exam.attemptCount})`}
+					{results
+						? "Ocultar resultados"
+						: `Ver resultados (${exam.attemptCount})`}
 				</button>
 			</p>
 			{message && <output>{message}</output>}
@@ -315,7 +321,11 @@ function ExamCard({
 								<td>{new Date(r.submittedAt).toLocaleString("es-AR")}</td>
 								<td>{r.score} %</td>
 								<td>
-									{r.expired ? "Fuera de tiempo" : r.passed ? "Aprobado" : "Desaprobado"}
+									{r.expired
+										? "Fuera de tiempo"
+										: r.passed
+											? "Aprobado"
+											: "Desaprobado"}
 								</td>
 							</tr>
 						))}
@@ -386,7 +396,11 @@ function ExamCard({
 												run(
 													() =>
 														deleteExamQuestion({
-															data: { courseId, examId: exam.id, questionId: q.id },
+															data: {
+																courseId,
+																examId: exam.id,
+																questionId: q.id,
+															},
 														}),
 													"Pregunta borrada.",
 												)
@@ -445,7 +459,9 @@ function QuestionForm({
 				],
 	);
 	const [trueIsCorrect, setTrueIsCorrect] = useState(
-		question?.kind === "truefalse" ? (question.options[0]?.correct ?? true) : true,
+		question?.kind === "truefalse"
+			? (question.options[0]?.correct ?? true)
+			: true,
 	);
 	const [accepted, setAccepted] = useState(
 		question && question.accepted.length > 0
@@ -579,7 +595,9 @@ function QuestionForm({
 					<button
 						type="button"
 						disabled={options.length >= 10}
-						onClick={() => setOptions([...options, { text: "", correct: false }])}
+						onClick={() =>
+							setOptions([...options, { text: "", correct: false }])
+						}
 					>
 						Agregar opción
 					</button>
@@ -657,7 +675,9 @@ function QuestionForm({
 					))}
 					<button
 						type="button"
-						onClick={() => setAccepted([...accepted, { value: "", tolerance: "" }])}
+						onClick={() =>
+							setAccepted([...accepted, { value: "", tolerance: "" }])
+						}
 					>
 						Agregar respuesta
 					</button>
